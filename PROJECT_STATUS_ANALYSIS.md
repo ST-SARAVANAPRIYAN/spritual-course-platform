@@ -184,20 +184,8 @@
 #### 1. **MongoDB Connection String** - EXPOSED
 **Location:** `server.js` (Line 26)
 ```javascript
-const MONGODB_URL = process.env.MONGODB_URL || "mongodb+srv://2006nareshd_db_user:nareshdinnerspark7200@inner-spark-cluster.nkdfn9t.mongodb.net/";
+
 ```
-
-**Location:** `database/seed.js` (Line 15)
-```javascript
-const MONGO_URI = process.env.MONGODB_URL || "mongodb+srv://2006nareshd_db_user:nareshdinnerspark7200@inner-spark-cluster.nkdfn9t.mongodb.net/";
-```
-
-**Issue:** Database username and password are hardcoded in fallback
-**Username:** `2006nareshd_db_user`
-**Password:** `nareshdinnerspark7200`
-**Cluster:** `inner-spark-cluster.nkdfn9t.mongodb.net`
-
-**Risk:** 🔴 CRITICAL - Anyone with code access can access your database
 
 ---
 
