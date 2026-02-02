@@ -59,7 +59,8 @@
         try {
             const body = awaitingEmail ? { message: "Sharing email", email: text } : { message: text };
 
-            const res = await fetch('/api/chatbot/ask', {
+            const API_BASE = (typeof Auth !== 'undefined' ? Auth.apiBase : 'http://localhost:5000/api');
+            const res = await fetch(`${API_BASE}/chatbot/ask`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

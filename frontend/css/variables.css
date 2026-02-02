@@ -192,3 +192,62 @@ h6 {
         opacity: 0;
     }
 }
+
+/* Dashboard Sidebar Navigation */
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 5px;
+    font-weight: 500;
+    transition: var(--transition-smooth);
+}
+
+.nav-link i {
+    width: 25px;
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+.nav-link:hover {
+    background: rgba(255, 153, 51, 0.1);
+    color: var(--color-saffron);
+}
+
+.nav-link.active {
+    background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));
+    color: white;
+    box-shadow: 0 4px 10px rgba(255, 153, 51, 0.3);
+}
+
+/* Form Styles for Dashboards */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    transition: var(--transition-smooth);
+}
+
+.form-control:focus {
+    border-color: var(--color-saffron);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.1);
+}

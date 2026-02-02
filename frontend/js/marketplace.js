@@ -22,7 +22,7 @@ let allCourses = [];
 async function loadMarketplace() {
     try {
         UI.showLoader();
-        const res = await fetch('/api/courses/marketplace');
+        const res = await fetch(`${API_URL}/courses/marketplace`);
         allCourses = await res.json();
         renderCourses(allCourses);
     } catch (err) {
@@ -64,7 +64,7 @@ function renderCourses(courses) {
 
 async function trackMetric(type, metadata = '', courseID = null) {
     try {
-        await fetch('/api/analytics/track', {
+        await fetch(`${API_URL}/analytics/track`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({ courseID, type, metadata })
@@ -86,7 +86,7 @@ async function openCourseModal(id) {
     const modal = document.getElementById('coursePreviewModal');
     try {
         UI.showLoader();
-        const res = await fetch(`/api/courses/${id}`, {
+        const res = await fetch(`${API_URL}/courses/${id}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
@@ -122,7 +122,7 @@ async function openCourseModal(id) {
         // Fetch Preview Data separately to get public preview durations if not logged in
         let previews = [];
         try {
-            const previewRes = await fetch(`/api/courses/${id}/preview`);
+            const previewRes = await fetch(`${API_URL}/courses/${id}/preview`);
             if (previewRes.ok) {
                 const previewData = await previewRes.json();
                 previews = previewData.previews || [];

@@ -11,7 +11,7 @@ const {
     Forum, Broadcast, Banner, Blog, Event, Newsletter, Coupon
 } = require('../backend/models/index');
 
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 
 const MONGO_URI = process.env.MONGODB_URL;
 

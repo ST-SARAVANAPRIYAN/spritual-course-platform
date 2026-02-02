@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadOrderDetails() {
     try {
-        const res = await fetch(`/api/courses/${courseID}`, { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/courses/${courseID}`, { headers: Auth.getHeaders() });
         const { course } = await res.json();
 
         basePrice = course.price;
@@ -56,7 +56,7 @@ async function applyCoupon() {
     if (!code) return;
 
     try {
-        const res = await fetch('/api/payments/validate-coupon', {
+        const res = await fetch(`${Auth.apiBase}/payments/validate-coupon`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({ code })
@@ -94,7 +94,7 @@ async function processCheckout() {
     btn.disabled = true;
 
     try {
-        const res = await fetch('/api/payments/process', {
+        const res = await fetch(`${Auth.apiBase}/payments/process`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({

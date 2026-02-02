@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadExam() {
     try {
-        const res = await fetch(`/api/exams/${currentExamID}`, {
+        const res = await fetch(`${Auth.apiBase}/exams/${currentExamID}`, {
             headers: Auth.getHeaders()
         });
         examData = await res.json();
@@ -98,7 +98,7 @@ async function submitExam(auto = false) {
     });
 
     try {
-        const res = await fetch('/api/exams/submit', {
+        const res = await fetch(`${Auth.apiBase}/exams/submit`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({

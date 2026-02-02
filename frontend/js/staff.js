@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             UI.showLoader();
-            const res = await fetch('/api/staff/courses', {
+            const res = await fetch(`${Auth.apiBase}/staff/courses`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             UI.showLoader();
-            const res = await fetch('/api/staff/content', {
+            const res = await fetch(`${Auth.apiBase}/staff/content`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 body: formData
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             UI.showLoader();
-            const res = await fetch('/api/exams/create', {
+            const res = await fetch(`${Auth.apiBase}/exams/create`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             UI.showLoader();
-            const res = await fetch('/api/schedules', {
+            const res = await fetch(`${Auth.apiBase}/schedules`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -168,7 +168,7 @@ function switchSection(section) {
 async function loadStudentInsights() {
     const list = document.getElementById('studentInsightList');
     try {
-        const res = await fetch('/api/staff/students', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
         const enrollments = await res.json();
 
         if (enrollments.length === 0) {
@@ -203,7 +203,7 @@ async function loadStudentInsights() {
 async function loadSchedules() {
     const list = document.getElementById('scheduleList');
     try {
-        const res = await fetch('/api/schedules/my-timetable', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/schedules/my-timetable`, { headers: Auth.getHeaders() });
         const schedules = await res.json();
 
         if (schedules.length === 0) {
@@ -270,7 +270,7 @@ function addQuestionField() {
 
 async function loadCourses() {
     try {
-        const res = await fetch('/api/staff/courses', {
+        const res = await fetch(`${Auth.apiBase}/staff/courses`, {
             headers: Auth.getHeaders()
         });
         const courses = await res.json();

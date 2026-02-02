@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = Object.fromEntries(new FormData(e.target).entries());
         try {
             UI.showLoader();
-            const res = await fetch('/api/admin/broadcast', {
+            const res = await fetch(`${Auth.apiBase}/admin/broadcast`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = Object.fromEntries(new FormData(e.target).entries());
         try {
             UI.showLoader();
-            const res = await fetch('/api/admin/override', {
+            const res = await fetch(`${Auth.apiBase}/admin/override`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         try {
             UI.showLoader();
-            const res = await fetch('/api/admin/banners', {
+            const res = await fetch(`${Auth.apiBase}/admin/banners`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 body: formData
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = Object.fromEntries(new FormData(e.target).entries());
         try {
             UI.showLoader();
-            const res = await fetch('/api/extra/blogs', {
+            const res = await fetch(`${Auth.apiBase}/extra/blogs`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = Object.fromEntries(new FormData(e.target).entries());
         try {
             UI.showLoader();
-            const res = await fetch('/api/extra/events', {
+            const res = await fetch(`${Auth.apiBase}/extra/events`, {
                 method: 'POST',
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
@@ -138,7 +138,7 @@ async function switchSection(section) {
 async function loadAnalytics() {
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/analytics', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/analytics`, { headers: Auth.getHeaders() });
         const data = await res.json();
 
         // Populate Stats
@@ -190,7 +190,7 @@ async function loadCertificates() {
     const list = document.getElementById('certificatesList');
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/certificates', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/certificates`, { headers: Auth.getHeaders() });
         const certs = await res.json();
 
         if (certs.length === 0) {
@@ -233,7 +233,7 @@ async function revokeCert(id) {
     if (!confirm("Are you sure you want to withdraw this certificate of enlightenment?")) return;
     try {
         UI.showLoader();
-        const res = await fetch(`/api/admin/certificates/${id}`, {
+        const res = await fetch(`${Auth.apiBase}/admin/certificates/${id}`, {
             method: 'DELETE',
             headers: Auth.getHeaders()
         });
@@ -249,7 +249,7 @@ async function loadLedger() {
     const list = document.getElementById('ledgerList');
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/ledger', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/ledger`, { headers: Auth.getHeaders() });
         const ledger = await res.json();
 
         list.innerHTML = ledger.map(p => `
@@ -274,7 +274,7 @@ async function loadLedger() {
 async function loadQueue() {
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/pending', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/pending`, { headers: Auth.getHeaders() });
         const data = await res.json();
         const list = document.getElementById('pendingQueue');
 
@@ -321,7 +321,7 @@ async function submitReview(status) {
 
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/review', {
+        const res = await fetch(`${Auth.apiBase}/admin/review`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({
@@ -347,7 +347,7 @@ async function loadBanners() {
     const list = document.getElementById('bannerList');
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/banners', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/banners`, { headers: Auth.getHeaders() });
         const banners = await res.json();
 
         list.innerHTML = banners.map(b => `
@@ -367,14 +367,14 @@ async function loadBanners() {
 async function loadOverrideCourses() {
     const select = document.getElementById('overrideCourseSelect');
     try {
-        const res = await fetch('/api/courses/marketplace');
+        const res = await fetch(`${Auth.apiBase}/courses/marketplace`);
         const courses = await res.json();
         select.innerHTML = courses.map(c => `<option value="${c._id}">${c.title}</option>`).join('');
     } catch (err) { console.error(err); }
 }
 async function loadStats() {
     try {
-        const res = await fetch('/api/admin/stats', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/stats`, { headers: Auth.getHeaders() });
         const stats = await res.json();
 
         document.getElementById('statUsers').textContent = stats.totalUsers;
@@ -388,7 +388,7 @@ async function loadStats() {
 
 async function loadQueue() {
     try {
-        const res = await fetch('/api/admin/pending', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/pending`, { headers: Auth.getHeaders() });
         const data = await res.json();
         const list = document.getElementById('pendingQueue');
 
@@ -454,7 +454,7 @@ async function submitReview(status) {
     const remarks = document.getElementById('adminRemarks').value;
 
     try {
-        const res = await fetch('/api/admin/review', {
+        const res = await fetch(`${Auth.apiBase}/admin/review`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({
@@ -480,7 +480,7 @@ async function submitReview(status) {
 async function loadBanners() {
     const list = document.getElementById('bannerList');
     try {
-        const res = await fetch('/api/admin/banners', { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/admin/banners`, { headers: Auth.getHeaders() });
         const banners = await res.json();
 
         list.innerHTML = banners.map(b => `
@@ -502,7 +502,7 @@ async function addStaff() {
 
     try {
         UI.showLoader();
-        const res = await fetch('/api/admin/add-staff', {
+        const res = await fetch(`${Auth.apiBase}/admin/add-staff`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify(data)

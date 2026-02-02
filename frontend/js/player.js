@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const comment = forumForm.comment.value;
             try {
-                const res = await fetch('/api/forum/add', {
+                const res = await fetch(`${Auth.apiBase}/forum/add`, {
                     method: 'POST',
                     headers: Auth.getHeaders(),
                     body: JSON.stringify({ courseID: currentCourseID, comment })
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadPlayer() {
     try {
         UI.showLoader();
-        const res = await fetch(`/api/courses/${currentCourseID}`, {
+        const res = await fetch(`${Auth.apiBase}/courses/${currentCourseID}`, {
             headers: Auth.getHeaders()
         });
         const data = await res.json();
@@ -151,7 +151,7 @@ function playContent(item) {
 
 async function trackMetric(type, metadata = '') {
     try {
-        await fetch('/api/analytics/track', {
+        await fetch(`${Auth.apiBase}/analytics/track`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({
@@ -174,7 +174,7 @@ function switchContent(id) {
 async function loadForum() {
     const list = document.getElementById('forumList');
     try {
-        const res = await fetch(`/api/forum/course/${currentCourseID}`, { headers: Auth.getHeaders() });
+        const res = await fetch(`${Auth.apiBase}/forum/course/${currentCourseID}`, { headers: Auth.getHeaders() });
         const posts = await res.json();
 
         if (posts.length === 0) {
@@ -204,7 +204,7 @@ async function loadForum() {
 async function markAsComplete() {
     const btn = document.getElementById('markCompleteBtn');
     try {
-        const res = await fetch('/api/progress/mark-complete', {
+        const res = await fetch(`${Auth.apiBase}/progress/mark-complete`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({ courseID: currentCourseID, lessonID: currentContentID })

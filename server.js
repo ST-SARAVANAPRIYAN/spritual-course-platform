@@ -3,7 +3,7 @@
  * Version: 1.0
  */
 
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
