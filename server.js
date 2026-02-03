@@ -62,6 +62,10 @@ app.get('/', (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 InnerSpark Server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 InnerSpark Server running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
