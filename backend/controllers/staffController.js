@@ -34,7 +34,7 @@ exports.uploadContent = async (req, res) => {
 
         if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
-        const fileUrl = `/uploads/${req.file.destination.split('uploads')[1]}/${req.file.filename}`.replace(/\\/g, '/');
+        const fileUrl = req.file.path;
 
         const newContent = new Content({
             courseID,

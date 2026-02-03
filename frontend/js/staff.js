@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const { user } = authData;
     document.getElementById('mentorName').textContent = user.name;
-    
+
     // Set staff name and avatar in top header
     if (user) {
         document.getElementById('staffName').textContent = user.name || 'Mentor';
@@ -56,14 +56,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
-        
+
+        console.log('📤 Upload initiated...');
+        console.log('Form data entries:', Array.from(formData.entries()));
+
         // Add title field if not present (use filename as title)
         if (!formData.get('title')) {
             const fileInput = e.target.querySelector('input[type="file"]');
             const fileName = fileInput.files[0]?.name || 'Untitled Material';
             formData.append('title', fileName.split('.')[0]);
         }
-        
+
         // Add category based on type
         const type = formData.get('type');
         const categoryMap = {
@@ -73,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'Note': 'pdf'
         };
         formData.append('category', categoryMap[type] || 'pdf');
-        
+
         const btn = e.target.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
         btn.textContent = 'Uploading...';
@@ -81,13 +84,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             UI.showLoader();
+            console.log('📡 Sending request to:', `${Auth.apiBase}/courses/materials/upload`);
+
             const res = await fetch(`${Auth.apiBase}/courses/materials/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 body: formData
             });
 
+            console.log('📥 Response status:', res.status);
+
             if (res.ok) {
+                const data = await res.json();
+                console.log('✅ Upload successful:', data);
                 UI.success("Material uploaded successfully! Awaiting admin approval.");
                 uploadModal.style.display = 'none';
                 e.target.reset();
@@ -97,11 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 const err = await res.json();
-                UI.error('Upload failed: ' + err.message);
+                console.error('❌ Upload failed with error:', err);
+                UI.error('Upload failed: ' + (err.message || 'Unknown error'));
             }
         } catch (err) {
-            console.error(err);
-            UI.error('Upload failed. Please try again.');
+            console.error('💥 Upload caught exception:', err);
+            UI.error('Upload failed: ' + err.message + '. Check MongoDB connection.');
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;
@@ -355,60 +365,92 @@ async function loadMyMaterials() {
         const res = await fetch(`${Auth.apiBase}/courses/materials/my`, {
             headers: Auth.getHeaders()
         });
-        
+
         if (!res.ok) throw new Error('Failed to load materials');
-        
+
         const materials = await res.json();
         const list = document.getElementById('myMaterialsList');
-        
+
         if (materials.length === 0) {
             list.innerHTML = '<p style="color: var(--color-text-secondary);">No materials uploaded yet.</p>';
             return;
         }
-        
-        // Group by approval status
+
+        // Group materials by course for hierarchical display
+        const groupedByCourse = {};
+        materials.forEach(material => {
+            const courseTitle = material.courseID?.title || 'Unassigned';
+            const courseId = material.courseID?._id || 'none';
+            if (!groupedByCourse[courseId]) {
+                groupedByCourse[courseId] = {
+                    title: courseTitle,
+                    materials: []
+                };
+            }
+            groupedByCourse[courseId].materials.push(material);
+        });
+
+        // Group by approval status for summary
         const pending = materials.filter(m => m.approvalStatus === 'Pending');
         const approved = materials.filter(m => m.approvalStatus === 'Approved');
         const rejected = materials.filter(m => m.approvalStatus === 'Rejected');
-        
+
         let html = '';
-        
-        // Pending Materials
-        if (pending.length > 0) {
+
+        // Summary cards
+        html += `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${pending.length}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-clock"></i> Pending Approval</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${approved.length}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-check-circle"></i> Approved</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${rejected.length}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-times-circle"></i> Needs Correction</div>
+                </div>
+            </div>
+        `;
+
+        // Display materials grouped by course
+        html += '<h3 style="margin: 30px 0 20px; color: #333;"><i class="fas fa-layer-group"></i> Materials by Course</h3>';
+
+        Object.keys(groupedByCourse).forEach(courseId => {
+            const courseGroup = groupedByCourse[courseId];
+            const courseMaterials = courseGroup.materials;
+
+            // Count statuses for this course
+            const coursePending = courseMaterials.filter(m => m.approvalStatus === 'Pending').length;
+            const courseApproved = courseMaterials.filter(m => m.approvalStatus === 'Approved').length;
+            const courseRejected = courseMaterials.filter(m => m.approvalStatus === 'Rejected').length;
+
             html += `
-                <h4 style="color: var(--color-saffron); margin-bottom: 15px;">
-                    <i class="fas fa-clock"></i> Pending Approval (${pending.length})
-                </h4>
-                <div style="margin-bottom: 30px;">
-                    ${pending.map(m => renderMaterialCard(m, true)).join('')}
+                <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+                        <div>
+                            <h4 style="margin: 0; color: var(--color-golden); font-size: 1.3rem;">
+                                <i class="fas fa-book-open"></i> ${courseGroup.title}
+                            </h4>
+                            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                                ${courseMaterials.length} material(s) uploaded
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 15px; font-size: 0.85rem;">
+                            ${coursePending > 0 ? `<span style="color: var(--color-saffron); font-weight: 600;"><i class="fas fa-clock"></i> ${coursePending} Pending</span>` : ''}
+                            ${courseApproved > 0 ? `<span style="color: var(--color-success); font-weight: 600;"><i class="fas fa-check"></i> ${courseApproved} Approved</span>` : ''}
+                            ${courseRejected > 0 ? `<span style="color: var(--color-error); font-weight: 600;"><i class="fas fa-times"></i> ${courseRejected} Rejected</span>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        ${courseMaterials.map(m => renderMaterialCard(m, m.approvalStatus !== 'Approved')).join('')}
+                    </div>
                 </div>
             `;
-        }
-        
-        // Rejected Materials
-        if (rejected.length > 0) {
-            html += `
-                <h4 style="color: var(--color-error); margin-bottom: 15px;">
-                    <i class="fas fa-times-circle"></i> Needs Corrections (${rejected.length})
-                </h4>
-                <div style="margin-bottom: 30px;">
-                    ${rejected.map(m => renderMaterialCard(m, true)).join('')}
-                </div>
-            `;
-        }
-        
-        // Approved Materials
-        if (approved.length > 0) {
-            html += `
-                <h4 style="color: var(--color-success); margin-bottom: 15px;">
-                    <i class="fas fa-check-circle"></i> Approved Materials (${approved.length})
-                </h4>
-                <div>
-                    ${approved.map(m => renderMaterialCard(m, false)).join('')}
-                </div>
-            `;
-        }
-        
+        });
+
         list.innerHTML = html;
     } catch (err) {
         console.error(err);
@@ -424,13 +466,13 @@ function renderMaterialCard(material, canEdit) {
         'Approved': 'var(--color-success)',
         'Rejected': 'var(--color-error)'
     };
-    
+
     const icons = {
         'video': 'fa-video',
         'pdf': 'fa-file-pdf',
         'audio': 'fa-music'
     };
-    
+
     return `
         <div class="course-list-item" style="margin-bottom: 15px;">
             <div style="flex: 1;">
@@ -481,17 +523,17 @@ async function openEditMaterial(materialId) {
         const res = await fetch(`${Auth.apiBase}/courses/materials/${materialId}`, {
             headers: Auth.getHeaders()
         });
-        
+
         if (!res.ok) throw new Error('Failed to load material');
-        
+
         const material = await res.json();
-        
+
         // Populate edit form
         document.getElementById('editMaterialId').value = material._id;
         document.getElementById('editMaterialTitle').value = material.title;
         document.getElementById('editMaterialType').value = material.type;
         document.getElementById('editPreviewDuration').value = material.previewDuration || 30;
-        
+
         // Show modal
         document.getElementById('editMaterialModal').style.display = 'flex';
     } catch (err) {
@@ -509,23 +551,23 @@ document.getElementById('closeEditMaterialModal').addEventListener('click', () =
 
 document.getElementById('editMaterialForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const materialId = document.getElementById('editMaterialId').value;
     const formData = new FormData();
-    
+
     formData.append('title', document.getElementById('editMaterialTitle').value);
     formData.append('previewDuration', document.getElementById('editPreviewDuration').value);
-    
+
     const fileInput = document.getElementById('editMaterialFile');
     if (fileInput.files[0]) {
         formData.append('file', fileInput.files[0]);
     }
-    
+
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.textContent;
     btn.textContent = 'Updating...';
     btn.disabled = true;
-    
+
     try {
         UI.showLoader();
         const res = await fetch(`${Auth.apiBase}/courses/materials/${materialId}`, {
@@ -533,7 +575,7 @@ document.getElementById('editMaterialForm').addEventListener('submit', async (e)
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
             body: formData
         });
-        
+
         if (res.ok) {
             UI.success('Material updated successfully!');
             document.getElementById('editMaterialModal').style.display = 'none';
@@ -552,8 +594,144 @@ document.getElementById('editMaterialForm').addEventListener('submit', async (e)
     }
 });
 
-function viewMaterial(materialId) {
-    // For approved materials, just show a success message
-    // In a full implementation, this would open the material in a viewer
-    UI.success('Material viewer coming soon! Material ID: ' + materialId);
+let currentViewMaterialUrl = null;
+
+async function viewMaterial(materialId) {
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/courses/materials/${materialId}`, {
+            headers: Auth.getHeaders()
+        });
+
+        if (!res.ok) throw new Error('Failed to load material');
+
+        const material = await res.json();
+        currentViewMaterialUrl = material.fileUrl;
+
+        const statusColors = {
+            'Pending': 'var(--color-saffron)',
+            'Approved': 'var(--color-success)',
+            'Rejected': 'var(--color-error)'
+        };
+
+        const icons = {
+            'video': 'fa-video',
+            'pdf': 'fa-file-pdf',
+            'audio': 'fa-music'
+        };
+
+        // Build preview content based on file type
+        let previewHTML = '';
+        const fileUrl = material.fileUrl;
+
+        if (material.category === 'video' && fileUrl) {
+            previewHTML = `
+                <div style="margin: 20px 0; background: #000; border-radius: 8px; overflow: hidden;">
+                    <video controls style="width: 100%; max-height: 400px;">
+                        <source src="${fileUrl}" type="video/mp4">
+                        Your browser does not support video playback.
+                    </video>
+                </div>
+            `;
+        } else if (material.category === 'pdf' && fileUrl) {
+            previewHTML = `
+                <div style="margin: 20px 0; background: #f5f5f5; border-radius: 8px; padding: 20px; text-align: center;">
+                    <i class="fas fa-file-pdf" style="font-size: 4rem; color: #dc3545; margin-bottom: 15px;"></i>
+                    <p style="font-weight: 600; margin-bottom: 10px;">PDF Document</p>
+                    <p style="font-size: 0.9rem; color: #666;">Click "Download" below to view the PDF file.</p>
+                </div>
+            `;
+        } else if (material.category === 'audio' && fileUrl) {
+            previewHTML = `
+                <div style="margin: 20px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 30px; text-align: center;">
+                    <i class="fas fa-music" style="font-size: 3rem; color: white; margin-bottom: 15px;"></i>
+                    <audio controls style="width: 100%; margin-top: 10px;">
+                        <source src="${fileUrl}" type="audio/mpeg">
+                        Your browser does not support audio playback.
+                    </audio>
+                </div>
+            `;
+        }
+
+        document.getElementById('viewMaterialContent').innerHTML = `
+            <div style="text-align: center; margin-bottom: 25px;">
+                <div style="width: 80px; height: 80px; background: ${statusColors[material.approvalStatus]}20; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                    <i class="fas ${icons[material.category] || 'fa-file'}" style="color: ${statusColors[material.approvalStatus]}; font-size: 2.5rem;"></i>
+                </div>
+                <h3 style="margin: 0 0 10px 0; color: #333;">${material.title}</h3>
+                <span style="padding: 5px 12px; background: ${statusColors[material.approvalStatus]}20; color: ${statusColors[material.approvalStatus]}; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
+                    ${material.approvalStatus}
+                </span>
+            </div>
+            
+            ${previewHTML}
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Type</div>
+                    <div style="font-weight: 600;">${material.type}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Category</div>
+                    <div style="font-weight: 600;">${material.category.toUpperCase()}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Course</div>
+                    <div style="font-weight: 600;">${material.courseID?.title || 'Unknown'}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">File Size</div>
+                    <div style="font-weight: 600;">${material.fileSize ? (material.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown'}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Uploaded On</div>
+                    <div style="font-weight: 600;">${new Date(material.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Preview Duration</div>
+                    <div style="font-weight: 600;">${material.previewDuration || 0} seconds</div>
+                </div>
+            </div>
+            
+            ${material.adminRemarks ? `
+                <div style="padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 0.8rem; color: #1976d2; font-weight: 600; margin-bottom: 5px;">Admin Remarks:</div>
+                    <div style="color: #333;">${material.adminRemarks}</div>
+                </div>
+            ` : ''}
+            
+            ${material.rejectionReason ? `
+                <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-size: 0.8rem; color: #721c24; font-weight: 600; margin-bottom: 5px;">
+                        <i class="fas fa-exclamation-circle"></i> Rejection Reason:
+                    </div>
+                    <div style="color: #333;">${material.rejectionReason}</div>
+                </div>
+            ` : ''}
+        `;
+
+        // Show modal
+        document.getElementById('viewMaterialModal').style.display = 'flex';
+    } catch (err) {
+        console.error(err);
+        UI.error('Failed to load material details');
+    } finally {
+        UI.hideLoader();
+    }
 }
+
+// Close view modal handler
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('closeViewMaterialModal')?.addEventListener('click', () => {
+        document.getElementById('viewMaterialModal').style.display = 'none';
+        currentViewMaterialUrl = null;
+    });
+
+    document.getElementById('downloadMaterialBtn')?.addEventListener('click', () => {
+        if (currentViewMaterialUrl) {
+            window.open(currentViewMaterialUrl, '_blank');
+        } else {
+            UI.error('No file URL available');
+        }
+    });
+});

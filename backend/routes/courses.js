@@ -3,7 +3,7 @@ const router = express.Router();
 const courseController = require('../controllers/courseController');
 const materialController = require('../controllers/materialController');
 const jwt = require('jsonwebtoken');
-const upload = require('../middleware/upload');
+const upload = require('../utils/cloudinaryStorage');
 
 // Utility to handle optional authentication for access checks
 const optionalAuth = (req, res, next) => {
@@ -72,9 +72,9 @@ router.get('/materials/my', authorize(['Staff', 'Admin']), materialController.ge
 
 // @route   POST /api/courses/materials/upload
 // @desc    Upload new material (Staff/Admin)
-router.post('/materials/upload', 
-    authorize(['Admin', 'Staff']), 
-    upload.single('file'), 
+router.post('/materials/upload',
+    authorize(['Admin', 'Staff']),
+    upload.single('file'),
     materialController.uploadMaterial
 );
 
@@ -84,30 +84,30 @@ router.get('/materials/:id', authorize(['Admin', 'Staff']), materialController.g
 
 // @route   PUT /api/courses/materials/:id
 // @desc    Update material (Staff - only pending materials)
-router.put('/materials/:id', 
-    authorize(['Admin', 'Staff']), 
-    upload.single('file'), 
+router.put('/materials/:id',
+    authorize(['Admin', 'Staff']),
+    upload.single('file'),
     materialController.updateMaterial
 );
 
 // @route   POST /api/courses/materials/:id/approve
 // @desc    Approve material (Admin only)
-router.post('/materials/:id/approve', 
-    authorize(['Admin']), 
+router.post('/materials/:id/approve',
+    authorize(['Admin']),
     materialController.approveMaterial
 );
 
 // @route   POST /api/courses/materials/:id/corrections
 // @desc    Request corrections (Admin only)
-router.post('/materials/:id/corrections', 
-    authorize(['Admin']), 
+router.post('/materials/:id/corrections',
+    authorize(['Admin']),
     materialController.requestCorrections
 );
 
 // @route   DELETE /api/courses/materials/:id
 // @desc    Delete material permanently (Admin only)
-router.delete('/materials/:id', 
-    authorize(['Admin']), 
+router.delete('/materials/:id',
+    authorize(['Admin']),
     materialController.deleteMaterial
 );
 

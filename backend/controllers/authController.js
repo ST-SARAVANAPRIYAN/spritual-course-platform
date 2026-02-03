@@ -49,7 +49,7 @@ exports.register = catchAsync(async (req, res, next) => {
     const studentID = await generateID(role);
 
     let profilePicPath = '';
-    if (req.file) profilePicPath = `/uploads/profiles/${req.file.filename}`;
+    if (req.file) profilePicPath = req.file.path;
 
     const newUser = new User({
         name,
@@ -150,11 +150,11 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
 
     if (req.file) {
         if (req.file.size < 5120 || req.file.size > 51200) {
-            const fs = require('fs');
-            fs.unlinkSync(req.file.path);
+            // const fs = require('fs');
+            // fs.unlinkSync(req.file.path); // Cannot local unlink Cloudinary URL
             return next(new AppError('File too large or too small. Size must be between 5KB and 50KB.', 400));
         }
-        updates.profilePic = `/uploads/profiles/${req.file.filename}`;
+        updates.profilePic = req.file.path;
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true, runValidators: true }).select('-password');

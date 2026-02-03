@@ -34,7 +34,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .top-header-brand {
@@ -92,7 +92,7 @@
         }
 
         .user-profile:hover {
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
 
         .user-avatar {
@@ -188,8 +188,8 @@
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
                 <li><a href="#" class="nav-link active" onclick="switchSection('courses')"><i
                             class="fas fa-swatchbook"></i> My Courses</a></li>
-                <li><a href="#" class="nav-link" onclick="switchSection('materials')"><i
-                            class="fas fa-book"></i> My Materials</a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('materials')"><i class="fas fa-book"></i> My
+                        Materials</a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('students')"><i class="fas fa-users"></i>
                         Student Insights</a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('live')"><i class="fas fa-video"></i> Live
@@ -219,61 +219,63 @@
             </div>
 
             <div style="padding: 40px;">
-            <header style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>Mentor Workshop</h1>
-                    <p>Welcome, <span id="mentorName">Mentor</span>. Your wisdom empowers many.</p>
-                </div>
-                <button class="btn-primary" id="newExamBtn" style="background: var(--color-golden);">+ Create
-                    Assessment</button>
-            </header>
+                <header
+                    style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Mentor Workshop</h1>
+                        <p>Welcome, <span id="mentorName">Mentor</span>. Your wisdom empowers many.</p>
+                    </div>
+                    <button class="btn-primary" id="newExamBtn" style="background: var(--color-golden);">+ Create
+                        Assessment</button>
+                </header>
 
-            <section id="coursesSection">
-                <h3 style="margin-bottom: 20px;">Manage Your Courses</h3>
-                <div id="courseList">
-                    <!-- Courses will be loaded here -->
-                    <p style="color: var(--color-text-secondary);">Loading your sanctuary projects...</p>
-                </div>
-            </section>
+                <section id="coursesSection">
+                    <h3 style="margin-bottom: 20px;">Manage Your Courses</h3>
+                    <div id="courseList">
+                        <!-- Courses will be loaded here -->
+                        <p style="color: var(--color-text-secondary);">Loading your sanctuary projects...</p>
+                    </div>
+                </section>
 
-            <!-- My Materials Section -->
-            <section id="materialsSection" style="display: none;">
-                <h3 style="margin-bottom: 20px;">My Uploaded Materials</h3>
-                <div id="myMaterialsList">
-                    <p style="color: var(--color-text-secondary);">Loading your materials...</p>
-                </div>
-            </section>
+                <!-- My Materials Section -->
+                <section id="materialsSection" style="display: none;">
+                    <h3 style="margin-bottom: 20px;">My Uploaded Materials</h3>
+                    <div id="myMaterialsList">
+                        <p style="color: var(--color-text-secondary);">Loading your materials...</p>
+                    </div>
+                </section>
 
-            <!-- Student Insights Section -->
-            <section id="studentsSection" style="display: none;">
-                <h3 style="margin-bottom: 20px;">Seeker Engagement</h3>
-                <div class="glass-card" style="padding: 0; overflow: hidden;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                        <thead style="background: rgba(0,0,0,0.02);">
-                            <tr>
-                                <th style="padding: 15px;">Seeker</th>
-                                <th style="padding: 15px;">Course</th>
-                                <th style="padding: 15px;">Enrolled On</th>
-                                <th style="padding: 15px;">Progress</th>
-                            </tr>
-                        </thead>
-                        <tbody id="studentInsightList">
-                            <!-- Data loads here -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                <!-- Student Insights Section -->
+                <section id="studentsSection" style="display: none;">
+                    <h3 style="margin-bottom: 20px;">Seeker Engagement</h3>
+                    <div class="glass-card" style="padding: 0; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead style="background: rgba(0,0,0,0.02);">
+                                <tr>
+                                    <th style="padding: 15px;">Seeker</th>
+                                    <th style="padding: 15px;">Course</th>
+                                    <th style="padding: 15px;">Enrolled On</th>
+                                    <th style="padding: 15px;">Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentInsightList">
+                                <!-- Data loads here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <!-- Live Classroom Section -->
-            <section id="liveSection" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h3>Live Flows & Schedules</h3>
-                    <button class="btn-primary" onclick="openScheduleModal()">+ Schedule New Flow</button>
-                </div>
-                <div id="scheduleList">
-                    <!-- Schedules load here -->
-                </div>
-            </section>
+                <!-- Live Classroom Section -->
+                <section id="liveSection" style="display: none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h3>Live Flows & Schedules</h3>
+                        <button class="btn-primary" onclick="openScheduleModal()">+ Schedule New Flow</button>
+                    </div>
+                    <div id="scheduleList">
+                        <!-- Schedules load here -->
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -349,6 +351,24 @@
                         style="background: var(--color-text-secondary);">Cancel</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- View Material Modal -->
+    <div class="modal" id="viewMaterialModal">
+        <div class="modal-content glass-card" style="max-width: 800px;">
+            <h2>Material Details</h2>
+            <div id="viewMaterialContent">
+                <!-- Content will be dynamically loaded -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 30px; justify-content: flex-end;">
+                <button type="button" class="btn-primary" id="downloadMaterialBtn"
+                    style="background: var(--color-success);">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button type="button" class="btn-primary" id="closeViewMaterialModal"
+                    style="background: var(--color-text-secondary);">Close</button>
+            </div>
         </div>
     </div>
 

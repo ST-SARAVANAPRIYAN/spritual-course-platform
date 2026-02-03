@@ -209,7 +209,7 @@ exports.uploadBanner = async (req, res) => {
         const banner = new Banner({
             title,
             link,
-            imageUrl: `/uploads/${req.file.filename}`
+            imageUrl: req.file.path
         });
         await banner.save();
         res.status(201).json({ message: 'Banner illuminated in marketplace!', banner });

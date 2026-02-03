@@ -6,13 +6,13 @@ const { Content, Course, User } = require('../models/index');
 exports.getCourseMaterials = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // Get all materials for this course
         const materials = await Content.find({ courseID: id })
             .populate('uploadedBy', 'name email role')
             .populate('approvedBy', 'name')
             .sort({ createdAt: -1 });
-        
+
         // Calculate stats
         const stats = {
             total: materials.length,
@@ -27,7 +27,7 @@ exports.getCourseMaterials = async (req, res) => {
                 rejected: materials.filter(m => m.approvalStatus === 'Rejected').length
             }
         };
-        
+
         res.status(200).json({ materials, stats });
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch materials', error: err.message });
@@ -37,13 +37,21 @@ exports.getCourseMaterials = async (req, res) => {
 // Upload new material (Staff/Admin)
 exports.uploadMaterial = async (req, res) => {
     try {
+        console.log('📤 Material upload request received');
+        console.log('User:', req.user);
+        console.log('Body:', req.body);
+        console.log('File:', req.file);
+
         const { courseID, title, type, category, previewDuration } = req.body;
         const file = req.file;
-        
+
         if (!file) {
+            console.error('❌ No file in request');
             return res.status(400).json({ message: 'File is required' });
         }
-        
+
+        console.log('✅ File received:', file.originalname, 'Size:', file.size, 'Path:', file.path);
+
         // Validate category matches type
         const categoryMap = {
             'PDF': 'pdf',
@@ -51,10 +59,10 @@ exports.uploadMaterial = async (req, res) => {
             'Audio': 'audio',
             'Note': 'pdf'
         };
-        
+
         // Auto-approve if uploaded by Admin
         const isAdmin = req.user.role === 'Admin';
-        
+
         const material = new Content({
             courseID,
             uploadedBy: req.user.id,
@@ -69,19 +77,24 @@ exports.uploadMaterial = async (req, res) => {
             approvedBy: isAdmin ? req.user.id : null,
             approvedAt: isAdmin ? new Date() : null
         });
-        
+
+        console.log('💾 Saving material to database...');
         await material.save();
-        
+        console.log('✅ Material saved successfully:', material._id);
+
         // Update course totalLessons count
         await Course.findByIdAndUpdate(courseID, {
             $inc: { totalLessons: 1 }
         });
-        
-        res.status(201).json({ 
-            message: 'Material uploaded successfully', 
-            material 
+
+        console.log('✅ Course updated');
+
+        res.status(201).json({
+            message: 'Material uploaded successfully',
+            material
         });
     } catch (err) {
+        console.error('💥 Material upload error:', err);
         res.status(500).json({ message: 'Upload failed', error: err.message });
     }
 };
@@ -92,22 +105,22 @@ exports.updateMaterial = async (req, res) => {
         const { id } = req.params;
         const { title, previewDuration } = req.body;
         const file = req.file;
-        
+
         const material = await Content.findById(id);
-        
+
         if (!material) {
             return res.status(404).json({ message: 'Material not found' });
         }
-        
+
         // Staff can only edit their own pending materials
-        if (req.user.role === 'Staff' && 
-            (material.uploadedBy.toString() !== req.user.id || 
-             material.approvalStatus !== 'Pending')) {
-            return res.status(403).json({ 
-                message: 'Cannot edit approved materials or materials uploaded by others' 
+        if (req.user.role === 'Staff' &&
+            (material.uploadedBy.toString() !== req.user.id ||
+                material.approvalStatus !== 'Pending')) {
+            return res.status(403).json({
+                message: 'Cannot edit approved materials or materials uploaded by others'
             });
         }
-        
+
         // Update fields
         if (title) material.title = title;
         if (previewDuration !== undefined) material.previewDuration = previewDuration;
@@ -117,12 +130,12 @@ exports.updateMaterial = async (req, res) => {
             material.fileSize = file.size;
         }
         material.updatedAt = Date.now();
-        
+
         await material.save();
-        
-        res.status(200).json({ 
-            message: 'Material updated successfully', 
-            material 
+
+        res.status(200).json({
+            message: 'Material updated successfully',
+            material
         });
     } catch (err) {
         res.status(500).json({ message: 'Update failed', error: err.message });
@@ -134,7 +147,7 @@ exports.approveMaterial = async (req, res) => {
     try {
         const { id } = req.params;
         const { adminRemarks } = req.body;
-        
+
         const material = await Content.findByIdAndUpdate(
             id,
             {
@@ -147,14 +160,14 @@ exports.approveMaterial = async (req, res) => {
             },
             { new: true }
         ).populate('uploadedBy', 'name email');
-        
+
         if (!material) {
             return res.status(404).json({ message: 'Material not found' });
         }
-        
-        res.status(200).json({ 
-            message: 'Material approved successfully', 
-            material 
+
+        res.status(200).json({
+            message: 'Material approved successfully',
+            material
         });
     } catch (err) {
         res.status(500).json({ message: 'Approval failed', error: err.message });
@@ -166,13 +179,13 @@ exports.requestCorrections = async (req, res) => {
     try {
         const { id } = req.params;
         const { rejectionReason } = req.body;
-        
+
         if (!rejectionReason || rejectionReason.trim().length < 10) {
-            return res.status(400).json({ 
-                message: 'Please provide detailed correction instructions (minimum 10 characters)' 
+            return res.status(400).json({
+                message: 'Please provide detailed correction instructions (minimum 10 characters)'
             });
         }
-        
+
         const material = await Content.findByIdAndUpdate(
             id,
             {
@@ -183,14 +196,14 @@ exports.requestCorrections = async (req, res) => {
             },
             { new: true }
         ).populate('uploadedBy', 'name email');
-        
+
         if (!material) {
             return res.status(404).json({ message: 'Material not found' });
         }
-        
-        res.status(200).json({ 
-            message: 'Corrections requested successfully', 
-            material 
+
+        res.status(200).json({
+            message: 'Corrections requested successfully',
+            material
         });
     } catch (err) {
         res.status(500).json({ message: 'Request failed', error: err.message });
@@ -201,21 +214,21 @@ exports.requestCorrections = async (req, res) => {
 exports.deleteMaterial = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         const material = await Content.findByIdAndDelete(id);
-        
+
         if (!material) {
             return res.status(404).json({ message: 'Material not found' });
         }
-        
+
         // Decrement course totalLessons count
         await Course.findByIdAndUpdate(material.courseID, {
             $inc: { totalLessons: -1 }
         });
-        
-        res.status(200).json({ 
-            message: 'Material deleted permanently', 
-            material 
+
+        res.status(200).json({
+            message: 'Material deleted permanently',
+            material
         });
     } catch (err) {
         res.status(500).json({ message: 'Deletion failed', error: err.message });
@@ -229,7 +242,7 @@ exports.getMyMaterials = async (req, res) => {
             .populate('courseID', 'title')
             .populate('approvedBy', 'name')
             .sort({ createdAt: -1 });
-        
+
         res.status(200).json(materials);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch materials', error: err.message });
@@ -240,16 +253,16 @@ exports.getMyMaterials = async (req, res) => {
 exports.getMaterial = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         const material = await Content.findById(id)
             .populate('uploadedBy', 'name email role')
             .populate('approvedBy', 'name')
             .populate('courseID', 'title');
-        
+
         if (!material) {
             return res.status(404).json({ message: 'Material not found' });
         }
-        
+
         res.status(200).json(material);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch material', error: err.message });
