@@ -13,19 +13,55 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .dashboard-container {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
+        :root {
+            --sidebar-width: 80px;
+            --sidebar-expanded: 260px;
         }
-
-        /* Sidebar */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
         .sidebar {
+            width: var(--sidebar-width);
             background: white;
-            padding: 30px;
             border-right: 1px solid rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
+            padding: 20px 10px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: hidden;
+        }
+        .sidebar:hover {
+            width: var(--sidebar-expanded);
+            align-items: flex-start;
+            padding-left: 20px;
+        }
+        .brand-text {
+            font-family: var(--font-heading);
+            color: var(--color-golden);
+            font-size: 1.2rem;
+            margin-left: 10px;
+            opacity: 0;
+            display: none;
+            transition: opacity 0.3s;
+        }
+        .sidebar:hover .brand-text {
+            display: inline-block;
+            opacity: 1;
+        }
+        .link-text {
+            margin-left: 15px;
+            opacity: 0;
+            display: none;
+        }
+        .sidebar:hover .link-text {
+            display: inline;
+            opacity: 1;
         }
 
         .user-profile {
@@ -281,45 +317,20 @@
 
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="user-profile">
+            <div class="brand" style="margin-bottom: 40px; text-align: center;">
                 <div class="avatar" id="userAvatar">U</div>
-                <h3 id="userName">User Name</h3>
-                <p id="userRole" style="color: var(--color-saffron); font-size: 0.9rem; font-weight: 600;">Student</p>
-                <small id="userUID" style="color: var(--color-text-secondary);">IS-2024-XXXX</small>
+                <span class="brand-text">Student</span>
             </div>
-
             <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active" onclick="switchSection('journey')"><i class="fas fa-home"></i>
-                        My Journey</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="switchSection('profile')"><i class="fas fa-user-circle"></i>
-                        My Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="switchSection('marketplace')"><i class="fas fa-book-open"></i>
-                        Marketplace</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="switchSection('timetable')"><i
-                            class="fas fa-calendar-alt"></i> Timetable</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="switchSection('payments')"><i class="fas fa-receipt"></i>
-                        Payments</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" onclick="switchSection('support')"><i class="fas fa-headset"></i>
-                        Support</a>
-                </li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="switchSection('journey')"><i class="fas fa-home"></i><span class="link-text">My Journey</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('profile')"><i class="fas fa-user-circle"></i><span class="link-text">My Profile</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('marketplace')"><i class="fas fa-book-open"></i><span class="link-text">Marketplace</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('timetable')"><i class="fas fa-calendar-alt"></i><span class="link-text">Timetable</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('payments')"><i class="fas fa-receipt"></i><span class="link-text">Payments</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('support')"><i class="fas fa-headset"></i><span class="link-text">Support</span></a></li>
             </ul>
-
-            <a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: auto;">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+            <a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: auto;"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
         </aside>
 
         <!-- Main Content -->
