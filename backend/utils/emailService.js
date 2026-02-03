@@ -1,20 +1,28 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 require('dotenv').config({ path: './backend/.env' });
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5000';
+
+// Create Reusable Transporter (Industry Standard SMTP)
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+    },
+});
 
 /**
  * Send Verification Email
- * @param {string} email - Recipient email
- * @param {string} token - Verification token
  */
 exports.sendVerificationEmail = async (email, token) => {
     try {
         const verifyLink = `${CLIENT_URL}/api/auth/verify-email?token=${token}`;
 
-        await resend.emails.send({
-            from: 'InnerSpark <onboarding@resend.dev>', // Change to your domain in production
+        await transporter.sendMail({
+            from: `"InnerSpark Support" <${process.env.SMTP_USER}>`,
             to: email,
             subject: 'Verify your InnerSpark Account',
             html: `
@@ -26,26 +34,21 @@ exports.sendVerificationEmail = async (email, token) => {
                 </div>
             `
         });
-        console.log(`✅ Verification email sent to ${email}`);
+        console.log(`✅ Verification email sent to ${email} (via SMTP)`);
     } catch (error) {
         console.error('❌ Error sending verification email:', error);
-        // Don't throw error to prevent blocking registration flow
     }
 };
 
 /**
  * Send Password Reset Email
- * @param {string} email - Recipient email
- * @param {string} token - Reset token
  */
 exports.sendPasswordResetEmail = async (email, token) => {
     try {
-        // Frontend URL for password reset page
-        // Assumes you will have a frontend route /reset-password?token=...
         const resetLink = `${CLIENT_URL}/reset-password.html?token=${token}`;
 
-        await resend.emails.send({
-            from: 'InnerSpark <security@resend.dev>',
+        await transporter.sendMail({
+            from: `"InnerSpark Security" <${process.env.SMTP_USER}>`,
             to: email,
             subject: 'Reset your InnerSpark Password',
             html: `
@@ -58,7 +61,7 @@ exports.sendPasswordResetEmail = async (email, token) => {
                 </div>
             `
         });
-        console.log(`✅ Password reset email sent to ${email}`);
+        console.log(`✅ Password reset email sent to ${email} (via SMTP)`);
     } catch (error) {
         console.error('❌ Error sending reset email:', error);
     }

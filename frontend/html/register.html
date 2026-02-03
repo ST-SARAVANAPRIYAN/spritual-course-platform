@@ -297,8 +297,10 @@
                 const result = await res.json();
 
                 if (res.ok) {
-                    UI.success(`Your path is chosen! Your ID is: ${result.studentID}`);
-                    setTimeout(() => window.location.href = 'login.html', 3000);
+                    UI.success(`Registration successful! Please check your email to verify your account.`);
+                    // Disable form to prevent double-submit
+                    document.querySelector('.btn-auth').disabled = true;
+                    setTimeout(() => window.location.href = 'login.html', 5000);
                 } else {
                     UI.error(result.message || 'The registration ritual failed.');
                 }

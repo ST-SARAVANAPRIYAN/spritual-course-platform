@@ -33,9 +33,15 @@ router.get('/verify-email', authController.verifyEmail);
 // @desc    Resend Verification Email
 router.post('/resend-verification', authController.resendVerification);
 
+// @route   GET /api/auth/ping
+router.get('/ping', (req, res) => res.send('pong'));
+
 // @route   POST /api/auth/forgot-password
 // @desc    Request Password Reset
-router.post('/forgot-password', authController.forgotPassword);
+router.post('/forgot-password', (req, res, next) => {
+    console.log('👉 Hit POST /forgot-password');
+    next();
+}, authController.forgotPassword);
 
 // @route   POST /api/auth/reset-password
 // @desc    Reset Password with Token
