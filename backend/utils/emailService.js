@@ -37,6 +37,7 @@ exports.sendVerificationEmail = async (email, token) => {
         console.log(`✅ Verification email sent to ${email} (via SMTP)`);
     } catch (error) {
         console.error('❌ Error sending verification email:', error);
+        throw error;
     }
 };
 
@@ -64,5 +65,6 @@ exports.sendPasswordResetEmail = async (email, token) => {
         console.log(`✅ Password reset email sent to ${email} (via SMTP)`);
     } catch (error) {
         console.error('❌ Error sending reset email:', error);
+        throw error; // Throw error so controller handles it
     }
 };

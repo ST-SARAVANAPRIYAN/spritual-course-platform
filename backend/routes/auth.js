@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const upload = require('../middleware/upload');
+const upload = require('../utils/r2Storage'); // Use R2 Storage
 
 // @route   POST /api/auth/register
 // @desc    Register a new user (Student/Staff/Admin)
