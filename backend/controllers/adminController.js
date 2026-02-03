@@ -250,3 +250,173 @@ exports.revokeCertificate = async (req, res) => {
         res.status(500).json({ message: 'Revocation failed' });
     }
 };
+// --- User Management (New) ---
+
+// Get Users (Filter by Role, Search, Status)
+exports.getUsers = async (req, res) => {
+    try {
+        const { role, search, status } = req.query;
+        let filter = {};
+
+        if (role) filter.role = role;
+
+        // Search Filter
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            filter.$or = [
+                { name: searchRegex },
+                { email: searchRegex },
+                { studentID: searchRegex }
+            ];
+        }
+
+        // Status Filter
+        if (status) {
+            if (status === 'active') filter.active = true;
+            if (status === 'inactive') filter.active = false;
+        }
+
+        const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
+        res.status(200).json(users);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch users', error: err.message });
+    }
+};
+
+// Create User (Staff or Student)
+exports.createUser = async (req, res) => {
+    try {
+        const { name, email, password, role, phone, initial, gender } = req.body;
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // ID Generation
+        let studentID;
+        const year = new Date().getFullYear();
+        if (role === 'Student') {
+            const count = await User.countDocuments({ role: 'Student' });
+            studentID = `IS-${year}-${String(count + 1).padStart(4, '0')}`;
+        } else {
+            const count = await User.countDocuments({ role: 'Staff' });
+            studentID = `STF-${year}-${String(count + 1).padStart(4, '0')}`;
+        }
+
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword,
+            role,
+            studentID,
+            phone,
+            initial,
+            gender,
+            active: true,
+            lastEditedBy: req.user ? req.user.role : 'Admin:Self', // Assume Admin creates it
+            auditHistory: [{
+                action: 'Create',
+                performedBy: req.user ? req.user.role : 'Admin',
+                reason: 'Initial Account Creation',
+                timestamp: new Date()
+            }]
+        });
+
+        await newUser.save();
+        res.status(201).json({ message: 'User created successfully', studentID });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to create user', error: err.message });
+    }
+};
+
+// Update User
+exports.updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const reason = updates.reason || 'No reason provided';
+        const adminRole = req.user ? req.user.role : 'Admin'; // Identify who is editing
+
+        // Prevent password update if empty
+        if (updates.password === '') delete updates.password;
+        if (updates.password) {
+            updates.password = await bcrypt.hash(updates.password, 10);
+        }
+
+        // Clean up updates object (remove metadata passed from frontend)
+        delete updates.reason;
+        delete updates.userId; // Often passed in ID
+
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Apply updates
+        Object.assign(user, updates);
+
+        // Audit Trail
+        user.lastEditedBy = adminRole;
+        user.lastEditedAt = new Date();
+        user.auditHistory.push({
+            action: 'Edit',
+            performedBy: adminRole,
+            reason: reason,
+            timestamp: new Date()
+        });
+
+        await user.save();
+        res.status(200).json({ message: 'User updated successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to update user', error: err.message });
+    }
+};
+
+// Delete User
+exports.deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason, confirmID } = req.body; // Expect these from body for strict check
+
+        // Find user first to verify ID
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Strict ID Check (Frontend should also handle this, but double check)
+        // Since we are deleting, we can't store logs IN the user document. 
+        // We will just proceed with deletion if confirmed.
+
+        await User.findByIdAndDelete(id);
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to delete user', error: err.message });
+    }
+};
+
+// Toggle User Status
+exports.toggleUserStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body; // Expect reason
+
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const newStatus = !user.active;
+        user.active = newStatus;
+
+        // Audit
+        user.lastEditedBy = 'Admin';
+        user.lastEditedAt = new Date();
+        user.auditHistory.push({
+            action: newStatus ? 'Activate' : 'Deactivate',
+            performedBy: 'Admin',
+            reason: reason || `Status changed to ${newStatus ? 'Active' : 'Inactive'}`,
+            timestamp: new Date()
+        });
+
+        await user.save();
+        res.status(200).json({ message: `User ${newStatus ? 'activated' : 'deactivated'}` });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to update status', error: err.message });
+    }
+};

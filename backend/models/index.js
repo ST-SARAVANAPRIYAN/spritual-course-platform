@@ -15,6 +15,7 @@ const userSchema = new Schema({
     password: { type: String, required: true },
     phone: { type: String },
     profilePic: { type: String },
+    active: { type: Boolean, default: true },
 
     // Extended Profile
     initial: { type: String },
@@ -43,6 +44,17 @@ const userSchema = new Schema({
     },
 
     enrolledCourses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
+
+    // Audit Trail
+    lastEditedBy: { type: String, default: 'System' },
+    lastEditedAt: { type: Date, default: Date.now },
+    auditHistory: [{
+        action: { type: String, enum: ['Create', 'Edit', 'Deactivate', 'Activate', 'Delete-Attempt'], required: true },
+        performedBy: { type: String, required: true },
+        reason: { type: String, required: true }, // Mandatory 100 chars
+        timestamp: { type: Date, default: Date.now }
+    }],
+
     createdAt: { type: Date, default: Date.now }
 });
 

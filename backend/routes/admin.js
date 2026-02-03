@@ -45,4 +45,11 @@ router.delete('/certificates/:id', adminController.revokeCertificate);
 // @route   POST /api/admin/add-staff
 router.post('/add-staff', adminController.addStaff);
 
+// User Management Routes
+router.get('/users', adminController.getUsers);
+router.post('/users', adminController.createUser);
+router.put('/users/:id', adminController.updateUser);
+router.delete('/users/:id', adminController.deleteUser);
+router.patch('/users/:id/status', adminController.toggleUserStatus);
+
 module.exports = router;
