@@ -25,4 +25,20 @@ router.put('/profile', authorize(), upload.single('profilePic'), authController.
 // @desc    Change Password
 router.put('/change-password', authorize(), authController.changePassword);
 
+// @route   GET /api/auth/verify-email
+// @desc    Verify Email Token
+router.get('/verify-email', authController.verifyEmail);
+
+// @route   POST /api/auth/resend-verification
+// @desc    Resend Verification Email
+router.post('/resend-verification', authController.resendVerification);
+
+// @route   POST /api/auth/forgot-password
+// @desc    Request Password Reset
+router.post('/forgot-password', authController.forgotPassword);
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset Password with Token
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;
