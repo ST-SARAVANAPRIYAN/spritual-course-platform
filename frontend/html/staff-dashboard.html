@@ -14,7 +14,8 @@
         .dashboard-container {
             display: grid;
             grid-template-columns: 80px 1fr;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
             transition: grid-template-columns 0.3s ease;
         }
 
@@ -26,9 +27,13 @@
             background: white;
             padding: 20px;
             border-right: 1px solid rgba(0, 0, 0, 0.05);
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             transition: all 0.3s ease;
             width: 80px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
         }
 
         .sidebar:hover {
@@ -181,9 +186,17 @@
         }
 
         .main-content {
-            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
             background: #fdfaf7;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            flex: 1;
             overflow-y: auto;
+            padding: 40px;
         }
 
         .modal {
@@ -234,6 +247,181 @@
             margin-bottom: 15px;
             box-shadow: var(--shadow-soft);
         }
+
+        .search-filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-md);
+            font-size: 0.9rem;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-md);
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .notification-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            transition: all 0.3s;
+        }
+
+        .notification-item.unseen {
+            background: #fff9e6;
+            border-left-color: #ff9800;
+        }
+
+        .notification-item.seen {
+            background: #f9f9f9;
+            border-left-color: #ddd;
+            opacity: 0.8;
+        }
+
+        .notification-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-message {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .notification-time {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+        .notification-action-btn {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .notification-action-btn:hover {
+            background: #f0f0f0;
+            color: var(--color-primary);
+        }
+
+        .unread-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--color-error);
+            border-radius: 50%;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .notification-date {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .notification-body {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .messages-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages-panel.open {
+            right: 0;
+        }
+
+        .messages-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .messages-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
     </style>
 </head>
 
@@ -256,11 +444,21 @@
                     </a>
                 </li>
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-                <li><a href="#" class="nav-link active" onclick="switchSection('courses')" title="My Courses"><i
+                <li><a href="#" class="nav-link active" onclick="switchSection('overview')" title="Overview"><i
+                            class="fas fa-home"></i> <span class="sidebar-text">Overview</span></a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('courses')" title="My Courses"><i
                             class="fas fa-swatchbook"></i> <span class="sidebar-text">My Courses</span></a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('materials')" title="My Materials"><i class="fas fa-book"></i> <span class="sidebar-text">My Materials</span></a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('students')" title="Student Insights"><i class="fas fa-users"></i>
                         <span class="sidebar-text">Student Insights</span></a></li>
+                <li>
+                    <a href="#" class="nav-link" onclick="switchSection('notifications')" title="Notifications">
+                        <i class="fas fa-bell" style="position: relative;">
+                            <span id="notificationBadge" class="notification-badge" style="display: none; position: absolute; top: -8px; right: -8px; background: var(--color-error); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: 600;"></span>
+                        </i>
+                        <span class="sidebar-text">Notifications</span>
+                    </a>
+                </li>
                 <li><a href="#" class="nav-link" onclick="switchSection('live')" title="Live Classroom"><i class="fas fa-video"></i> <span class="sidebar-text">Live Classroom</span></a></li>
                 <li><a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: 50px;" title="Logout"><i
                             class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
@@ -275,9 +473,8 @@
                     <span>InnerSpark</span>
                 </div>
                 <div class="top-header-right">
-                    <div class="notification-icon" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">2</span>
+                    <div class="notification-icon" title="Messages" onclick="toggleMessagesPanel()">
+                        <i class="fas fa-comments"></i>
                     </div>
                     <div class="user-profile">
                         <div class="user-avatar" id="staffAvatar">M</div>
@@ -286,19 +483,38 @@
                 </div>
             </div>
 
-            <div style="padding: 40px;">
-                <header
-                    style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h1>Mentor Workshop</h1>
-                        <p>Welcome, <span id="mentorName">Mentor</span>. Your wisdom empowers many.</p>
-                    </div>
-                    <button class="btn-primary" id="newExamBtn" style="background: var(--color-golden);">+ Create
-                        Assessment</button>
-                </header>
+            <div class="content-wrapper">
+                <!-- Overview Section (Default) -->
+                <section id="overviewSection">
+                    <header style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>Mentor Workshop</h1>
+                            <p>Welcome, <span id="mentorName">Mentor</span>. Your wisdom empowers many.</p>
+                        </div>
+                    </header>
 
-                <section id="coursesSection">
+                    <h3 style="margin-bottom: 20px;">Dashboard Overview</h3>
+                    <div id="overviewStats">
+                        <!-- Stats will be loaded here -->
+                        <p style="color: var(--color-text-secondary);">Loading statistics...</p>
+                    </div>
+                </section>
+
+                <!-- Courses Section -->
+                <section id="coursesSection" style="display: none;">
                     <h3 style="margin-bottom: 20px;">Manage Your Courses</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <button class="btn-primary" id="newExamBtn" style="background: var(--color-golden);">+ Create Assessment</button>
+                    </div>
+                    <div class="search-filter-bar">
+                        <input type="text" id="courseSearchInput" class="search-input" placeholder="🔍 Search courses by title or category...">
+                        <select id="courseStatusFilter" class="filter-select">
+                            <option value="">All Status</option>
+                            <option value="Published">Published</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Draft">Draft</option>
+                        </select>
+                    </div>
                     <div id="courseList">
                         <!-- Courses will be loaded here -->
                         <p style="color: var(--color-text-secondary);">Loading your sanctuary projects...</p>
@@ -308,6 +524,15 @@
                 <!-- My Materials Section -->
                 <section id="materialsSection" style="display: none;">
                     <h3 style="margin-bottom: 20px;">My Uploaded Materials</h3>
+                    <div class="search-filter-bar">
+                        <input type="text" id="materialSearchInput" class="search-input" placeholder="🔍 Search materials by title or course...">
+                        <select id="materialTypeFilter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="Video">Video</option>
+                            <option value="PDF">PDF</option>
+                            <option value="Audio">Audio</option>
+                        </select>
+                    </div>
                     <div id="myMaterialsList">
                         <p style="color: var(--color-text-secondary);">Loading your materials...</p>
                     </div>
@@ -316,11 +541,19 @@
                 <!-- Student Insights Section -->
                 <section id="studentsSection" style="display: none;">
                     <h3 style="margin-bottom: 20px;">Seeker Engagement</h3>
+                    <div class="search-filter-bar">
+                        <input type="text" id="studentSearchInput" class="search-input" placeholder="🔍 Search students by name or email...">
+                        <select id="studentCourseFilter" class="filter-select">
+                            <option value="">All Courses</option>
+                        </select>
+                    </div>
                     <div class="glass-card" style="padding: 0; overflow: hidden;">
                         <table style="width: 100%; border-collapse: collapse; text-align: left;">
                             <thead style="background: rgba(0,0,0,0.02);">
                                 <tr>
+                                    <th style="padding: 15px;">#</th>
                                     <th style="padding: 15px;">Seeker</th>
+                                    <th style="padding: 15px;">Student ID</th>
                                     <th style="padding: 15px;">Course</th>
                                     <th style="padding: 15px;">Enrolled On</th>
                                     <th style="padding: 15px;">Progress</th>
@@ -330,6 +563,21 @@
                                 <!-- Data loads here -->
                             </tbody>
                         </table>
+                    </div>
+                </section>
+
+                <!-- Notifications Section -->
+                <section id="notificationsSection" style="display: none;">
+                    <h3 style="margin-bottom: 20px;">Notifications</h3>
+                    <div class="search-filter-bar">
+                        <select id="notificationFilter" class="filter-select" onchange="filterNotifications()">
+                            <option value="all">All Notifications</option>
+                            <option value="unseen">Unseen</option>
+                            <option value="seen">Seen</option>
+                        </select>
+                    </div>
+                    <div id="notificationsList">
+                        <p style="color: var(--color-text-secondary);">Loading notifications...</p>
                     </div>
                 </section>
 
@@ -555,6 +803,26 @@
             </form>
         </div>
     </div>
+
+    <!-- Messages Panel -->
+    <div id="messagesPanel" class="messages-panel">
+        <div class="messages-panel-header">
+            <h3>Messages</h3>
+            <button onclick="toggleMessagesPanel()" class="close-panel-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="messages-panel-content">
+            <p style="text-align: center; color: var(--color-text-secondary); margin-top: 40px;">
+                <i class="fas fa-envelope" style="font-size: 48px; opacity: 0.3; display: block; margin-bottom: 16px;"></i>
+                Messaging functionality coming soon
+            </p>
+        </div>
+    </div>
+
+            </div> <!-- End content-wrapper -->
+        </div> <!-- End main-content -->
+    </div> <!-- End dashboard -->
 
     <script src="../js/auth.js"></script>
     <script src="../js/utils.js"></script>

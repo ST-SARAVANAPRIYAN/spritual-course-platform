@@ -2,6 +2,44 @@
  * InnerSpark - Staff Dashboard Logic
  */
 
+// Navigation function to switch between sections
+function switchSection(sectionName) {
+    // Hide all sections
+    const sections = ['overviewSection', 'coursesSection', 'materialsSection', 'studentsSection', 'notificationsSection', 'liveSection'];
+    sections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) section.style.display = 'none';
+    });
+
+    // Show the selected section
+    const targetSection = document.getElementById(`${sectionName}Section`);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // Update active state in nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    event?.target?.closest('.nav-link')?.classList.add('active');
+
+    // Load data for the selected section
+    if (sectionName === 'overview') {
+        loadOverview();
+    } else if (sectionName === 'materials') {
+        loadMyMaterials();
+    } else if (sectionName === 'students') {
+        loadEnrolledStudents();
+    } else if (sectionName === 'notifications') {
+        loadNotifications();
+    } else if (sectionName === 'live') {
+        loadSchedules();
+    }
+}
+
+// Make switchSection available globally for onclick attributes
+window.switchSection = switchSection;
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verify Auth
     const authData = Auth.checkAuth(['Staff']);
@@ -25,8 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeModal').addEventListener('click', () => courseModal.style.display = 'none');
     document.getElementById('closeUploadModal').addEventListener('click', () => uploadModal.style.display = 'none');
 
-    // 3. Load Courses
+    // 3. Load Overview (Default) and Courses
+    loadOverview();
     loadCourses();
+    checkDeletedCourses();
 
     // 4. Create Course
     document.getElementById('courseForm').addEventListener('submit', async (e) => {
@@ -186,47 +226,153 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-let currentSection = 'courses';
+let currentSection = 'overview';
 
-function switchSection(section) {
-    currentSection = section;
-    const sections = ['courses', 'materials', 'students', 'live'];
-    sections.forEach(s => {
-        document.getElementById(s + 'Section').style.display = s === section ? 'block' : 'none';
-    });
+// Load Overview Statistics
+async function loadOverview() {
+    const container = document.getElementById('overviewStats');
+    
+    try {
+        // Fetch all required data in parallel
+        const [coursesRes, studentsRes, materialsRes] = await Promise.all([
+            fetch(`${Auth.apiBase}/staff/courses`, { headers: Auth.getHeaders() }),
+            fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() }),
+            fetch(`${Auth.apiBase}/courses/materials/my`, { headers: Auth.getHeaders() })
+        ]);
 
-    // Update Nav
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('onclick')?.includes(section)) link.classList.add('active');
-    });
+        const courses = await coursesRes.json();
+        const enrollments = await studentsRes.json();
+        const materials = await materialsRes.json();
 
-    if (section === 'students') loadStudentInsights();
-    if (section === 'live') loadSchedules();
-    if (section === 'courses') loadCourses();
-    if (section === 'materials') loadMyMaterials();
+        // Calculate statistics
+        const totalCourses = courses.length;
+        const publishedCourses = courses.filter(c => c.approvalStatus === 'Published').length;
+        const draftCourses = courses.filter(c => c.approvalStatus === 'Draft').length;
+        const approvedCourses = courses.filter(c => c.approvalStatus === 'Approved').length;
+        
+        const uniqueStudents = new Set(enrollments.map(e => e.studentID?._id).filter(id => id)).size;
+        const totalEnrollments = enrollments.length;
+        
+        const totalMaterials = materials.length;
+        const approvedMaterials = materials.filter(m => m.approvalStatus === 'Approved').length;
+        const pendingMaterials = materials.filter(m => m.approvalStatus === 'Pending').length;
+
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 30px;">
+                <!-- Courses Card -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; color: white; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 8px;">Total Courses</div>
+                            <div style="font-size: 2.5rem; font-weight: bold;">${totalCourses}</div>
+                        </div>
+                        <i class="fas fa-book-open" style="font-size: 3rem; opacity: 0.3;"></i>
+                    </div>
+                    <div style="display: flex; gap: 15px; font-size: 0.85rem;">
+                        <span><i class="fas fa-check-circle"></i> ${publishedCourses} Published</span>
+                        <span><i class="fas fa-clock"></i> ${draftCourses} Draft</span>
+                    </div>
+                </div>
+
+                <!-- Students Card -->
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 15px; color: white; box-shadow: 0 10px 25px rgba(240, 147, 251, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 8px;">Total Students</div>
+                            <div style="font-size: 2.5rem; font-weight: bold;">${uniqueStudents}</div>
+                        </div>
+                        <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3;"></i>
+                    </div>
+                    <div style="font-size: 0.85rem;">
+                        <i class="fas fa-graduation-cap"></i> ${totalEnrollments} Total Enrollments
+                    </div>
+                </div>
+
+                <!-- Materials Card -->
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 15px; color: white; box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 8px;">Course Materials</div>
+                            <div style="font-size: 2.5rem; font-weight: bold;">${totalMaterials}</div>
+                        </div>
+                        <i class="fas fa-file-alt" style="font-size: 3rem; opacity: 0.3;"></i>
+                    </div>
+                    <div style="display: flex; gap: 15px; font-size: 0.85rem;">
+                        <span><i class="fas fa-check"></i> ${approvedMaterials} Approved</span>
+                        <span><i class="fas fa-hourglass-half"></i> ${pendingMaterials} Pending</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Section -->
+            <div style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                <h4 style="margin-bottom: 20px; color: #333;"><i class="fas fa-chart-line"></i> Quick Stats</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--color-success);">
+                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Approved Courses</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-success);">${approvedCourses}</div>
+                    </div>
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--color-saffron);">
+                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Avg. Students/Course</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-saffron);">${totalCourses > 0 ? Math.round(totalEnrollments / totalCourses) : 0}</div>
+                    </div>
+                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #17a2b8;">
+                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Materials per Course</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #17a2b8;">${totalCourses > 0 ? Math.round(totalMaterials / totalCourses) : 0}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        console.error('Error loading overview:', err);
+        container.innerHTML = '<p style="color: var(--color-error);">Failed to load statistics.</p>';
+    }
 }
 
-async function loadStudentInsights() {
+async function loadEnrolledStudents() {
     const list = document.getElementById('studentInsightList');
+    const filterDropdown = document.getElementById('studentCourseFilter');
+    
     try {
         const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
         const enrollments = await res.json();
 
         if (enrollments.length === 0) {
-            list.innerHTML = '<tr><td colspan="4" style="padding:20px; text-align:center;">No seekers have joined your paths yet.</td></tr>';
+            list.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center;">No seekers have joined your paths yet.</td></tr>';
+            if (filterDropdown) {
+                filterDropdown.innerHTML = '<option value="">All Courses</option>';
+            }
             return;
         }
 
-        list.innerHTML = enrollments.map(e => `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 15px; display: flex; align-items: center; gap: 10px;">
-                    <img src="${e.studentID?.profilePic || '../assets/default-avatar.png'}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
-                    <div>
-                        <div style="font-weight: 600;">${e.studentID?.name}</div>
-                        <div style="font-size: 0.75rem; color: #999;">${e.studentID?.email}</div>
+        // Extract unique courses from enrollments
+        const uniqueCourses = [...new Map(
+            enrollments
+                .filter(e => e.courseID && e.courseID._id)
+                .map(e => [e.courseID._id, e.courseID])
+        ).values()];
+
+        // Populate filter dropdown with courses
+        if (filterDropdown) {
+            filterDropdown.innerHTML = '<option value="">All Courses</option>' + 
+                uniqueCourses.map(course => 
+                    `<option value="${course._id}">${course.title}</option>`
+                ).join('');
+        }
+
+        list.innerHTML = enrollments.map((e, index) => `
+            <tr style="border-bottom: 1px solid #eee; background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};" data-course-id="${e.courseID?._id || ''}">
+                <td style="padding: 15px; text-align: center; color: #666;">${index + 1}</td>
+                <td style="padding: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${e.studentID?.profilePic || '../assets/default-avatar.png'}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                        <div>
+                            <div style="font-weight: 600;">${e.studentID?.name}</div>
+                            <div style="font-size: 0.75rem; color: #999;">${e.studentID?.email}</div>
+                        </div>
                     </div>
                 </td>
+                <td style="padding: 15px; color: #666; font-family: monospace;">${e.studentID?._id?.substring(0, 8) || 'N/A'}</td>
                 <td style="padding: 15px;">${e.courseID?.title}</td>
                 <td style="padding: 15px;">${new Date(e.enrolledAt).toLocaleDateString()}</td>
                 <td style="padding: 15px;">
@@ -239,6 +385,9 @@ async function loadStudentInsights() {
         `).join('');
     } catch (err) {
         list.innerHTML = '<tr><td colspan="4">Error loading insights.</td></tr>';
+        if (filterDropdown) {
+            filterDropdown.innerHTML = '<option value="">All Courses</option>';
+        }
     }
 }
 
@@ -363,6 +512,12 @@ async function loadCourses() {
     } catch (err) {
         console.error(err);
     }
+}
+
+async function checkDeletedCourses() {
+    // This function is now deprecated - notifications are loaded via loadNotifications()
+    // Keeping this function to avoid breaking references, but it does nothing
+    console.log('checkDeletedCourses called - now using notification system instead');
 }
 
 document.getElementById('newExamBtn').addEventListener('click', () => {
@@ -758,4 +913,279 @@ document.addEventListener('DOMContentLoaded', () => {
             UI.error('No file URL available');
         }
     });
+});
+
+// ============================================
+// NEW UI ENHANCEMENTS
+// ============================================
+
+// Toggle Messages Panel
+function toggleMessagesPanel() {
+    const panel = document.getElementById('messagesPanel');
+    if (panel) {
+        panel.classList.toggle('open');
+    }
+}
+
+// Load and Display Notifications
+let allNotifications = [];
+async function loadNotifications() {
+    console.log('📬 Loading notifications...');
+    const container = document.getElementById('notificationsList');
+    
+    if (!container) {
+        console.error('❌ notificationsList container not found!');
+        return;
+    }
+
+    // Show loading state
+    container.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center; padding: 20px;">Loading notifications...</p>';
+    
+    try {
+        const url = `${Auth.apiBase}/staff/deleted-courses`;
+        console.log('🌐 Fetching from:', url);
+        
+        const res = await fetch(url, {
+            headers: Auth.getHeaders()
+        });
+
+        console.log('📡 Response status:', res.status);
+
+        if (res.ok) {
+            const deletedCourses = await res.json();
+            console.log('📦 Deleted courses received:', deletedCourses);
+            
+            // Convert deleted courses to notification format
+            allNotifications = deletedCourses.map(course => ({
+                id: course._id,
+                type: 'course_deleted',
+                title: `Course "${course.title}" was deleted`,
+                message: `Your course "${course.title}" (${course.category || 'General'}) has been removed from the platform by an administrator.`,
+                timestamp: course.deletedAt || course.updatedAt || course.createdAt || new Date(),
+                seen: false
+            }));
+            
+            console.log('✅ Notifications created:', allNotifications.length);
+        } else {
+            console.warn('⚠️ Failed to fetch deleted courses:', res.status);
+            const errorText = await res.text();
+            console.warn('Error response:', errorText);
+            allNotifications = [];
+        }
+    } catch (err) {
+        console.error('❌ Error loading notifications:', err);
+        allNotifications = [];
+    } finally {
+        // Always display notifications (even if empty)
+        console.log('🎨 Displaying notifications...');
+        displayNotifications(allNotifications);
+        updateNotificationBadge();
+    }
+}
+
+// Display Notifications in List
+function displayNotifications(notifications) {
+    console.log('🎨 displayNotifications called with', notifications.length, 'notifications');
+    const container = document.getElementById('notificationsList');
+    
+    if (!container) {
+        console.error('❌ notificationsList container not found in displayNotifications!');
+        return;
+    }
+
+    if (notifications.length === 0) {
+        console.log('📭 No notifications to display');
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                <i class="fas fa-bell-slash" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
+                <p>No notifications</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort by date (newest first)
+    notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    console.log('✅ Rendering', notifications.length, 'notifications');
+    
+    container.innerHTML = notifications.map(notif => `
+        <div class="notification-item ${notif.seen ? 'seen' : 'unseen'}" data-id="${notif.id}">
+            <div class="notification-content">
+                <div class="notification-title">
+                    ${notif.seen ? '' : '<span class="unread-dot"></span>'}
+                    ${notif.title}
+                </div>
+                <div class="notification-message">${notif.message}</div>
+                <div class="notification-time">${formatTimestamp(notif.timestamp)}</div>
+            </div>
+            <div class="notification-actions">
+                ${notif.seen ? 
+                    `<button onclick="markAsUnread('${notif.id}')" class="notification-action-btn" title="Mark as unread">
+                        <i class="fas fa-envelope"></i>
+                    </button>` :
+                    `<button onclick="markAsSeen('${notif.id}')" class="notification-action-btn" title="Mark as read">
+                        <i class="fas fa-envelope-open"></i>
+                    </button>`
+                }
+                <button onclick="deleteNotification('${notif.id}')" class="notification-action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    console.log('✅ Notifications rendered successfully');
+}
+
+// Filter Notifications
+function filterNotifications(filter) {
+    // Get filter value from dropdown if not provided
+    if (!filter) {
+        const dropdown = document.getElementById('notificationFilter');
+        filter = dropdown ? dropdown.value : 'all';
+    }
+    
+    let filtered = [...allNotifications];
+    
+    if (filter === 'unseen') {
+        filtered = filtered.filter(n => !n.seen);
+    } else if (filter === 'seen') {
+        filtered = filtered.filter(n => n.seen);
+    }
+    
+    displayNotifications(filtered);
+}
+
+// Mark Notification as Seen
+function markAsSeen(notificationId) {
+    const notification = allNotifications.find(n => n.id === notificationId);
+    if (notification) {
+        notification.seen = true;
+        displayNotifications(allNotifications);
+        updateNotificationBadge();
+    }
+}
+
+// Mark Notification as Unread
+function markAsUnread(notificationId) {
+    const notification = allNotifications.find(n => n.id === notificationId);
+    if (notification) {
+        notification.seen = false;
+        displayNotifications(allNotifications);
+        updateNotificationBadge();
+    }
+}
+
+// Delete Notification
+function deleteNotification(notificationId) {
+    if (confirm('Delete this notification?')) {
+        allNotifications = allNotifications.filter(n => n.id !== notificationId);
+        displayNotifications(allNotifications);
+        updateNotificationBadge();
+    }
+}
+
+// Update Badge Count
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) return;
+    
+    const unseenCount = allNotifications.filter(n => !n.seen).length;
+    
+    if (unseenCount > 0) {
+        badge.textContent = unseenCount > 99 ? '99+' : unseenCount;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Format Timestamp
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// Search/Filter Functions for Courses
+function searchCourses() {
+    const searchTerm = document.getElementById('courseSearchInput')?.value.toLowerCase();
+    const filterStatus = document.getElementById('courseStatusFilter')?.value;
+    const courseCards = document.querySelectorAll('#courseList .course-list-item');
+    
+    courseCards.forEach(card => {
+        const title = card.querySelector('strong')?.textContent.toLowerCase() || '';
+        const statusSpan = card.querySelector('span[style*="background"]');
+        const status = statusSpan?.textContent.toLowerCase() || '';
+        
+        const matchesSearch = !searchTerm || title.includes(searchTerm);
+        const matchesFilter = !filterStatus || filterStatus === '' || status.includes(filterStatus.toLowerCase());
+        
+        card.style.display = matchesSearch && matchesFilter ? '' : 'none';
+    });
+}
+
+// Search/Filter Functions for Materials
+function searchMaterials() {
+    const searchTerm = document.getElementById('materialSearchInput')?.value.toLowerCase();
+    const filterType = document.getElementById('materialTypeFilter')?.value;
+    const materialCards = document.querySelectorAll('#myMaterialsList .course-list-item');
+    
+    materialCards.forEach(card => {
+        const title = card.querySelector('strong')?.textContent.toLowerCase() || '';
+        const type = card.querySelector('p')?.textContent.toLowerCase() || '';
+        
+        const matchesSearch = !searchTerm || title.includes(searchTerm);
+        const matchesFilter = !filterType || filterType === '' || type.includes(filterType.toLowerCase());
+        
+        card.style.display = matchesSearch && matchesFilter ? '' : 'none';
+    });
+}
+
+// Search Students
+function searchStudents() {
+    const searchTerm = document.getElementById('studentSearchInput')?.value.toLowerCase();
+    const filterCourse = document.getElementById('studentCourseFilter')?.value;
+    const studentRows = document.querySelectorAll('#studentInsightList tr');
+    
+    studentRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const courseId = row.getAttribute('data-course-id');
+        
+        const matchesSearch = !searchTerm || text.includes(searchTerm);
+        const matchesCourse = !filterCourse || filterCourse === '' || courseId === filterCourse;
+        
+        row.style.display = matchesSearch && matchesCourse ? '' : 'none';
+    });
+}
+
+// Make toggleMessagesPanel global for onclick attribute
+window.toggleMessagesPanel = toggleMessagesPanel;
+window.markAsSeen = markAsSeen;
+window.markAsUnread = markAsUnread;
+window.deleteNotification = deleteNotification;
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    // Don't load notifications on page load, only when tab is clicked
+    // loadNotifications() will be called by switchSection('notifications')
+    
+    // Setup search/filter event listeners
+    document.getElementById('courseSearchInput')?.addEventListener('input', searchCourses);
+    document.getElementById('courseStatusFilter')?.addEventListener('change', searchCourses);
+    document.getElementById('materialSearchInput')?.addEventListener('input', searchMaterials);
+    document.getElementById('materialTypeFilter')?.addEventListener('change', searchMaterials);
+    document.getElementById('studentSearchInput')?.addEventListener('input', searchStudents);
+    document.getElementById('studentCourseFilter')?.addEventListener('change', searchStudents);
 });

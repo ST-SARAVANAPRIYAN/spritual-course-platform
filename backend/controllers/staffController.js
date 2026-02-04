@@ -201,9 +201,26 @@ exports.getEnrolledStudents = async (req, res) => {
 // Get Staff Courses
 exports.getStaffCourses = async (req, res) => {
     try {
-        const courses = await Course.find({ mentors: { $in: [req.user.id] } });
+        const courses = await Course.find({ 
+            mentors: { $in: [req.user.id] },
+            approvalStatus: { $ne: 'Inactive' } // Exclude inactive/deleted courses
+        });
         res.status(200).json(courses);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch courses', error: err.message });
+    }
+};
+
+// Get Deleted/Inactive Courses for Staff (for notifications)
+exports.getDeletedCourses = async (req, res) => {
+    try {
+        const deletedCourses = await Course.find({ 
+            mentors: { $in: [req.user.id] },
+            approvalStatus: 'Inactive'
+        }).select('title deletedAt category');
+        
+        res.status(200).json(deletedCourses);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch deleted courses', error: err.message });
     }
 };

@@ -274,11 +274,16 @@ exports.deleteMaterial = async (req, res) => {
 exports.getMyMaterials = async (req, res) => {
     try {
         const materials = await Content.find({ uploadedBy: req.user.id })
-            .populate('courseID', 'title')
+            .populate('courseID', 'title approvalStatus')
             .populate('approvedBy', 'name')
             .sort({ createdAt: -1 });
 
-        res.status(200).json(materials);
+        // Filter out materials from inactive/deleted courses
+        const activeMaterials = materials.filter(m => 
+            m.courseID && m.courseID.approvalStatus !== 'Inactive'
+        );
+
+        res.status(200).json(activeMaterials);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch materials', error: err.message });
     }
