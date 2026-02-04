@@ -3,7 +3,7 @@ const router = express.Router();
 const courseController = require('../controllers/courseController');
 const materialController = require('../controllers/materialController');
 const jwt = require('jsonwebtoken');
-const upload = require('../utils/cloudinaryStorage');
+const { upload } = require('../controllers/uploadController');
 
 // Utility to handle optional authentication for access checks
 const optionalAuth = (req, res, next) => {

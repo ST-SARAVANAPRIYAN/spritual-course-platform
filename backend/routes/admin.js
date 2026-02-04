@@ -27,7 +27,7 @@ router.post('/override', adminController.overrideEnrollment);
 // @route   POST /api/admin/broadcast
 router.post('/broadcast', adminController.sendBroadcast);
 
-const upload = require('../utils/cloudinaryStorage');
+const { upload } = require('../controllers/uploadController');
 
 // @route   GET /api/admin/analytics
 router.get('/analytics', adminController.getAdvancedAnalytics);

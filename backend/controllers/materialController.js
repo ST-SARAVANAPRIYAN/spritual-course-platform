@@ -1,4 +1,4 @@
-const { Content, Course, User } = require('../models/index');
+const { Content, Course, User, Module } = require('../models/index');
 
 // ========== COURSE MATERIALS MANAGEMENT ==========
 
@@ -8,28 +8,63 @@ exports.getCourseMaterials = async (req, res) => {
         const { id } = req.params;
 
         // Get all materials for this course
-        const materials = await Content.find({ courseID: id })
+        const contentItems = await Content.find({ courseID: id })
             .populate('uploadedBy', 'name email role')
             .populate('approvedBy', 'name')
             .sort({ createdAt: -1 });
 
+        // Get modules for this course
+        const modules = await Module.find({ courseId: id })
+            .populate('createdBy', 'name email role')
+            .populate('approvedBy', 'name')
+            .sort({ order: 1 });
+
+        console.log(`📦 Stats Debug - Course: ${id}`);
+        console.log(`   - Content Items: ${contentItems.length}`);
+        console.log(`   - Modules found: ${modules.length}`);
+        if (modules.length > 0) console.log(`   - Sample Module: ${modules[0].title} (ID: ${modules[0]._id})`);
+
+        // Normalize Modules to look like Content for the UI
+        const normalizedModules = modules.map(m => ({
+            _id: m._id,
+            title: m.title,
+            type: 'Module',
+            category: 'module',
+            courseID: m.courseId,
+            uploadedBy: m.createdBy,
+            approvedBy: m.approvedBy,
+            approvalStatus: m.approvalStatus,
+            createdAt: m.createdAt,
+            fileUrl: '#', // No file
+            fileSize: 0,
+            isModule: true,
+            content: m.content // Include content for preview
+        }));
+
+        const allMaterials = [...contentItems, ...normalizedModules];
+
+        // Sort by created date descending
+        allMaterials.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
         // Calculate stats
         const stats = {
-            total: materials.length,
+            total: allMaterials.length,
             byCategory: {
-                pdf: materials.filter(m => m.category === 'pdf').length,
-                audio: materials.filter(m => m.category === 'audio').length,
-                video: materials.filter(m => m.category === 'video').length
+                pdf: contentItems.filter(m => m.category && m.category.toLowerCase() === 'pdf').length,
+                audio: contentItems.filter(m => m.category && m.category.toLowerCase() === 'audio').length,
+                video: contentItems.filter(m => m.category && m.category.toLowerCase() === 'video').length,
+                module: modules.length // Add module count
             },
             byStatus: {
-                pending: materials.filter(m => m.approvalStatus === 'Pending').length,
-                approved: materials.filter(m => m.approvalStatus === 'Approved').length,
-                rejected: materials.filter(m => m.approvalStatus === 'Rejected').length
+                pending: allMaterials.filter(m => m.approvalStatus === 'Pending').length,
+                approved: allMaterials.filter(m => m.approvalStatus === 'Approved').length,
+                rejected: allMaterials.filter(m => m.approvalStatus === 'Rejected').length
             }
         };
 
-        res.status(200).json({ materials, stats });
+        res.status(200).json({ materials: allMaterials, stats });
     } catch (err) {
+        console.error('Stats Error:', err);
         res.status(500).json({ message: 'Failed to fetch materials', error: err.message });
     }
 };
@@ -69,7 +104,7 @@ exports.uploadMaterial = async (req, res) => {
             title: title || file.originalname,
             type,
             category: category || categoryMap[type] || 'pdf',
-            fileUrl: file.path,
+            fileUrl: `/uploads/content/${file.filename}`,
             fileName: file.originalname,
             fileSize: file.size,
             previewDuration: previewDuration || 0,
@@ -125,7 +160,7 @@ exports.updateMaterial = async (req, res) => {
         if (title) material.title = title;
         if (previewDuration !== undefined) material.previewDuration = previewDuration;
         if (file) {
-            material.fileUrl = file.path;
+            material.fileUrl = `/uploads/content/${file.filename}`;
             material.fileName = file.originalname;
             material.fileSize = file.size;
         }

@@ -130,25 +130,64 @@ function renderQueueList(data, containerId, isOverview) {
     const examLimit = isOverview ? data.exams.slice(0, 3) : data.exams;
 
     contentLimit.forEach(item => {
+        // Handle both legacy Content, Modules, and Courses
+        const itemType = item.type || 'Module';
+
+        let courseTitle, mentorName;
+        let redirectUrl = '#';
+
+        if (itemType === 'Course') {
+            courseTitle = 'New Course Proposal';
+            mentorName = item.createdBy?.name || 'Mentor';
+            redirectUrl = `course-preview.html?id=${item._id}`;
+        } else {
+            // Module or Content
+            const cId = item.courseId?._id || item.courseId; // Populate might return object or ID
+            const cTitle = item.courseId?.title || 'Unknown Course';
+            courseTitle = cTitle;
+            mentorName = item.createdBy?.name || item.uploadedBy?.name || 'Mentor';
+
+            // Ensure we have a course ID to link to
+            if (cId) {
+                const courseIdStr = (typeof cId === 'object') ? cId._id : cId;
+                redirectUrl = `course-preview.html?id=${courseIdStr}&moduleId=${item._id}`;
+            }
+        }
+
+        // Visual distinction
+        const borderColors = {
+            'Module': 'var(--color-saffron)',
+            'Course': 'var(--color-primary)',
+            'Content': '#6c757d'
+        };
+        const borderColor = borderColors[itemType] || borderColors['Module'];
+
         html += `
-            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid var(--color-saffron);">
-                <div>
-                    <strong>${item.courseID?.title || 'Unknown Path'}</strong>
-                    <p style="font-size: 0.8rem; color: #666;">${item.type} by ${item.uploadedBy?.name || 'Mentor'}</p>
+            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid ${borderColor}; cursor:pointer; transition:transform 0.2s;" 
+                 onmouseover="this.style.transform='translateX(5px)'"
+                 onmouseout="this.style.transform='translateX(0)'"
+                 onclick="window.location.href='${redirectUrl}'">
+                 <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${courseTitle}</strong>
+                        <p style="font-size: 0.8rem; color: #666;">${item.title} (${itemType}) by ${mentorName}</p>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:#ccc;"></i>
                 </div>
-                <button class="btn-primary" onclick="openReviewModal('${item._id}', '${item.fileUrl}', '${item.type}', 'Content')" style="padding: 5px 15px; font-size: 0.75rem;">Review</button>
             </div>
         `;
     });
 
     examLimit.forEach(exam => {
+        // Exams might still use the modal for now, or we can redirect to an exam previewer if it exists.
+        // Keeping modal for exams to avoid breaking that flow unless asked.
         html += `
             <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid var(--color-golden);">
                 <div>
                     <strong>${exam.courseID?.title || 'Unknown Path'}</strong>
                     <p style="font-size: 0.8rem; color: #666;">Exam by ${exam.mentorID?.name || 'Mentor'}</p>
                 </div>
-                <button class="btn-primary" onclick="openReviewModal('${exam._id}', '#', 'Assessment', 'Exam')" style="padding: 5px 15px; font-size: 0.75rem;">Review</button>
+                <button class="btn-primary" onclick="event.stopPropagation(); openReviewModal('${exam._id}', '#', 'Assessment', 'Exam')" style="padding: 5px 15px; font-size: 0.75rem;">Review</button>
             </div>
         `;
     });
@@ -676,12 +715,36 @@ async function loadAnalytics() {
 
 /* --- SHARED --- */
 // Review Modal Logic
-function openReviewModal(id, url, label, type) {
+function openReviewModal(id, contentKeyOrUrl, label, type) {
     selectedContentID = id;
     selectedItemType = type;
     const modal = document.getElementById('reviewModal');
     const preview = document.getElementById('filePreview');
-    // ... same as before
+    document.getElementById('reviewTitle').innerText = `Review: ${label}`;
+
+    if (type === 'Module') {
+        const content = window[contentKeyOrUrl] || '<p>No content available.</p>';
+        preview.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: left; max-height: 400px; overflow-y: auto; border: 1px solid #eee;">
+                ${content}
+            </div>
+            <div style="margin-top:10px; color:#666; font-size:0.8rem;"><i class="fas fa-info-circle"></i> Approving this module will automatically publish it to the course.</div>
+        `;
+    } else if (type === 'Course') {
+        const desc = window[contentKeyOrUrl] || 'No description available.';
+        preview.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: left; border: 1px solid #eee;">
+                <h4>Description</h4>
+                <p>${desc}</p>
+            </div>
+             <div style="margin-top:10px; color:#666; font-size:0.8rem;"><i class="fas fa-info-circle"></i> Approving this course will set its status to <strong>Published</strong>.</div>
+        `;
+    } else {
+        // Legacy file preview
+        preview.innerHTML = `<a href="${contentKeyOrUrl}" target="_blank" class="btn-primary">View Content File</a>`;
+    }
+
+    document.getElementById('adminRemarks').value = ''; // Reset remarks
     modal.style.display = 'flex';
 }
 
@@ -776,7 +839,9 @@ function renderCourses(courses) {
         const colors = {
             'Published': { bg: '#e6f4ea', text: '#1e7e34' },
             'Draft': { bg: '#fff3cd', text: '#856404' },
-            'Yet to Approve': { bg: '#d1ecf1', text: '#0c5460' },
+            'Pending': { bg: '#fff3cd', text: '#856404' },
+            'Approved': { bg: '#e6f4ea', text: '#1e7e34' },
+            'Rejected': { bg: '#f8d7da', text: '#721c24' },
             'Deleted': { bg: '#f8d7da', text: '#721c24' }
         };
         return colors[status] || colors['Draft'];
@@ -790,14 +855,23 @@ function renderCourses(courses) {
                         <th style="padding:15px;">Title & Category</th>
                         <th style="padding:15px;">Mentors</th>
                         <th style="padding:15px;">Price</th>
-                        <th style="padding:15px; text-align: center;">Materials</th>
+                        <th style="padding:15px; text-align: center;">Content</th>
                         <th style="padding:15px;">Status</th>
                         <th style="padding:15px; text-align:right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${courses.map(c => {
-        const statusColor = getStatusColor(c.status);
+        // Display Logic: Prefer Approval Status if not Approved
+        let displayStatus = c.status;
+        if (c.approvalStatus && c.approvalStatus !== 'Approved') {
+            displayStatus = c.approvalStatus;
+        } else if (c.approvalStatus === 'Approved' && c.status === 'Draft') {
+            displayStatus = 'Approved (Unpublished)';
+        }
+
+        const statusColor = getStatusColor(displayStatus.split(' ')[0]); // Handle text like 'Approved (Unpublished)'
+
         return `
                         <tr style="border-bottom:1px solid #f9f9f9; transition:background 0.2s;">
                             <td style="padding:15px;">
@@ -811,19 +885,18 @@ function renderCourses(courses) {
                             </td>
                             <td style="padding:15px; font-weight:500;">₹${c.price}</td>
                             <td style="padding:15px; text-align: center;">
-                                <button class="btn-primary" 
-                                    title="View Course Materials" 
-                                    style="padding:10px 16px; font-size:1.1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s;" 
+                                <a href="course-preview.html?id=${c._id}" class="btn-primary" 
+                                    title="Preview Course Content" 
+                                    style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:8px 16px; font-size:1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; transition: all 0.3s;" 
                                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(102,126,234,0.4)'"
-                                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
-                                    onclick="openMaterialsModal('${c._id}', '${c.title.replace(/'/g, "&#39;")}')">
-                                    <i class="fas fa-book"></i>
-                                </button>
+                                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                                    <i class="fas fa-eye" style="margin-right:5px;"></i> Preview
+                                </a>
                             </td>
                             <td style="padding:15px;">
                                 <span style="padding:4px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; 
                                     background:${statusColor.bg}; color:${statusColor.text};">
-                                    ${c.status || 'Draft'}
+                                    ${displayStatus}
                                 </span>
                             </td>
                             <td style="padding:15px; text-align:right;">

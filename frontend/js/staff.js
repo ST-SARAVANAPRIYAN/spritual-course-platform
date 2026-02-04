@@ -324,18 +324,42 @@ async function loadCourses() {
             return;
         }
 
-        list.innerHTML = courses.map(c => `
-            <div class="course-list-item">
+        list.innerHTML = courses.map(c => {
+            // Display Logic: Prefer Approval Status if not Approved
+            let displayStatus = c.status;
+            if (c.approvalStatus && c.approvalStatus !== 'Approved') {
+                displayStatus = c.approvalStatus;
+            } else if (c.approvalStatus === 'Approved' && c.status === 'Draft') {
+                displayStatus = 'Approved (Unpublished)';
+            }
+            // Simple color map
+            const colorMap = {
+                'Published': '#28a745', 'Approved': '#28a745',
+                'Draft': '#666', 'Pending': '#fd7e14',
+                'Rejected': '#dc3545'
+            };
+            const statusColor = colorMap[displayStatus.split(' ')[0]] || '#666';
+
+            return `
+            <div class="course-list-item" data-course-id="${c._id}">
                 <div>
                     <strong>${c.title}</strong>
-                    <p style="font-size: 0.8rem; color: var(--color-text-secondary);">${c.category} | status: <span style="color: var(--color-saffron)">${c.status}</span></p>
+                    <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top:5px;">
+                        ${c.category} | 
+                        <span style="color:white; background:${statusColor}; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:0.75rem;">${displayStatus}</span>
+                    </p>
                 </div>
-                <div>
-                    <button class="btn-primary" onclick="openUploadModal('${c._id}', '${c.title}')" style="background: var(--color-golden); padding: 5px 15px; font-size: 0.8rem;">+ Add Content</button>
-                    <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Edit</button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="course-preview.html?id=${c._id}" class="btn-primary" style="background: #17a2b8; padding: 5px 15px; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-eye"></i> Preview
+                    </a>
+                    <a href="module-manager.html?courseId=${c._id}" class="btn-primary" style="background: var(--color-golden); padding: 5px 15px; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-book"></i> Manage Modules
+                    </a>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     } catch (err) {
         console.error(err);
     }

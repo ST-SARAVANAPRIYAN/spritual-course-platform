@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const staffController = require('../controllers/staffController');
 const authorize = require('../middleware/auth');
-const upload = require('../utils/cloudinaryStorage');
+const { upload } = require('../controllers/uploadController');
 
 // All staff routes require 'Staff' role
 router.use(authorize(['Staff']));

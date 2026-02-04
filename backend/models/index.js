@@ -74,7 +74,8 @@ const courseSchema = new Schema({
     duration: { type: String, required: true }, // e.g., "10 Hours"
     mentors: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Multiple, Optional for Draft
     thumbnail: { type: String },
-    status: { type: String, enum: ['Draft', 'Published', 'Inactive', 'Yet to Approve', 'Deleted'], default: 'Draft' },
+    status: { type: String, enum: ['Draft', 'Published', 'Inactive', 'Deleted'], default: 'Draft' }, // Publication Status
+    approvalStatus: { type: String, enum: ['Draft', 'Pending', 'Approved', 'Rejected'], default: 'Draft' }, // Editorial Status
     totalLessons: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     deletedAt: { type: Date },
@@ -184,6 +185,10 @@ const impressionSchema = new Schema({
 // 12. System Settings (Singleton Document)
 // 12. System Settings (Moved to independent file Settings.js)
 
+// Import new modular content models
+const Module = require('./Module');
+const Lesson = require('./Lesson');
+
 module.exports = {
     User: mongoose.model('User', userSchema),
     Course: mongoose.model('Course', courseSchema),
@@ -196,6 +201,8 @@ module.exports = {
     Certificate: mongoose.model('Certificate', certificateSchema),
     Impression: mongoose.model('Impression', impressionSchema),
     Progress: mongoose.model('Progress', progressSchema),
+    Module, // New modular content system
+    Lesson, // New modular content system
     Result: mongoose.model('Result', new Schema({
         studentID: { type: Schema.Types.ObjectId, ref: 'User', required: true },
         examID: { type: Schema.Types.ObjectId, ref: 'Exam', required: true },

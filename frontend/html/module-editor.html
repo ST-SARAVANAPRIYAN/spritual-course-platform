@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Module - InnerSpark</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Quill Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #212529;
+            margin: 0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-golden) 0%, #d4a53a 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .action-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        #editor-container {
+            height: 600px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        /* Full page quirk specific styles */
+        body {
+            background-color: var(--color-background);
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="#" id="backLink"
+                    style="color: var(--color-golden); text-decoration: none; margin-bottom: 10px; display: inline-block;">
+                    <i class="fas fa-arrow-left"></i> Back to Modules
+                </a>
+                <h1 id="pageTitle">Add New Module</h1>
+            </div>
+            <div class="header-actions">
+                <button id="saveBtn" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Module
+                </button>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label for="moduleTitle">Module Title</label>
+                <input type="text" id="moduleTitle" required
+                    placeholder="Enter module title (e.g. Introduction to Yoga)">
+            </div>
+            <div class="form-group">
+                <label for="moduleDescription">Description (Optional)</label>
+                <textarea id="moduleDescription" rows="3"
+                    placeholder="Brief summary of what this module covers..."></textarea>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Content</label>
+                <!-- Toolbar will be injected by Quill -->
+                <div id="editor-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://unpkg.com/quill-blot-formatter@1.0.5/dist/quill-blot-formatter.min.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/moduleEditor.js"></script>
+</body>
+
+</html>

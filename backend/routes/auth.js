@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const upload = require('../utils/cloudinaryStorage');
+const { upload } = require('../controllers/uploadController');
 
 // @route   POST /api/auth/register
 // @desc    Register a new user (Student/Staff/Admin)

@@ -36,38 +36,78 @@ exports.addStaff = async (req, res) => {
 // Get Pending Content Queue
 exports.getPendingContent = async (req, res) => {
     try {
-        const { Content, Exam } = require('../models/index');
-        const pendingContent = await Content.find({ approvalStatus: 'Pending' })
-            .populate('courseID', 'title')
-            .populate('uploadedBy', 'name');
+        const { Module } = require('../models/index'); // Use Module model
+        // We can still support legacy Content/Exam if needed, but primary is Module now.
 
-        const pendingExams = await Exam.find({ approvalStatus: 'Pending' })
-            .populate('courseID', 'title')
-            .populate('mentorID', 'name');
+        const pendingModules = await Module.find({ approvalStatus: 'Pending' })
+            .populate('courseId', 'title') // Note: Module schema uses courseId (lowercase d)
+            .populate('createdBy', 'name');
 
-        res.status(200).json({ content: pendingContent, exams: pendingExams });
+        res.status(200).json({ content: pendingModules, exams: [] }); // Sending modules in 'content' array for frontend compatibility
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch queue', error: err.message });
     }
 };
 
-// Approve/Reject Content or Exam
+// Approve/Reject Content/Module/Course
 exports.reviewItem = async (req, res) => {
     try {
         const { itemID, itemType, status, adminRemarks } = req.body;
-        const { Content, Exam, Course } = require('../models/index');
+        const { Module, Course } = require('../models/index');
 
         let item;
-        if (itemType === 'Exam') {
-            item = await Exam.findByIdAndUpdate(itemID, { approvalStatus: status, adminRemarks }, { new: true });
-        } else {
-            item = await Content.findByIdAndUpdate(itemID, { approvalStatus: status, adminRemarks }, { new: true });
+
+        if (itemType === 'Module' || itemType === 'Content') {
+            const updateData = {
+                approvalStatus: status,
+                adminRemarks
+            };
+
             if (status === 'Approved') {
-                await Course.findByIdAndUpdate(item.courseID, { status: 'Published' });
+                updateData.isPublished = true;
+                updateData.approvedBy = req.user.id;
+                updateData.approvedAt = Date.now();
+                updateData.rejectionReason = undefined;
+            } else {
+                // Pending, Draft, or Rejected -> Unpublish
+                updateData.isPublished = false;
+                if (status === 'Rejected') {
+                    updateData.rejectionReason = adminRemarks;
+                }
             }
+
+            item = await Module.findByIdAndUpdate(itemID, updateData, { new: true });
+        }
+        else if (itemType === 'Course') {
+            const updateData = {
+                approvalStatus: status,
+                adminRemarks
+            };
+
+            if (status === 'Approved') {
+                updateData.status = 'Published'; // Make public
+                updateData.approvedBy = req.user.id;
+                updateData.approvedAt = Date.now();
+                updateData.rejectionReason = undefined;
+            } else {
+                // Pending, Draft, or Rejected -> Hide
+                updateData.status = 'Draft';
+                if (status === 'Rejected') {
+                    updateData.rejectionReason = adminRemarks;
+                    // Keep as Draft or potentially 'Inactive' if preferred, but Draft denotes "work in progress"
+                } else if (status === 'Pending') {
+                    updateData.status = 'Draft'; // Or specific 'Pending' status if Course model supports it, usually Draft covers it
+                }
+            }
+
+            item = await Course.findByIdAndUpdate(itemID, updateData, { new: true });
         }
 
-        res.status(200).json({ message: `${itemType} ${status}`, item });
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found' });
+        }
+
+        res.status(200).json({ message: `Item ${status}`, item });
     } catch (err) {
         res.status(500).json({ message: 'Review failed', error: err.message });
     }
