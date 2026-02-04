@@ -119,6 +119,15 @@ exports.trackImpression = async (req, res) => {
 exports.getAllCoursesAdmin = async (req, res) => {
     try {
         const courses = await Course.find().populate('mentors', 'name email');
+        
+        // Debug: Log course statuses
+        console.log('\n📚 Courses retrieved for admin:');
+        courses.forEach((course, idx) => {
+            console.log(`${idx + 1}. ${course.title}`);
+            console.log(`   Status: ${course.status}`);
+            console.log(`   Approval Status: ${course.approvalStatus}`);
+        });
+        
         res.status(200).json(courses);
     } catch (err) {
         res.status(500).json({ message: 'Failed to load courses', error: err.message });
@@ -128,23 +137,18 @@ exports.getAllCoursesAdmin = async (req, res) => {
 // Create Course
 exports.createCourse = async (req, res) => {
     try {
-        const { title, description, price, mentors, category, difficulty, duration, thumbUrl, status } = req.body;
+        const { title, description, price, mentors, category, difficulty, duration, thumbUrl, approvalStatus } = req.body;
         const user = await User.findById(req.user.id);
 
-        // Determine course status based on logic:
-        // 1. If created by Staff -> 'Yet to Approve'
-        // 2. If no mentors -> 'Draft'
-        // 3. If mentors assigned and Admin creates/approves -> 'Published'
-        let courseStatus = 'Draft';
+        // Determine course approvalStatus based on role:
+        // Staff creates -> 'Pending' (awaiting admin approval)
+        // Admin creates -> 'Draft' or specified status (can directly publish)
+        let courseApprovalStatus = 'Draft';
         
         if (user.role === 'Staff') {
-            courseStatus = 'Yet to Approve';
+            courseApprovalStatus = 'Pending';
         } else if (user.role === 'Admin') {
-            if (mentors && mentors.length > 0) {
-                courseStatus = status || 'Published';
-            } else {
-                courseStatus = 'Draft';
-            }
+            courseApprovalStatus = approvalStatus || 'Draft';
         }
 
         const newCourse = new Course({
@@ -156,7 +160,8 @@ exports.createCourse = async (req, res) => {
             difficulty: difficulty || 'Beginner',
             duration: duration || '4 Weeks',
             thumbnail: thumbUrl || 'https://via.placeholder.com/300x200',
-            status: courseStatus,
+            approvalStatus: courseApprovalStatus,
+            status: 'Draft', // Keep for backward compatibility
             createdBy: req.user.id
         });
         await newCourse.save();
@@ -203,8 +208,9 @@ exports.deleteCourse = async (req, res) => {
             });
         }
 
-        // Soft delete - change status to Deleted
-        course.status = 'Deleted';
+        // Soft delete - change approvalStatus to Inactive and mark deletedAt
+        course.approvalStatus = 'Inactive';
+        course.status = 'Deleted'; // Keep for backward compatibility
         course.deletedAt = new Date();
         await course.save();
 

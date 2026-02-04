@@ -13,14 +13,80 @@
     <style>
         .dashboard-container {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 80px 1fr;
             min-height: 100vh;
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        .dashboard-container:has(.sidebar:hover) {
+            grid-template-columns: 280px 1fr;
         }
 
         .sidebar {
             background: white;
-            padding: 30px;
+            padding: 20px;
             border-right: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            width: 80px;
+        }
+
+        .sidebar:hover {
+            width: 280px;
+            padding: 30px;
+        }
+
+        /* Hide text elements when sidebar is collapsed */
+        .sidebar .sidebar-text {
+            display: none;
+            margin-left: 10px;
+        }
+
+        .sidebar:hover .sidebar-text {
+            display: inline;
+        }
+
+        .sidebar .sidebar-subtitle {
+            display: none;
+        }
+
+        .sidebar:hover .sidebar-subtitle {
+            display: block;
+        }
+
+        .sidebar .sidebar-logo {
+            display: block;
+        }
+
+        .sidebar .sidebar-logo-full {
+            display: none;
+        }
+
+        .sidebar:hover .sidebar-logo {
+            display: none;
+        }
+
+        .sidebar:hover .sidebar-logo-full {
+            display: block;
+        }
+
+        /* Adjust nav-link for collapsed state */
+        .sidebar .nav-link {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .sidebar:hover .nav-link {
+            justify-content: flex-start;
+            padding: 12px 15px;
+        }
+
+        .sidebar .nav-link i {
+            margin-right: 0;
+        }
+
+        .sidebar:hover .nav-link i {
+            margin-right: 10px;
         }
 
         /* Top Header Bar */
@@ -174,28 +240,30 @@
 <body>
     <div class="dashboard-container">
         <aside class="sidebar">
-            <div style="text-align: center; margin-bottom: 40px;">
+            <div class="sidebar-header" style="text-align: center; margin-bottom: 40px; white-space: nowrap;">
                 <a href="index.html" style="text-decoration: none;">
-                    <h2 style="font-family: var(--font-heading); color: var(--color-golden);">InnerSpark</h2>
+                    <h2 class="sidebar-logo" style="font-family: var(--font-heading); color: var(--color-golden); font-size: 1.5rem;">I</h2>
+                    <h2 class="sidebar-logo-full" style="font-family: var(--font-heading); color: var(--color-golden); display: none;">InnerSpark</h2>
                 </a>
-                <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-saffron);">MENTOR SUITE</p>
+                <p class="sidebar-subtitle" style="font-size: 0.8rem; font-weight: 600; color: var(--color-saffron); display: none;">MENTOR SUITE</p>
             </div>
             <ul style="list-style: none;">
                 <li style="margin-bottom: 10px;">
-                    <a href="#" class="btn-primary" id="newCourseBtn"
-                        style="display: block; text-align: center; text-decoration: none;">+ New Course</a>
+                    <a href="#" class="btn-primary sidebar-new-btn" id="newCourseBtn"
+                        style="display: flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; padding: 8px;">
+                        <i class="fas fa-plus" style="margin: 0;"></i>
+                        <span class="sidebar-text" style="display: none; margin-left: 8px;">New Course</span>
+                    </a>
                 </li>
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-                <li><a href="#" class="nav-link active" onclick="switchSection('courses')"><i
-                            class="fas fa-swatchbook"></i> My Courses</a></li>
-                <li><a href="#" class="nav-link" onclick="switchSection('materials')"><i class="fas fa-book"></i> My
-                        Materials</a></li>
-                <li><a href="#" class="nav-link" onclick="switchSection('students')"><i class="fas fa-users"></i>
-                        Student Insights</a></li>
-                <li><a href="#" class="nav-link" onclick="switchSection('live')"><i class="fas fa-video"></i> Live
-                        Classroom</a></li>
-                <li><a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: 50px;"><i
-                            class="fas fa-sign-out-alt"></i> Logout</a></li>
+                <li><a href="#" class="nav-link active" onclick="switchSection('courses')" title="My Courses"><i
+                            class="fas fa-swatchbook"></i> <span class="sidebar-text">My Courses</span></a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('materials')" title="My Materials"><i class="fas fa-book"></i> <span class="sidebar-text">My Materials</span></a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('students')" title="Student Insights"><i class="fas fa-users"></i>
+                        <span class="sidebar-text">Student Insights</span></a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('live')" title="Live Classroom"><i class="fas fa-video"></i> <span class="sidebar-text">Live Classroom</span></a></li>
+                <li><a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: 50px;" title="Logout"><i
+                            class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
             </ul>
         </aside>
 

@@ -84,20 +84,25 @@ exports.reviewItem = async (req, res) => {
                 adminRemarks
             };
 
-            if (status === 'Approved') {
-                updateData.status = 'Published'; // Make public
+            // For courses, approvalStatus handles everything
+            // Status can be: Draft, Approved, Published, or Inactive
+            if (status === 'Published') {
+                updateData.approvalStatus = 'Published'; // Approved and live
+                updateData.status = 'Published'; // Keep for backward compatibility
                 updateData.approvedBy = req.user.id;
                 updateData.approvedAt = Date.now();
-                updateData.rejectionReason = undefined;
+            } else if (status === 'Approved') {
+                updateData.approvalStatus = 'Approved'; // Admin approved but not published yet
+                updateData.status = 'Draft'; // Keep for backward compatibility
+                updateData.approvedBy = req.user.id;
+                updateData.approvedAt = Date.now();
+            } else if (status === 'Inactive') {
+                updateData.approvalStatus = 'Inactive'; // Deactivated
+                updateData.status = 'Inactive'; // Keep for backward compatibility
             } else {
-                // Pending, Draft, or Rejected -> Hide
-                updateData.status = 'Draft';
-                if (status === 'Rejected') {
-                    updateData.rejectionReason = adminRemarks;
-                    // Keep as Draft or potentially 'Inactive' if preferred, but Draft denotes "work in progress"
-                } else if (status === 'Pending') {
-                    updateData.status = 'Draft'; // Or specific 'Pending' status if Course model supports it, usually Draft covers it
-                }
+                // Draft - back to editing
+                updateData.approvalStatus = 'Draft';
+                updateData.status = 'Draft'; // Keep for backward compatibility
             }
 
             item = await Course.findByIdAndUpdate(itemID, updateData, { new: true });

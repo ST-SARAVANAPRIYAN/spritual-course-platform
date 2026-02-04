@@ -14,7 +14,8 @@ exports.createCourse = async (req, res) => {
             mentors: [mentorID], // Assign creator as mentor
             difficulty: difficulty || 'Beginner',
             duration: duration || '4 Weeks',
-            status: 'Yet to Approve',
+            approvalStatus: 'Draft', // Staff courses start as Draft, waiting for review
+            status: 'Draft', // Keep for backward compatibility
             createdBy: mentorID,
             thumbnail: 'https://via.placeholder.com/300x200'
         });
@@ -155,11 +156,18 @@ exports.checkEligibility = async (req, res) => {
 // Get Enrolled Students for Staff
 exports.getEnrolledStudents = async (req, res) => {
     try {
-        const { Enrollment, User, Course } = require('../models/index');
+        const { Enrollment, User, Course, Progress } = require('../models/index');
+
+        console.log('Getting students for mentor:', req.user.id);
 
         // 1. Find all courses by this mentor
         const myCourses = await Course.find({ mentors: { $in: [req.user.id] } }).select('_id title');
+        console.log('Found courses:', myCourses.length);
         const courseIDs = myCourses.map(c => c._id);
+
+        if (courseIDs.length === 0) {
+            return res.status(200).json([]);
+        }
 
         // 2. Find all enrollments for these courses
         const enrollments = await Enrollment.find({ courseID: { $in: courseIDs } })
@@ -168,10 +176,13 @@ exports.getEnrolledStudents = async (req, res) => {
             .sort({ enrolledAt: -1 })
             .lean(); // Convert to standard JS objects to append extra fields
 
-        const { Progress } = require('../models/index');
+        console.log('Found enrollments:', enrollments.length);
 
-        // 3. Attach Progress
-        const insights = await Promise.all(enrollments.map(async (e) => {
+        // 3. Attach Progress - filter out enrollments with missing references
+        const validEnrollments = enrollments.filter(e => e.studentID && e.courseID);
+        console.log('Valid enrollments:', validEnrollments.length);
+        
+        const insights = await Promise.all(validEnrollments.map(async (e) => {
             const progress = await Progress.findOne({ studentID: e.studentID._id, courseID: e.courseID._id });
             return {
                 ...e,
@@ -179,9 +190,11 @@ exports.getEnrolledStudents = async (req, res) => {
             };
         }));
 
+        console.log('Returning insights:', insights.length);
         res.status(200).json(insights);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch student insights', error: err.message });
+        console.error('Error in getEnrolledStudents:', err);
+        res.status(500).json({ message: 'Failed to fetch student insights', error: err.message, stack: err.stack });
     }
 };
 

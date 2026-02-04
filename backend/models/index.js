@@ -74,8 +74,8 @@ const courseSchema = new Schema({
     duration: { type: String, required: true }, // e.g., "10 Hours"
     mentors: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Multiple, Optional for Draft
     thumbnail: { type: String },
-    status: { type: String, enum: ['Draft', 'Published', 'Inactive', 'Deleted'], default: 'Draft' }, // Publication Status
-    approvalStatus: { type: String, enum: ['Draft', 'Pending', 'Approved', 'Rejected'], default: 'Draft' }, // Editorial Status
+    status: { type: String, enum: ['Draft', 'Published', 'Inactive', 'Deleted'], default: 'Draft' }, // Deprecated - use approvalStatus instead
+    approvalStatus: { type: String, enum: ['Draft', 'Approved', 'Published', 'Inactive'], default: 'Draft' }, // Primary Status: Draft -> Approved -> Published
     totalLessons: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     deletedAt: { type: Date },

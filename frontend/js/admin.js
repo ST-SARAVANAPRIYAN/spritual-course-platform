@@ -817,7 +817,7 @@ async function loadCourses() {
             courses = courses.filter(c => c.title.toLowerCase().includes(search) || c.category.toLowerCase().includes(search));
         }
         if (statusFilter) {
-            courses = courses.filter(c => c.status === statusFilter);
+            courses = courses.filter(c => c.approvalStatus === statusFilter);
         }
 
         renderCourses(courses);
@@ -862,15 +862,9 @@ function renderCourses(courses) {
                 </thead>
                 <tbody>
                     ${courses.map(c => {
-        // Display Logic: Prefer Approval Status if not Approved
-        let displayStatus = c.status;
-        if (c.approvalStatus && c.approvalStatus !== 'Approved') {
-            displayStatus = c.approvalStatus;
-        } else if (c.approvalStatus === 'Approved' && c.status === 'Draft') {
-            displayStatus = 'Approved (Unpublished)';
-        }
-
-        const statusColor = getStatusColor(displayStatus.split(' ')[0]); // Handle text like 'Approved (Unpublished)'
+        // Display only approvalStatus
+        const displayStatus = c.approvalStatus || 'Draft';
+        const statusColor = getStatusColor(displayStatus);
 
         return `
                         <tr style="border-bottom:1px solid #f9f9f9; transition:background 0.2s;">
@@ -998,7 +992,7 @@ async function saveCourse(e, status) {
         duration: document.getElementById('courseDuration').value,
         thumbUrl: document.getElementById('courseThumb').value,
         mentors: selectedMentors,
-        status: status
+        approvalStatus: status
     };
 
     try {
@@ -1078,7 +1072,7 @@ function loadDeleteStage1() {
             </div>
             <div style="padding: 12px; background: white; border-radius: 6px;">
                 <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Status</div>
-                <div style="font-weight: 600;">${course.status}</div>
+                <div style="font-weight: 600;">${course.approvalStatus || 'Draft'}</div>
             </div>
             <div style="padding: 12px; background: white; border-radius: 6px;">
                 <div style="font-size: 0.8rem; color: #999; margin-bottom: 5px;">Price</div>
@@ -1346,7 +1340,7 @@ async function viewCourseDetails(courseId) {
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                 <div><strong>Category:</strong> ${data.course.category || 'N/A'}</div>
                 <div><strong>Price:</strong> ₹${data.course.price}</div>
-                <div><strong>Status:</strong> <span style="padding: 2px 8px; border-radius: 8px; background: #e6f4ea; color: #1e7e34; font-size: 0.85rem;">${data.course.status}</span></div>
+                <div><strong>Status:</strong> <span style="padding: 2px 8px; border-radius: 8px; background: #e6f4ea; color: #1e7e34; font-size: 0.85rem;">${data.course.approvalStatus || 'Draft'}</span></div>
                 <div><strong>Duration:</strong> ${data.course.duration || 'N/A'}</div>
                 <div><strong>Mentors:</strong> ${data.course.mentors.map(m => m.name).join(', ') || 'None'}</div>
                 <div><strong>Difficulty:</strong> ${data.course.difficulty || 'N/A'}</div>
