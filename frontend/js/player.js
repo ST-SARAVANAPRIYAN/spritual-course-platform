@@ -1,19 +1,17 @@
 /**
- * InnerSpark - Course Player & Tracking Logic
+ * InnerSpark - Course Player & Tracking Logic (Refactored for Modules)
  */
 
 let currentCourseID = null;
-let currentContentID = null;
-let previewLimit = 0;
+let currentModuleID = null;
 let hasFullAccess = false;
-let trackingInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     currentCourseID = params.get('course');
-    currentContentID = params.get('content');
+    currentModuleID = params.get('content'); // URL param 'content' maps to module ID
 
-    if (!currentCourseID || !currentContentID) {
+    if (!currentCourseID) {
         window.location.href = 'marketplace.html';
         return;
     }
@@ -51,123 +49,135 @@ async function loadPlayer() {
         });
         const data = await res.json();
 
-        hasFullAccess = data.hasFullAccess;
+        hasFullAccess = data.hasFullAccess; // Access based on enrollment
         document.getElementById('courseTitle').textContent = data.course.title;
-        document.getElementById('mentorName').textContent = `By ${data.course.mentorID?.name}`;
+        const mentorName = data.course.mentors && data.course.mentors.length > 0 ? data.course.mentors[0].name : 'InnerSpark Guides';
+        document.getElementById('mentorName').textContent = `By ${mentorName}`;
 
-        // Render Curriculum
-        renderCurriculum(data.content);
+        // Render Curriculum (Modules)
+        if (data.modules && data.modules.length > 0) {
+            renderCurriculum(data.modules);
 
-        // Load specific content
-        const activeItem = data.content.find(i => i._id === currentContentID);
-        if (activeItem) playContent(activeItem);
+            // If no specific module selected, default to first
+            if (!currentModuleID) {
+                currentModuleID = data.modules[0]._id;
+                // Update URL without reload
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('content', currentModuleID);
+                window.history.pushState({}, '', newUrl);
+            }
+
+            // Load specific module
+            const activeModule = data.modules.find(m => m._id === currentModuleID);
+            if (activeModule) {
+                loadModuleContent(activeModule);
+            } else {
+                // If ID invalid, load first
+                currentModuleID = data.modules[0]._id;
+                loadModuleContent(data.modules[0]);
+            }
+        } else {
+            document.getElementById('curriculumList').innerHTML = '<p style="padding:20px; color:#ccc;">No modules available yet.</p>';
+        }
 
         // Mock viewer count
         document.getElementById('viewCount').textContent = Math.floor(Math.random() * 50) + 5;
 
     } catch (err) {
+        console.error(err);
         UI.error('The stream of wisdom is interrupted.');
     } finally {
         UI.hideLoader();
     }
 }
 
-function renderCurriculum(content) {
+function renderCurriculum(modules) {
     const list = document.getElementById('curriculumList');
-    list.innerHTML = content.map(item => {
-        const isLocked = !hasFullAccess && item.previewDuration <= 0;
+    list.innerHTML = modules.map((item, index) => {
+        // Simple access check: if enrolled, you have access. If not, maybe preview?
+        // For now, assuming if `hasFullAccess` is false, they can't see content unless we handle preview logic again.
+        // But simplified requirement: Modules are just content.
+        const isLocked = !hasFullAccess;
+
         return `
-            <div class="content-item ${item._id === currentContentID ? 'active' : ''} ${isLocked ? 'locked' : ''}" 
-                 onclick="${isLocked ? `UI.info('This sacred lesson is locked. Enroll to unlock.')` : `switchContent('${item._id}')`}"
-                 style="${isLocked ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
-                <i class="fas ${isLocked ? 'fa-lock' : (item.type === 'Video' ? 'fa-play-circle' : 'fa-file-pdf')}"></i>
+            <div class="content-item ${item._id === currentModuleID ? 'active' : ''} ${isLocked ? 'locked' : ''}" 
+                 onclick="${isLocked ? `UI.info('Enroll to unlock this module.')` : `switchModule('${item._id}')`}"
+                 style="${isLocked ? 'opacity: 0.6; cursor: not-allowed;' : ''}">
+                <div style="width:24px; height:24px; background:#eee; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:bold; color:#666;">
+                    ${index + 1}
+                </div>
                 <div>
-                    <p style="font-size: 0.9rem;">${item.type}: Spiritual Lesson</p>
-                    <small style="color: ${isLocked ? '#666' : '#aaa'};">${isLocked ? 'Locked Pathway' : (item.previewDuration > 0 ? 'Preview Available' : 'Enrolled Access')}</small>
+                    <p style="font-size: 0.95rem; font-weight:500; margin-bottom:2px;">${item.title}</p>
+                    <small style="color: ${isLocked ? '#666' : '#888'};">
+                        ${isLocked ? '<i class="fas fa-lock"></i> Locked' : '<i class="fas fa-book-open"></i> Read'}
+                    </small>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-function playContent(item) {
+function loadModuleContent(module) {
+    // Hide Video & Overlay
     const video = document.getElementById('mainVideo');
     const overlay = document.getElementById('previewOverlay');
     const title = document.getElementById('contentTitle');
     const downloadBtn = document.getElementById('downloadNotesBtn');
     const markBtn = document.getElementById('markCompleteBtn');
 
-    title.textContent = `Lesson: Spiritual Growth`;
+    // Inject content area if not present (replacing video area)
+    let contentDisplay = document.getElementById('htmlContentDisplay');
+    if (!contentDisplay) {
+        contentDisplay = document.createElement('div');
+        contentDisplay.id = 'htmlContentDisplay';
+        contentDisplay.className = 'content-body';
+        contentDisplay.style.padding = '20px';
+        contentDisplay.style.lineHeight = '1.8';
+        contentDisplay.style.color = '#333';
+        contentDisplay.style.background = '#fff';
+        contentDisplay.style.borderRadius = '8px';
+        contentDisplay.style.marginTop = '20px';
+        // Insert after video
+        video.parentNode.insertBefore(contentDisplay, video.nextSibling);
+    }
+
+    video.style.display = 'none';
     overlay.style.display = 'none';
-    downloadBtn.style.display = 'none';
+    downloadBtn.style.display = 'none'; // No downloads for now
+
+    title.textContent = module.title;
+    contentDisplay.innerHTML = module.content || '<p style="color:#666; font-style:italic;">No content in this module.</p>';
+    contentDisplay.style.display = 'block';
+
+    // Mark Complete Button
     markBtn.style.display = 'block';
+
+    // Check if already completed (would need to fetch progress, but for now just reset button)
     markBtn.innerHTML = 'Mark as Complete';
     markBtn.style.background = 'var(--color-saffron)';
     markBtn.disabled = false;
 
-    if (item.type === 'Video') {
-        video.style.display = 'block';
-        video.src = item.fileUrl;
-        previewLimit = item.previewDuration || 0;
-
-        if (trackingInterval) clearInterval(trackingInterval);
-
-        trackingInterval = setInterval(() => {
-            if (!video.paused && !video.ended) {
-                trackImpression(video.currentTime, video.duration);
-
-                // 90% Completion auto-mark
-                if (video.currentTime / video.duration > 0.9) {
-                    markAsComplete();
-                }
-            }
-        }, 10000);
-
-        video.onseeked = () => {
-            trackMetric('VideoSkip', `Seeked to ${Math.floor(video.currentTime)}s`);
-        };
-
-        video.ontimeupdate = () => {
-            if (!hasFullAccess && video.currentTime > previewLimit) {
-                video.pause();
-                video.currentTime = previewLimit;
-                video.style.display = 'none';
-                overlay.style.display = 'flex';
-                clearInterval(trackingInterval);
-                trackMetric('PreviewEnd', 'Reached preview boundary');
-            }
-        };
-    } else {
-        video.style.display = 'none';
-        if (hasFullAccess) {
-            downloadBtn.style.display = 'inline-block';
-            downloadBtn.href = item.fileUrl;
-            downloadBtn.textContent = `Download ${item.type} Notes`;
-        } else {
-            UI.info('Divine materials are locked for enrolled seekers.');
-        }
-    }
+    // Check existing progress (Optimistic or fetch?)
+    checkCompletionStatus(module._id);
 }
 
-async function trackMetric(type, metadata = '') {
+async function checkCompletionStatus(moduleId) {
+    const markBtn = document.getElementById('markCompleteBtn');
     try {
-        await fetch(`${Auth.apiBase}/analytics/track`, {
-            method: 'POST',
-            headers: Auth.getHeaders(),
-            body: JSON.stringify({
-                courseID: currentCourseID,
-                type: type,
-                metadata: metadata
-            })
+        const res = await fetch(`${Auth.apiBase}/progress/${currentCourseID}`, {
+            headers: Auth.getHeaders()
         });
+        const progress = await res.json();
+
+        if (progress.completedModules && progress.completedModules.includes(moduleId)) {
+            markBtn.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+            markBtn.style.background = 'var(--color-success)';
+            markBtn.disabled = true;
+        }
     } catch (err) { }
 }
 
-async function trackImpression(watchTime, totalTime) {
-    trackMetric('View', `Watching lesson: ${Math.floor(watchTime)}s`);
-}
-
-function switchContent(id) {
+function switchModule(id) {
     window.location.href = `player.html?course=${currentCourseID}&content=${id}`;
 }
 
@@ -207,13 +217,15 @@ async function markAsComplete() {
         const res = await fetch(`${Auth.apiBase}/progress/mark-complete`, {
             method: 'POST',
             headers: Auth.getHeaders(),
-            body: JSON.stringify({ courseID: currentCourseID, lessonID: currentContentID })
+            body: JSON.stringify({ courseID: currentCourseID, moduleID: currentModuleID })
         });
         const data = await res.json();
+
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
         btn.style.background = 'var(--color-success)';
         btn.disabled = true;
-        UI.success(data.message);
+
+        UI.success('Module completed!');
     } catch (err) {
         UI.error('Could not update progress.');
     }

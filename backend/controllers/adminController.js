@@ -39,7 +39,7 @@ exports.getPendingContent = async (req, res) => {
         const { Module } = require('../models/index'); // Use Module model
         // We can still support legacy Content/Exam if needed, but primary is Module now.
 
-        const pendingModules = await Module.find({ approvalStatus: 'Pending' })
+        const pendingModules = await Module.find({ status: 'Pending' })
             .populate('courseId', 'title') // Note: Module schema uses courseId (lowercase d)
             .populate('createdBy', 'name');
 
@@ -59,50 +59,36 @@ exports.reviewItem = async (req, res) => {
 
         if (itemType === 'Module' || itemType === 'Content') {
             const updateData = {
-                approvalStatus: status,
+                status: status,
                 adminRemarks
             };
 
-            if (status === 'Approved') {
-                updateData.isPublished = true;
+            if (status === 'Approved' || status === 'Published') {
                 updateData.approvedBy = req.user.id;
                 updateData.approvedAt = Date.now();
                 updateData.rejectionReason = undefined;
-            } else {
-                // Pending, Draft, or Rejected -> Unpublish
-                updateData.isPublished = false;
-                if (status === 'Rejected') {
-                    updateData.rejectionReason = adminRemarks;
-                }
+            } else if (status === 'Rejected') {
+                updateData.rejectionReason = adminRemarks;
             }
 
             item = await Module.findByIdAndUpdate(itemID, updateData, { new: true });
         }
         else if (itemType === 'Course') {
             const updateData = {
-                approvalStatus: status,
+                status: status,
                 adminRemarks
             };
 
-            // For courses, approvalStatus handles everything
-            // Status can be: Draft, Approved, Published, or Inactive
+            // Mapping for Course
+            // Status can be: Draft, Approved, Published, Archived
             if (status === 'Published') {
-                updateData.approvalStatus = 'Published'; // Approved and live
-                updateData.status = 'Published'; // Keep for backward compatibility
                 updateData.approvedBy = req.user.id;
                 updateData.approvedAt = Date.now();
             } else if (status === 'Approved') {
-                updateData.approvalStatus = 'Approved'; // Admin approved but not published yet
-                updateData.status = 'Draft'; // Keep for backward compatibility
                 updateData.approvedBy = req.user.id;
                 updateData.approvedAt = Date.now();
             } else if (status === 'Inactive') {
-                updateData.approvalStatus = 'Inactive'; // Deactivated
-                updateData.status = 'Inactive'; // Keep for backward compatibility
-            } else {
-                // Draft - back to editing
-                updateData.approvalStatus = 'Draft';
-                updateData.status = 'Draft'; // Keep for backward compatibility
+                updateData.status = 'Archived';
             }
 
             item = await Course.findByIdAndUpdate(itemID, updateData, { new: true });

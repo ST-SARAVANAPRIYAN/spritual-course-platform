@@ -35,31 +35,78 @@ async function loadMarketplace() {
 
 function renderCourses(courses) {
     const list = document.getElementById('marketplaceCourses');
-    if (courses.length === 0) {
-        list.innerHTML = '<p style="text-align:center; grid-column: 1/-1; padding: 50px;">No paths found in this category yet.</p>';
-        return;
+
+    // Create sections container if not present
+    if (!document.getElementById('exploreSections')) {
+        // Change default grid container to a flex container for sections
+        list.className = '';
+        list.style.maxWidth = '1200px';
+        list.style.margin = '0 auto 100px';
+        list.style.padding = '0 20px';
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.gap = '40px';
+
+        list.innerHTML = `
+            <div id="exploreSections" style="width: 100%; display: flex; flex-direction: column; gap: 40px;">
+                <div id="upcomingSection" style="display: none;">
+                    <h2 class="section-title" style="margin-bottom: 20px; border-left: 5px solid var(--color-saffron); padding-left: 15px;">Upcoming Paths</h2>
+                    <div class="courses-grid" id="upcomingCoursesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px;"></div>
+                </div>
+                <div id="currentSection">
+                    <h2 class="section-title" style="margin-bottom: 20px; border-left: 5px solid var(--color-primary); padding-left: 15px;">Explore Courses</h2>
+                    <div class="courses-grid" id="currentCoursesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px;"></div>
+                </div>
+            </div>
+        `;
     }
 
-    list.innerHTML = courses.map(c => `
-        <div class="course-card glass-premium" onclick="openCourseModal('${c._id}')" style="background: white; border-radius: var(--border-radius-lg); overflow: hidden; cursor: pointer; transition: var(--transition-smooth);">
-            <div class="course-thumb" style="background: url('${c.thumbnail || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}'); background-size: cover; background-position: center; height: 200px; width: 100%;"></div>
+    const upcomingGrid = document.getElementById('upcomingCoursesGrid');
+    const currentGrid = document.getElementById('currentCoursesGrid');
+    const upcomingSection = document.getElementById('upcomingSection');
+
+    // Filter Logic
+    const upcoming = courses.filter(c => c.status === 'Approved');
+    const current = courses.filter(c => c.status === 'Published');
+
+    // Helper to generate Card HTML
+    const generateCard = (c, isUpcoming) => `
+        <div class="course-card glass-premium" ${!isUpcoming ? `onclick="openCourseModal('${c._id}')"` : ''} style="background: white; border-radius: var(--border-radius-lg); overflow: hidden; cursor: ${isUpcoming ? 'default' : 'pointer'}; transition: var(--transition-smooth); opacity: ${isUpcoming ? '0.9' : '1'};">
+            <div class="course-thumb" style="background: url('${c.thumbnail || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'}'); background-size: cover; background-position: center; height: 200px; width: 100%; position: relative;">
+                ${isUpcoming ? '<div style="position: absolute; top: 10px; right: 10px; background: var(--color-saffron); color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.8rem;">Coming Soon</div>' : ''}
+            </div>
             <div style="padding: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-saffron); font-weight: 700;">${c.category}</span>
                     <span style="font-weight: 700; color: var(--color-saffron); font-size: 1.1rem;">$${c.price}</span>
                 </div>
                 <h3 style="margin-bottom: 10px; font-family: var(--font-heading);">${c.title}</h3>
-                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 15px;">By ${c.mentorID?.name || 'Mentor'}</p>
+                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 15px;">By ${c.mentors && c.mentors[0] ? c.mentors[0].name : 'Mentor'}</p>
                 <div style="display: flex; align-items: center; gap: 15px; font-size: 0.8rem; color: #999;">
-                    <span><i class="fas fa-layer-group"></i> ${c.content?.length || 0} Lessons</span>
-                    <span><i class="fas fa-star" style="color: var(--color-golden);"></i> 4.9</span>
+                    <span><i class="fas fa-layer-group"></i> ${c.totalLessons || 0} Lessons</span>
+                    ${isUpcoming ? '<span><i class="fas fa-clock"></i> Releases Soon</span>' : '<span><i class="fas fa-star" style="color: var(--color-golden);"></i> 4.9</span>'}
                 </div>
+                ${isUpcoming ? '<button class="btn-primary" style="width: 100%; margin-top: 15px; background: #ccc; cursor: not-allowed;">Notify Me</button>' : ''}
             </div>
         </div>
-    `).join('');
+    `;
 
-    // Track Impressions
-    courses.forEach(c => trackMetric('View', `Marketplace List: ${c.title}`, c._id));
+    // Render Upcoming
+    if (upcoming.length > 0) {
+        upcomingSection.style.display = 'block';
+        upcomingGrid.innerHTML = upcoming.map(c => generateCard(c, true)).join('');
+    } else {
+        upcomingSection.style.display = 'none';
+    }
+
+    // Render Current
+    if (current.length === 0 && upcoming.length === 0) {
+        currentGrid.innerHTML = '<p style="text-align:center; padding: 50px;">No paths found in this category yet.</p>';
+    } else {
+        currentGrid.innerHTML = current.map(c => generateCard(c, false)).join('');
+        // Track Impressions for current courses
+        current.forEach(c => trackMetric('View', `Marketplace List: ${c.title}`, c._id));
+    }
 }
 
 async function trackMetric(type, metadata = '', courseID = null) {

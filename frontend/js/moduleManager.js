@@ -183,7 +183,7 @@ function renderModules() {
                 <div class="module-info">
                     <div class="module-title">${module.order + 1}. ${module.title}</div>
                     <div class="module-meta">
-                        ${module.isPublished ? '<span style="color: #28a745;">• Published</span>' : '<span style="color: #ffc107;">• Draft</span>'}
+                        ${module.status === 'Published' ? '<span style="color: #28a745;">• Published</span>' : (module.status === 'Approved' ? '<span style="color: #17a2b8;">• Approved (Upcoming)</span>' : '<span style="color: #ffc107;">• ' + module.status + '</span>')}
                     </div>
                 </div>
                 <div class="module-actions">

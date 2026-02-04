@@ -1,4 +1,4 @@
-const { Module, Lesson, Course, User } = require('../models/index');
+const { Module, Course, User } = require('../models/index');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -51,9 +51,7 @@ exports.createModule = catchAsync(async (req, res, next) => {
         content: content || '',
         order: nextOrder,
         createdBy: req.user.id,
-        createdBy: req.user.id,
-        isPublished: isAdmin, // Only Admin can publish immediately
-        approvalStatus: isAdmin ? 'Approved' : (req.body.isPublished ? 'Pending' : 'Draft') // If staff tries to publish, it goes to Pending
+        status: isAdmin ? 'Approved' : 'Draft' // Admins auto-approve, Staff start as Draft
     });
 
     await module.save();
@@ -80,10 +78,10 @@ exports.getCourseModules = catchAsync(async (req, res, next) => {
     // Build query
     const query = { courseId };
 
-    // Only show published modules to non-staff
+    // Only show published/approved modules to non-staff
     const isStaffOrAdmin = req.user && ['Staff', 'Admin'].includes(req.user.role);
     if (!isStaffOrAdmin || includeUnpublished !== 'true') {
-        query.isPublished = true;
+        query.status = { $in: ['Approved', 'Published'] };
     }
 
     const modules = await Module.find(query)
@@ -99,7 +97,7 @@ exports.getCourseModules = catchAsync(async (req, res, next) => {
     });
 });
 
-// Get single module with all lessons
+// Get single module
 exports.getModule = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
@@ -143,38 +141,33 @@ exports.updateModule = catchAsync(async (req, res, next) => {
     if (title) module.title = title;
     if (description !== undefined) module.description = description;
     if (content !== undefined) module.content = content;
-    // Approval Logic
+
+    // Approval/Status Logic
     if (isAdmin) {
-        if (isPublished !== undefined) {
-            module.isPublished = isPublished;
-            if (isPublished) {
-                module.approvalStatus = 'Approved';
+        // Admin can set status directly if provided
+        if (req.body.status) {
+            module.status = req.body.status;
+            if (module.status === 'Approved' || module.status === 'Published') {
                 module.approvedBy = req.user.id;
                 module.approvedAt = Date.now();
-                module.rejectionReason = undefined; // Clear previous rejection
-            } else {
-                module.approvalStatus = 'Draft'; // Or just unpublished? Let's say Draft.
+                module.rejectionReason = undefined;
             }
         }
     } else {
         // Staff Logic
-        // If they try to publish, or if they edit an already approved/pending module
+        // If they ask to 'publish' (legacy flag) or 'submit'
         if (isPublished === true) {
-            module.isPublished = false; // Cannot publish directly
-            module.approvalStatus = 'Pending';
-            module.rejectionReason = undefined; // Retry
+            module.status = 'Pending'; // Submit for approval
+            module.rejectionReason = undefined;
         } else if (isPublished === false) {
-            module.isPublished = false;
-            module.approvalStatus = 'Draft';
-        } else {
-            // They are just editing content but didn't toggle publish.
-            // If it was already Published or Pending, editing it might require re-approval?
-            // For now, let's say if they edit CRITICAL fields (title, content, description), we reset to Pending if it was Approved.
-            if ((title || description || content) && module.approvalStatus === 'Approved') {
-                module.isPublished = false;
-                module.approvalStatus = 'Pending';
-                // Note: This might be annoying if they fix a typo. But safer.
-            }
+            // If unpublishing, go back to Draft?
+            // Or if they explicitly want to draft it
+            module.status = 'Draft';
+        }
+
+        // Critical edits reset approval
+        if ((title || description || content) && (module.status === 'Approved' || module.status === 'Published')) {
+            module.status = 'Pending'; // Re-submit for approval
         }
     }
 
@@ -249,42 +242,5 @@ exports.reorderModules = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
         message: 'Modules reordered successfully'
-    });
-});
-
-// Reorder lessons within a module
-exports.reorderLessons = catchAsync(async (req, res, next) => {
-    const { id } = req.params; // module id
-    const { lessonOrders } = req.body; // Array of {id, order}
-
-    console.log('📦 Reordering lessons in module:', id);
-
-    if (!Array.isArray(lessonOrders)) {
-        return next(new AppError('lessonOrders must be an array', 400));
-    }
-
-    const module = await Module.findById(id);
-    if (!module) {
-        return next(new AppError('Module not found', 404));
-    }
-
-    // Verify all lessons belong to this module
-    const lessonIds = lessonOrders.map(l => l.id);
-    const lessons = await Lesson.find({ _id: { $in: lessonIds }, moduleId: id });
-
-    if (lessons.length !== lessonIds.length) {
-        return next(new AppError('Some lessons do not belong to this module', 400));
-    }
-
-    // Update orders
-    const updatePromises = lessonOrders.map(({ id: lessonId, order }) =>
-        Lesson.findByIdAndUpdate(lessonId, { order })
-    );
-
-    await Promise.all(updatePromises);
-    console.log('✅ Lessons reordered');
-
-    res.status(200).json({
-        message: 'Lessons reordered successfully'
     });
 });

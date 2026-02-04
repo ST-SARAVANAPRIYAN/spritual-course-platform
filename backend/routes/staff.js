@@ -15,6 +15,10 @@ router.post('/courses', staffController.createCourse);
 // @desc    Get all courses created by the mentor
 router.get('/courses', staffController.getStaffCourses);
 
+// @route   GET /api/staff/modules
+// @desc    Get all modules created by the mentor
+router.get('/modules', staffController.getStaffModules);
+
 // @route   GET /api/staff/deleted-courses
 // @desc    Get deleted/inactive courses for notification
 router.get('/deleted-courses', staffController.getDeletedCourses);

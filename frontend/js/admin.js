@@ -145,11 +145,11 @@ function renderQueueList(data, containerId, isOverview) {
             mentorName = item.createdBy?.name || 'Mentor';
             redirectUrl = `course-preview.html?id=${item._id}`;
         } else {
-            // Module or Content
+            // Module
             const cId = item.courseId?._id || item.courseId; // Populate might return object or ID
             const cTitle = item.courseId?.title || 'Unknown Course';
             courseTitle = cTitle;
-            mentorName = item.createdBy?.name || item.uploadedBy?.name || 'Mentor';
+            mentorName = item.createdBy?.name || 'Mentor';
 
             // Ensure we have a course ID to link to
             if (cId) {
@@ -161,8 +161,7 @@ function renderQueueList(data, containerId, isOverview) {
         // Visual distinction
         const borderColors = {
             'Module': 'var(--color-saffron)',
-            'Course': 'var(--color-primary)',
-            'Content': '#6c757d'
+            'Course': 'var(--color-primary)'
         };
         const borderColor = borderColors[itemType] || borderColors['Module'];
 
@@ -776,9 +775,6 @@ function openReviewModal(id, contentKeyOrUrl, label, type) {
             </div>
              <div style="margin-top:10px; color:#666; font-size:0.8rem;"><i class="fas fa-info-circle"></i> Approving this course will set its status to <strong>Published</strong>.</div>
         `;
-    } else {
-        // Legacy file preview
-        preview.innerHTML = `<a href="${contentKeyOrUrl}" target="_blank" class="btn-primary">View Content File</a>`;
     }
 
     document.getElementById('adminRemarks').value = ''; // Reset remarks
@@ -899,9 +895,12 @@ function renderCourses(courses) {
                 </thead>
                 <tbody>
                     ${courses.map(c => {
-        // Display only approvalStatus
-        const displayStatus = c.approvalStatus || 'Draft';
+        // Display only status (Fixed field name)
+        const displayStatus = c.status || 'Draft';
         const statusColor = getStatusColor(displayStatus);
+
+        // Status Options for Dropdown
+        const options = ['Draft', 'Pending', 'Approved', 'Published', 'Archived'];
 
         return `
                         <tr style="border-bottom:1px solid #f9f9f9; transition:background 0.2s;">
@@ -925,10 +924,11 @@ function renderCourses(courses) {
                                 </a>
                             </td>
                             <td style="padding:15px;">
-                                <span style="padding:4px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; 
-                                    background:${statusColor.bg}; color:${statusColor.text};">
-                                    ${displayStatus}
-                                </span>
+                                <select onchange="changeCourseStatus('${c._id}', this.value)" 
+                                    style="padding: 6px 10px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.1); font-size: 0.75rem; font-weight: 600; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; text-align: center;
+                                    background-color: ${statusColor.bg}; color: ${statusColor.text}; width: 100px;">
+                                    ${options.map(opt => `<option value="${opt}" ${opt === displayStatus ? 'selected' : ''}>${opt}</option>`).join('')}
+                                </select>
                             </td>
                             <td style="padding:15px; text-align:right;">
                                 <button class="btn-primary" title="View Details" style="padding:6px 10px; font-size:0.8rem; margin-right:5px; background: #17a2b8;" 
@@ -950,6 +950,44 @@ function renderCourses(courses) {
             </table>
         </div>
     `;
+}
+
+// Helper for changing status via dropdown
+async function changeCourseStatus(id, newStatus) {
+    if (!confirm(`Are you sure you want to change status to "${newStatus}"?`)) {
+        loadCourses(); // Revert UI
+        return;
+    }
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/admin/review`, {
+            method: 'POST',
+            headers: Auth.getHeaders(),
+            body: JSON.stringify({
+                itemType: 'Course',
+                itemID: id,
+                status: newStatus,
+                adminRemarks: `Status updated to ${newStatus} from Dashboard`
+            })
+        });
+
+        if (res.ok) {
+            UI.success(`Status updated to ${newStatus}`);
+            loadCourses();
+        } else {
+            const data = await res.json();
+            UI.error(data.message || 'Update failed');
+            loadCourses(); // Revert
+        }
+    } catch (err) {
+        console.error(err);
+        UI.error('Update failed');
+    } finally {
+        UI.hideLoader();
+    }
+
+
 }
 
 async function openCourseModal(course = null) {
@@ -1029,7 +1067,7 @@ async function saveCourse(e, status) {
         duration: document.getElementById('courseDuration').value,
         thumbUrl: document.getElementById('courseThumb').value,
         mentors: selectedMentors,
-        approvalStatus: status
+        status: status
     };
 
     try {

@@ -84,8 +84,17 @@ const courseSchema = new Schema({
     duration: { type: String, required: true }, // e.g., "10 Hours"
     mentors: [{ type: Schema.Types.ObjectId, ref: 'User' }], // Multiple, Optional for Draft
     thumbnail: { type: String },
-    status: { type: String, enum: ['Draft', 'Published', 'Inactive', 'Deleted'], default: 'Draft' }, // Deprecated - use approvalStatus instead
-    approvalStatus: { type: String, enum: ['Draft', 'Approved', 'Published', 'Inactive'], default: 'Draft' }, // Primary Status: Draft -> Approved -> Published
+    status: {
+        type: String,
+        enum: ['Draft', 'Pending', 'Approved', 'Published', 'Archived'],
+        default: 'Draft'
+    },
+    // Draft: Initial creation
+    // Pending: Submitted for approval
+    // Approved: Approved by Admin (Upcoming)
+    // Published: Live (Current)
+    // Archived: Soft deleted/Hidden
+
     totalLessons: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     deletedAt: { type: Date },
@@ -123,25 +132,7 @@ const paymentSchema = new Schema({
     date: { type: Date, default: Date.now }
 });
 
-// 6. Content Collection
-const contentSchema = new Schema({
-    courseID: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
-    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    title: { type: String, required: true },
-    type: { type: String, enum: ['Video', 'PDF', 'Audio', 'Note'], required: true },
-    category: { type: String, enum: ['pdf', 'audio', 'video'], required: true }, // Lowercase for consistency
-    fileUrl: { type: String, required: true },
-    fileName: { type: String }, // Original filename
-    fileSize: { type: Number }, // In bytes
-    previewDuration: { type: Number, default: 0 }, // Seconds
-    approvalStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
-    adminRemarks: { type: String },
-    rejectionReason: { type: String }, // Corrections needed from admin
-    approvedAt: { type: Date },
-    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
-});
+
 
 // 7. Chatbot/FAQ Collection
 const faqSchema = new Schema({
@@ -178,7 +169,7 @@ const certificateSchema = new Schema({
 const progressSchema = new Schema({
     studentID: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     courseID: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
-    completedLessons: [{ type: Schema.Types.ObjectId, ref: 'Content' }],
+    completedModules: [{ type: Schema.Types.ObjectId, ref: 'Module' }],
     percentComplete: { type: Number, default: 0 },
     lastAccessed: { type: Date, default: Date.now }
 });
@@ -197,7 +188,6 @@ const impressionSchema = new Schema({
 
 // Import new modular content models
 const Module = require('./Module');
-const Lesson = require('./Lesson');
 
 module.exports = {
     User: mongoose.model('User', userSchema),
@@ -205,14 +195,9 @@ module.exports = {
     Schedule: mongoose.model('Schedule', scheduleSchema),
     Attendance: mongoose.model('Attendance', attendanceSchema),
     Payment: mongoose.model('Payment', paymentSchema),
-    Content: mongoose.model('Content', contentSchema),
-    FAQ: mongoose.model('FAQ', faqSchema),
-    Exam: mongoose.model('Exam', examSchema),
-    Certificate: mongoose.model('Certificate', certificateSchema),
     Impression: mongoose.model('Impression', impressionSchema),
     Progress: mongoose.model('Progress', progressSchema),
     Module, // New modular content system
-    Lesson, // New modular content system
     Result: mongoose.model('Result', new Schema({
         studentID: { type: Schema.Types.ObjectId, ref: 'User', required: true },
         examID: { type: Schema.Types.ObjectId, ref: 'Exam', required: true },

@@ -29,9 +29,10 @@ const moduleSchema = new mongoose.Schema({
         default: 0,
         min: [0, 'Order must be a positive number']
     },
-    isPublished: {
-        type: Boolean,
-        default: false
+    status: {
+        type: String,
+        enum: ['Draft', 'Pending', 'Approved', 'Rejected', 'Archived'],
+        default: 'Draft'
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -43,11 +44,6 @@ const moduleSchema = new mongoose.Schema({
         ref: 'User'
     },
     approvedAt: Date,
-    approvalStatus: {
-        type: String,
-        enum: ['Draft', 'Pending', 'Approved', 'Rejected'],
-        default: 'Draft'
-    },
     adminRemarks: String,
     rejectionReason: String
 }, {

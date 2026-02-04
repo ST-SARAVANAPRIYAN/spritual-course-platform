@@ -35,9 +35,6 @@ router.put('/courses/:courseId/modules/reorder',
     moduleController.reorderModules
 );
 
-router.put('/modules/:id/lessons/reorder',
-    authorize(['Staff', 'Admin']),
-    moduleController.reorderLessons
-);
+
 
 module.exports = router;

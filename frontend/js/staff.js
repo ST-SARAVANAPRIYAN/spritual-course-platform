@@ -235,31 +235,31 @@ let currentSection = 'overview';
 // Load Overview Statistics
 async function loadOverview() {
     const container = document.getElementById('overviewStats');
-    
+
     try {
         // Fetch all required data in parallel
-        const [coursesRes, studentsRes, materialsRes] = await Promise.all([
+        const [coursesRes, studentsRes, modulesRes] = await Promise.all([
             fetch(`${Auth.apiBase}/staff/courses`, { headers: Auth.getHeaders() }),
             fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() }),
-            fetch(`${Auth.apiBase}/courses/materials/my`, { headers: Auth.getHeaders() })
+            fetch(`${Auth.apiBase}/staff/modules`, { headers: Auth.getHeaders() })
         ]);
 
         const courses = await coursesRes.json();
         const enrollments = await studentsRes.json();
-        const materials = await materialsRes.json();
+        const modules = await modulesRes.json();
 
         // Calculate statistics
         const totalCourses = courses.length;
-        const publishedCourses = courses.filter(c => c.approvalStatus === 'Published').length;
-        const draftCourses = courses.filter(c => c.approvalStatus === 'Draft').length;
-        const approvedCourses = courses.filter(c => c.approvalStatus === 'Approved').length;
-        
+        const publishedCourses = courses.filter(c => c.status === 'Published').length;
+        const draftCourses = courses.filter(c => c.status === 'Draft').length;
+        const approvedCourses = courses.filter(c => c.status === 'Approved').length;
+
         const uniqueStudents = new Set(enrollments.map(e => e.studentID?._id).filter(id => id)).size;
         const totalEnrollments = enrollments.length;
-        
-        const totalMaterials = materials.length;
-        const approvedMaterials = materials.filter(m => m.approvalStatus === 'Approved').length;
-        const pendingMaterials = materials.filter(m => m.approvalStatus === 'Pending').length;
+
+        const totalModules = modules.length;
+        const approvedModules = modules.filter(m => m.status === 'Approved').length;
+        const pendingModules = modules.filter(m => m.status === 'Pending').length;
 
         container.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 30px;">
@@ -292,18 +292,18 @@ async function loadOverview() {
                     </div>
                 </div>
 
-                <!-- Materials Card -->
+                <!-- Modules Card -->
                 <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 15px; color: white; box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                         <div>
-                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 8px;">Course Materials</div>
-                            <div style="font-size: 2.5rem; font-weight: bold;">${totalMaterials}</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 8px;">Total Modules</div>
+                            <div style="font-size: 2.5rem; font-weight: bold;">${totalModules}</div>
                         </div>
-                        <i class="fas fa-file-alt" style="font-size: 3rem; opacity: 0.3;"></i>
+                        <i class="fas fa-layer-group" style="font-size: 3rem; opacity: 0.3;"></i>
                     </div>
                     <div style="display: flex; gap: 15px; font-size: 0.85rem;">
-                        <span><i class="fas fa-check"></i> ${approvedMaterials} Approved</span>
-                        <span><i class="fas fa-hourglass-half"></i> ${pendingMaterials} Pending</span>
+                        <span><i class="fas fa-check"></i> ${approvedModules} Approved</span>
+                        <span><i class="fas fa-hourglass-half"></i> ${pendingModules} Pending</span>
                     </div>
                 </div>
             </div>
@@ -321,8 +321,8 @@ async function loadOverview() {
                         <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-saffron);">${totalCourses > 0 ? Math.round(totalEnrollments / totalCourses) : 0}</div>
                     </div>
                     <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #17a2b8;">
-                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Materials per Course</div>
-                        <div style="font-size: 1.5rem; font-weight: bold; color: #17a2b8;">${totalCourses > 0 ? Math.round(totalMaterials / totalCourses) : 0}</div>
+                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Modules per Course</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #17a2b8;">${totalCourses > 0 ? Math.round(totalModules / totalCourses) : 0}</div>
                     </div>
                 </div>
             </div>
@@ -336,7 +336,7 @@ async function loadOverview() {
 async function loadEnrolledStudents() {
     const list = document.getElementById('studentInsightList');
     const filterDropdown = document.getElementById('studentCourseFilter');
-    
+
     try {
         const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
         const enrollments = await res.json();
@@ -358,8 +358,8 @@ async function loadEnrolledStudents() {
 
         // Populate filter dropdown with courses
         if (filterDropdown) {
-            filterDropdown.innerHTML = '<option value="">All Courses</option>' + 
-                uniqueCourses.map(course => 
+            filterDropdown.innerHTML = '<option value="">All Courses</option>' +
+                uniqueCourses.map(course =>
                     `<option value="${course._id}">${course.title}</option>`
                 ).join('');
         }
@@ -936,7 +936,7 @@ let allNotifications = [];
 async function loadNotifications() {
     console.log('📬 Loading notifications...');
     const container = document.getElementById('notificationsList');
-    
+
     if (!container) {
         console.error('❌ notificationsList container not found!');
         return;
@@ -944,11 +944,11 @@ async function loadNotifications() {
 
     // Show loading state
     container.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center; padding: 20px;">Loading notifications...</p>';
-    
+
     try {
         const url = `${Auth.apiBase}/staff/deleted-courses`;
         console.log('🌐 Fetching from:', url);
-        
+
         const res = await fetch(url, {
             headers: Auth.getHeaders()
         });
@@ -958,7 +958,7 @@ async function loadNotifications() {
         if (res.ok) {
             const deletedCourses = await res.json();
             console.log('📦 Deleted courses received:', deletedCourses);
-            
+
             // Convert deleted courses to notification format
             allNotifications = deletedCourses.map(course => ({
                 id: course._id,
@@ -968,7 +968,7 @@ async function loadNotifications() {
                 timestamp: course.deletedAt || course.updatedAt || course.createdAt || new Date(),
                 seen: false
             }));
-            
+
             console.log('✅ Notifications created:', allNotifications.length);
         } else {
             console.warn('⚠️ Failed to fetch deleted courses:', res.status);
@@ -991,7 +991,7 @@ async function loadNotifications() {
 function displayNotifications(notifications) {
     console.log('🎨 displayNotifications called with', notifications.length, 'notifications');
     const container = document.getElementById('notificationsList');
-    
+
     if (!container) {
         console.error('❌ notificationsList container not found in displayNotifications!');
         return;
@@ -1012,7 +1012,7 @@ function displayNotifications(notifications) {
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     console.log('✅ Rendering', notifications.length, 'notifications');
-    
+
     container.innerHTML = notifications.map(notif => `
         <div class="notification-item ${notif.seen ? 'seen' : 'unseen'}" data-id="${notif.id}">
             <div class="notification-content">
@@ -1024,21 +1024,21 @@ function displayNotifications(notifications) {
                 <div class="notification-time">${formatTimestamp(notif.timestamp)}</div>
             </div>
             <div class="notification-actions">
-                ${notif.seen ? 
-                    `<button onclick="markAsUnread('${notif.id}')" class="notification-action-btn" title="Mark as unread">
+                ${notif.seen ?
+            `<button onclick="markAsUnread('${notif.id}')" class="notification-action-btn" title="Mark as unread">
                         <i class="fas fa-envelope"></i>
                     </button>` :
-                    `<button onclick="markAsSeen('${notif.id}')" class="notification-action-btn" title="Mark as read">
+            `<button onclick="markAsSeen('${notif.id}')" class="notification-action-btn" title="Mark as read">
                         <i class="fas fa-envelope-open"></i>
                     </button>`
-                }
+        }
                 <button onclick="deleteNotification('${notif.id}')" class="notification-action-btn" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
         </div>
     `).join('');
-    
+
     console.log('✅ Notifications rendered successfully');
 }
 
@@ -1049,15 +1049,15 @@ function filterNotifications(filter) {
         const dropdown = document.getElementById('notificationFilter');
         filter = dropdown ? dropdown.value : 'all';
     }
-    
+
     let filtered = [...allNotifications];
-    
+
     if (filter === 'unseen') {
         filtered = filtered.filter(n => !n.seen);
     } else if (filter === 'seen') {
         filtered = filtered.filter(n => n.seen);
     }
-    
+
     displayNotifications(filtered);
 }
 
@@ -1094,9 +1094,9 @@ function deleteNotification(notificationId) {
 function updateNotificationBadge() {
     const badge = document.getElementById('notificationBadge');
     if (!badge) return;
-    
+
     const unseenCount = allNotifications.filter(n => !n.seen).length;
-    
+
     if (unseenCount > 0) {
         badge.textContent = unseenCount > 99 ? '99+' : unseenCount;
         badge.style.display = 'inline-block';
@@ -1113,12 +1113,12 @@ function formatTimestamp(timestamp) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
+
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -1127,15 +1127,15 @@ function searchCourses() {
     const searchTerm = document.getElementById('courseSearchInput')?.value.toLowerCase();
     const filterStatus = document.getElementById('courseStatusFilter')?.value;
     const courseCards = document.querySelectorAll('#courseList .course-list-item');
-    
+
     courseCards.forEach(card => {
         const title = card.querySelector('strong')?.textContent.toLowerCase() || '';
         const statusSpan = card.querySelector('span[style*="background"]');
         const status = statusSpan?.textContent.toLowerCase() || '';
-        
+
         const matchesSearch = !searchTerm || title.includes(searchTerm);
         const matchesFilter = !filterStatus || filterStatus === '' || status.includes(filterStatus.toLowerCase());
-        
+
         card.style.display = matchesSearch && matchesFilter ? '' : 'none';
     });
 }
@@ -1145,14 +1145,14 @@ function searchMaterials() {
     const searchTerm = document.getElementById('materialSearchInput')?.value.toLowerCase();
     const filterType = document.getElementById('materialTypeFilter')?.value;
     const materialCards = document.querySelectorAll('#myMaterialsList .course-list-item');
-    
+
     materialCards.forEach(card => {
         const title = card.querySelector('strong')?.textContent.toLowerCase() || '';
         const type = card.querySelector('p')?.textContent.toLowerCase() || '';
-        
+
         const matchesSearch = !searchTerm || title.includes(searchTerm);
         const matchesFilter = !filterType || filterType === '' || type.includes(filterType.toLowerCase());
-        
+
         card.style.display = matchesSearch && matchesFilter ? '' : 'none';
     });
 }
@@ -1162,14 +1162,14 @@ function searchStudents() {
     const searchTerm = document.getElementById('studentSearchInput')?.value.toLowerCase();
     const filterCourse = document.getElementById('studentCourseFilter')?.value;
     const studentRows = document.querySelectorAll('#studentInsightList tr');
-    
+
     studentRows.forEach(row => {
         const text = row.textContent.toLowerCase();
         const courseId = row.getAttribute('data-course-id');
-        
+
         const matchesSearch = !searchTerm || text.includes(searchTerm);
         const matchesCourse = !filterCourse || filterCourse === '' || courseId === filterCourse;
-        
+
         row.style.display = matchesSearch && matchesCourse ? '' : 'none';
     });
 }
@@ -1439,7 +1439,7 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
 document.addEventListener('DOMContentLoaded', () => {
     // Don't load notifications on page load, only when tab is clicked
     // loadNotifications() will be called by switchSection('notifications')
-    
+
     // Setup search/filter event listeners
     document.getElementById('courseSearchInput')?.addEventListener('input', searchCourses);
     document.getElementById('courseStatusFilter')?.addEventListener('change', searchCourses);

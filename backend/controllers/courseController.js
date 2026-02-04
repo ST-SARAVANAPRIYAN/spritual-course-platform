@@ -13,11 +13,14 @@ exports.getEnrolledCourses = async (req, res) => {
     }
 };
 
-// Get Public Marketplace Courses
+// Get Marketplace Courses (Approved & Published)
 exports.getMarketplace = async (req, res) => {
     try {
-        const courses = await Course.find({ status: 'Published' })
-            .populate('mentors', 'name');
+        // Fetch both Approved (Upcoming) and Published (Current) courses
+        const courses = await Course.find({
+            status: { $in: ['Approved', 'Published'] }
+        }).populate('mentors', 'name');
+
         res.status(200).json(courses);
     } catch (err) {
         console.error('Marketplace error:', err);
@@ -29,18 +32,23 @@ exports.getMarketplace = async (req, res) => {
 exports.getCoursePreview = async (req, res) => {
     try {
         const { id } = req.params;
+        const { Module } = require('../models/index');
         const course = await Course.findById(id).populate('mentors', 'name');
 
         if (!course) {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        // Fetch only content with previewDuration > 0
-        const previewContent = await Content.find({
-            courseID: id,
-            approvalStatus: 'Approved',
-            previewDuration: { $gt: 0 }
-        }).select('title type fileUrl previewDuration'); // Only necessary fields
+        // Fetch published modules
+        const validStatuses = ['Approved', 'Published'];
+
+        const previewModules = await Module.find({
+            courseId: id,
+            status: { $in: validStatuses }
+        }).select('title status');
+        // Assuming no granular preview logic for now or it's handled differently. 
+        // Legacy code used 'isFreePreview' on Lessons. 
+        // If Modules replace Lessons, we'd check Module fields.
 
         res.status(200).json({
             course: {
@@ -48,9 +56,10 @@ exports.getCoursePreview = async (req, res) => {
                 description: course.description,
                 mentor: course.mentors && course.mentors.length > 0 ? course.mentors.map(m => m.name).join(', ') : 'No mentor assigned',
                 price: course.price,
-                thumbnail: course.thumbnail
+                thumbnail: course.thumbnail,
+                status: course.status
             },
-            previews: previewContent
+            previews: previewModules // Rename or keep as previews? Keeping generic.
         });
     } catch (err) {
         console.error('Preview error:', err);
@@ -58,13 +67,22 @@ exports.getCoursePreview = async (req, res) => {
     }
 };
 
-// Get Course Details & Content
+// Get Course Details & Content (Modules)
 exports.getCourseDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const { Course, Content, User, Enrollment } = require('../models/index');
+        const { Module, User, Enrollment } = require('../models/index');
+
         const course = await Course.findById(id).populate('mentors', 'name');
-        const content = await Content.find({ courseID: id, approvalStatus: 'Approved' });
+
+        // Fetch Modules
+        // Only show Approved/Published modules
+        const validStatuses = ['Approved', 'Published'];
+
+        const modules = await Module.find({
+            courseId: id,
+            status: { $in: validStatuses }
+        }).sort({ order: 1 });
 
         // Logic to check if user has access (purchased and not expired)
         let hasFullAccess = false;
@@ -86,11 +104,18 @@ exports.getCourseDetails = async (req, res) => {
             }
         }
 
-        res.status(200).json({ course, content, hasFullAccess, isExpired });
+        res.status(200).json({
+            course,
+            modules,
+            hasFullAccess,
+            isExpired
+        });
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch details', error: err.message });
     }
 };
+
+// ... trackImpression kept same ...
 
 // Track Impression (Play Event)
 exports.trackImpression = async (req, res) => {
@@ -119,15 +144,14 @@ exports.trackImpression = async (req, res) => {
 exports.getAllCoursesAdmin = async (req, res) => {
     try {
         const courses = await Course.find().populate('mentors', 'name email');
-        
+
         // Debug: Log course statuses
         console.log('\n📚 Courses retrieved for admin:');
         courses.forEach((course, idx) => {
             console.log(`${idx + 1}. ${course.title}`);
             console.log(`   Status: ${course.status}`);
-            console.log(`   Approval Status: ${course.approvalStatus}`);
         });
-        
+
         res.status(200).json(courses);
     } catch (err) {
         res.status(500).json({ message: 'Failed to load courses', error: err.message });
@@ -137,18 +161,17 @@ exports.getAllCoursesAdmin = async (req, res) => {
 // Create Course
 exports.createCourse = async (req, res) => {
     try {
-        const { title, description, price, mentors, category, difficulty, duration, thumbUrl, approvalStatus } = req.body;
+        const { title, description, price, mentors, category, difficulty, duration, thumbUrl, status } = req.body;
         const user = await User.findById(req.user.id);
 
-        // Determine course approvalStatus based on role:
-        // Staff creates -> 'Pending' (awaiting admin approval)
-        // Admin creates -> 'Draft' or specified status (can directly publish)
-        let courseApprovalStatus = 'Draft';
-        
-        if (user.role === 'Staff') {
-            courseApprovalStatus = 'Pending';
-        } else if (user.role === 'Admin') {
-            courseApprovalStatus = approvalStatus || 'Draft';
+        // Determine course status based on role:
+        // Staff creates -> 'Draft' (then submits to Pending via separate action, or auto Pending?)
+        // Plan says: Staff create course as draft -> add modules -> submit.
+
+        let initialStatus = 'Draft';
+
+        if (user.role === 'Admin') {
+            initialStatus = status || 'Draft';
         }
 
         const newCourse = new Course({
@@ -160,8 +183,7 @@ exports.createCourse = async (req, res) => {
             difficulty: difficulty || 'Beginner',
             duration: duration || '4 Weeks',
             thumbnail: thumbUrl || 'https://via.placeholder.com/300x200',
-            approvalStatus: courseApprovalStatus,
-            status: 'Draft', // Keep for backward compatibility
+            status: initialStatus,
             createdBy: req.user.id
         });
         await newCourse.save();
@@ -189,16 +211,16 @@ exports.deleteCourse = async (req, res) => {
     try {
         const { id } = req.params;
         const { Enrollment } = require('../models/index');
-        
+
         const course = await Course.findById(id);
         if (!course) return res.status(404).json({ message: 'Course not found' });
 
         // Check for active enrollments
         const enrollments = await Enrollment.find({ courseID: id }).populate('studentID', 'name email');
-        
+
         if (enrollments.length > 0) {
-            return res.status(400).json({ 
-                message: 'Cannot delete course with active enrollments', 
+            return res.status(400).json({
+                message: 'Cannot delete course with active enrollments',
                 enrollmentCount: enrollments.length,
                 students: enrollments.map(e => ({
                     id: e.studentID._id,
@@ -208,9 +230,8 @@ exports.deleteCourse = async (req, res) => {
             });
         }
 
-        // Soft delete - change approvalStatus to Inactive and mark deletedAt
-        course.approvalStatus = 'Inactive';
-        course.status = 'Deleted'; // Keep for backward compatibility
+        // Soft delete - change status to Archived
+        course.status = 'Archived';
         course.deletedAt = new Date();
         await course.save();
 
@@ -227,7 +248,7 @@ exports.getCourseWithEnrollments = async (req, res) => {
         console.log('getCourseWithEnrollments called with ID:', req.params.id);
         const { id } = req.params;
         const { Enrollment } = require('../models/index');
-        
+
         const course = await Course.findById(id).populate('mentors', 'name email');
         if (!course) {
             console.log('Course not found:', id);
@@ -295,9 +316,9 @@ exports.removeStudentsFromCourse = async (req, res) => {
         }
 
         // Remove enrollments
-        const result = await Enrollment.deleteMany({ 
-            courseID: id, 
-            studentID: { $in: studentIds } 
+        const result = await Enrollment.deleteMany({
+            courseID: id,
+            studentID: { $in: studentIds }
         });
 
         // Remove course from students' enrolledCourses array
@@ -306,9 +327,9 @@ exports.removeStudentsFromCourse = async (req, res) => {
             { $pull: { enrolledCourses: id } }
         );
 
-        res.status(200).json({ 
-            message: 'Students removed from course', 
-            count: result.deletedCount 
+        res.status(200).json({
+            message: 'Students removed from course',
+            count: result.deletedCount
         });
     } catch (err) {
         res.status(500).json({ message: 'Failed to remove students', error: err.message });

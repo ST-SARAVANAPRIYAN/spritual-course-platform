@@ -29,59 +29,38 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Hardcoded Featured Courses Data
-const featuredCoursesData = [
-    {
-        title: 'Bhagavad Gita Wisdom',
-        category: 'Philosophy',
-        description: 'Discover the timeless teachings of the Bhagavad Gita. Learn about karma, dharma, and the path to self-realization through ancient wisdom.',
-        contentCount: 12,
-        enrolledCount: 145,
-        price: 1999,
-        oldPrice: 2999
-    },
-    {
-        title: 'Mindfulness Meditation',
-        category: 'Meditation',
-        description: 'Master the art of mindfulness meditation. Transform your daily practice with guided sessions and techniques for inner peace.',
-        contentCount: 8,
-        enrolledCount: 203,
-        price: 1499,
-        oldPrice: null
-    },
-    {
-        title: 'Yoga Philosophy & Practice',
-        category: 'Yoga',
-        description: 'Explore the deeper dimensions of yoga beyond asanas. Unite body, mind, and spirit through ancient yogic principles.',
-        contentCount: 15,
-        enrolledCount: 167,
-        price: 2499,
-        oldPrice: 3499
-    }
-];
-
-// Load Featured Courses
-function loadFeaturedCourses() {
+// Load Featured Courses (Real Data)
+async function loadFeaturedCourses() {
     const featuredCourses = document.getElementById('featuredCourses');
-    const courses = featuredCoursesData;
 
-    featuredCourses.innerHTML = courses.map(course => `
-            <div class="glass-card" style="text-align: left; transition: all 0.3s ease; cursor: pointer; overflow: hidden;" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 40px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.1)'">
-                <div style="height: 200px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-saffron) 100%); border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
-                    <i class="fas fa-om"></i>
+    try {
+        const res = await fetch(`${API_URL}/courses/marketplace`);
+        const allCourses = await res.json();
+
+        // Filter only 'Published' courses for the landing page
+        const courses = allCourses.filter(c => c.status === 'Published').slice(0, 3); // Show max 3
+
+        if (courses.length === 0) {
+            featuredCourses.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">New spiritual paths are being paved. Check back soon.</p>';
+            return;
+        }
+
+        featuredCourses.innerHTML = courses.map(course => `
+            <div class="glass-card" style="text-align: left; transition: all 0.3s ease; cursor: pointer; overflow: hidden;" onclick="window.location.href='marketplace.html'" onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 40px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.1)'">
+                <div style="height: 200px; background: url('${course.thumbnail}'); background-size: cover; background-position: center; border-radius: 10px 10px 0 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
+                    ${!course.thumbnail ? '<i class="fas fa-om"></i>' : ''}
                 </div>
                 <div style="padding: 30px;">
                     <span class="badge" style="background: var(--color-saffron); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${course.category || 'Spiritual'}</span>
                     <h3 style="margin: 20px 0 15px; font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-primary);">${course.title}</h3>
-                    <p style="color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 20px;">${course.description ? course.description.substring(0, 120) + '...' : 'Embark on a transformative journey of self-discovery.'}</p>
+                    <p style="color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 20px;">${course.description ? course.description.substring(0, 100) + '...' : 'Embark on a transformative journey.'}</p>
                     <div style="display: flex; gap: 20px; margin-bottom: 20px; font-size: 0.9rem; color: var(--color-text-secondary);">
-                        <span><i class="fas fa-video"></i> ${course.contentCount || 0} Lessons</span>
-                        <span><i class="fas fa-users"></i> ${course.enrolledCount || 0} Seekers</span>
+                        <span><i class="fas fa-video"></i> ${course.totalLessons || 0} Lessons</span>
+                        <span><i class="fas fa-clock"></i> ${course.duration || 'Flexible'}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span style="font-size: 1.8rem; font-weight: bold; color: var(--color-saffron);">₹${course.price || 0}</span>
-                            ${course.oldPrice ? `<span style="text-decoration: line-through; color: var(--color-text-secondary); margin-left: 10px;">₹${course.oldPrice}</span>` : ''}
                         </div>
                         <a href="login.html" class="btn-primary" style="padding: 12px 25px;">
                             <i class="fas fa-arrow-right"></i>
@@ -90,6 +69,10 @@ function loadFeaturedCourses() {
                 </div>
             </div>
         `).join('');
+    } catch (err) {
+        console.error('Failed to load courses:', err);
+        featuredCourses.innerHTML = '<p>Unable to load courses at this moment.</p>';
+    }
 }
 
 // Hardcoded Blog Data

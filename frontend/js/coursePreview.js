@@ -80,10 +80,8 @@ function renderHeader() {
     document.getElementById('courseTitleHeader').textContent = courseData.title;
 
     // Status Logic
-    let displayStatus = courseData.status;
-    if (courseData.approvalStatus && courseData.approvalStatus !== 'Approved') {
-        displayStatus = courseData.approvalStatus;
-    }
+    const displayStatus = courseData.status;
+    // Removed legacy check for approvalStatus
     const badge = document.getElementById('courseStatusBadge');
     badge.textContent = displayStatus;
     badge.className = `status-badge status-${displayStatus.replace(/\s/g, '')} status-${displayStatus}`; // Fallback
@@ -95,18 +93,21 @@ function renderHeader() {
     if (role === 'admin') {
         let btnHtml = '';
 
-        if (displayStatus === 'Approved' || displayStatus === 'Published') {
-            // Show Unpublish (Hide)
+        if (displayStatus === 'Published') {
+            // Already Published - No Unpublish button as requested
+            btnHtml = `<span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-double"></i> Live on Marketplace</span>`;
+        } else if (displayStatus === 'Approved') {
+            // Approved -> Publish
             btnHtml = `
-                 <button onclick="toggleCourseStatus('Pending')" class="btn btn-reject" style="font-size:0.8rem; border-color:#ffc107; color:#856404; background:white;">
-                    <i class="fas fa-eye-slash"></i> Unpublish (Hide)
+                 <button onclick="toggleCourseStatus('Published')" class="btn btn-approve" style="font-size:0.8rem;">
+                    <i class="fas fa-rocket"></i> Publish to Marketplace
                  </button>
             `;
         } else {
-            // Show Approve & Publish
+            // Draft/Pending -> Approve
             btnHtml = `
                  <button onclick="toggleCourseStatus('Approved')" class="btn btn-approve" style="font-size:0.8rem;">
-                    <i class="fas fa-check"></i> Approve & Publish
+                    <i class="fas fa-check"></i> Approve (Set as Upcoming)
                  </button>
             `;
         }
@@ -120,9 +121,13 @@ function renderSidebar() {
 
     list.innerHTML = modulesData.map((m, index) => {
         let statusColor = '#ccc';
-        if (m.approvalStatus === 'Pending') statusColor = '#ffc107';
-        if (m.approvalStatus === 'Approved') statusColor = '#28a745';
-        if (m.approvalStatus === 'Rejected') statusColor = '#6c757d';
+        if (m.status === 'Pending') statusColor = '#ffc107';
+        if (m.status === 'Approved') statusColor = '#17a2b8'; // Upcoming
+        if (m.status === 'Published') statusColor = '#28a745'; // Live
+        if (m.status === 'Rejected') statusColor = '#dc3545';
+
+        // Use m.status properly
+        const displayStatus = m.status || 'Draft';
 
         return `
             <li class="module-item" id="nav-${m._id}" onclick="selectModule('${m._id}')">
@@ -131,10 +136,10 @@ function renderSidebar() {
                     <div style="font-weight:500; font-size:0.95rem; color:#333;">${m.title}</div>
                     <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:#888; margin-top:2px;">
                         <span style="width:8px; height:8px; border-radius:50%; background:${statusColor}; display:inline-block;"></span>
-                        ${m.approvalStatus || 'Draft'}
+                        ${displayStatus}
                     </div>
                 </div>
-                ${m.approvalStatus !== 'Approved' ? '<i class="fas fa-eye-slash" style="color:#ccc; font-size:0.8rem;"></i>' : '<i class="fas fa-eye" style="color:#28a745; font-size:0.8rem;"></i>'}
+                 ${displayStatus === 'Approved' ? '<i class="fas fa-check" style="color:#17a2b8; font-size:0.8rem;"></i>' : '<i class="fas fa-eye-slash" style="color:#ccc; font-size:0.8rem;"></i>'}
             </li>
         `;
     }).join('');
@@ -160,8 +165,8 @@ function selectModule(id) {
     document.getElementById('moduleDate').textContent = new Date(module.updatedAt || module.createdAt).toLocaleDateString();
 
     const statusBadge = document.getElementById('moduleStatusBadge');
-    statusBadge.textContent = module.approvalStatus;
-    statusBadge.className = `status-badge status-${module.approvalStatus}`;
+    statusBadge.textContent = module.status || 'Draft';
+    statusBadge.className = `status-badge status-${module.status || 'Draft'}`;
 
     document.getElementById('moduleBody').innerHTML = module.content || '<p>No content.</p>';
 
@@ -182,35 +187,33 @@ function selectModule(id) {
         let panelStyle = '';
         let infoHtml = '';
 
-        if (module.approvalStatus === 'Approved') {
-            // Context: Currently Live
+        if (module.status === 'Approved') {
+            // Context: Approved (Final State for Modules)
             panelStyle = 'background:#e6f4ea; border-bottom:1px solid #c3e6cb;';
             infoHtml = `
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i class="fas fa-check-circle" style="color:#155724; font-size:1.2rem;"></i>
                     <div>
-                        <strong style="color:#155724;">Published (Live)</strong>
-                        <div style="font-size:0.8rem; color:#155724;">Visible to students.</div>
+                        <strong style="color:#155724;">Approved</strong>
+                        <div style="font-size:0.8rem; color:#155724;">Module is ready. Visibility depends on Course status.</div>
                     </div>
                 </div>`;
-            mainAction = `
-                <button onclick="toggleModuleStatus('Pending')" class="btn btn-reject" style="background:white; color:#856404; border:1px solid #ffeeba;">
-                    <i class="fas fa-eye-slash"></i> Unpublish
-                </button>`;
+            // No Publish button for modules
+            mainAction = '';
         } else {
-            // Context: Not Live
+            // Context: Not Live (Draft/Pending)
             panelStyle = 'background:#fff3cd; border-bottom:1px solid #ffeeba;';
             infoHtml = `
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i class="fas fa-eye-slash" style="color:#856404; font-size:1.2rem;"></i>
                     <div>
-                        <strong style="color:#856404;">Not Published</strong>
+                        <strong style="color:#856404;">Pending Review</strong>
                         <div style="font-size:0.8rem; color:#856404;">Hidden from students.</div>
                     </div>
                 </div>`;
             mainAction = `
                 <button onclick="toggleModuleStatus('Approved')" class="btn btn-approve">
-                    <i class="fas fa-check"></i> Approve & Publish
+                    <i class="fas fa-check"></i> Approve
                 </button>`;
         }
 
@@ -245,7 +248,7 @@ async function toggleModuleStatus(status) {
         });
 
         if (!res.ok) throw new Error('Action failed');
-        UI.success(`Module ${status === 'Approved' ? 'Published' : 'Unpublished'}`);
+        UI.success(`Module ${status}`);
         await loadCourseData();
         selectModule(currentModuleId);
 

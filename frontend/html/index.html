@@ -47,7 +47,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
         }
 
         .hero-content {
@@ -61,6 +61,7 @@
                 opacity: 0;
                 transform: translateY(50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -77,8 +78,15 @@
         }
 
         @keyframes glow {
-            0%, 100% { text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 195, 0, 0.3); }
-            50% { text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(255, 195, 0, 0.5); }
+
+            0%,
+            100% {
+                text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 195, 0, 0.3);
+            }
+
+            50% {
+                text-shadow: 3px 3px 15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(255, 195, 0, 0.5);
+            }
         }
 
         .hero-content p {
@@ -107,7 +115,7 @@
         .nav.scrolled {
             background: rgba(0, 0, 0, 0.95);
             padding: 15px 50px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
         .logo {
@@ -179,14 +187,14 @@
             background: white;
             padding: 40px 30px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
             transition: all 0.3s ease;
         }
 
         .stat-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
 
         .stat-number {
@@ -243,25 +251,30 @@
             <a href="marketplace.html"><i class="fas fa-compass"></i> Explore Paths</a>
             <a href="#eventsSection"><i class="fas fa-calendar-star"></i> Live Sessions</a>
             <a href="#blogSection"><i class="fas fa-book-open"></i> Wisdom Blog</a>
-            <a href="login.html" class="btn-primary" style="margin-left: 10px;"><i class="fas fa-sign-in-alt"></i> Begin Journey</a>
+            <a href="login.html" class="btn-primary" style="margin-left: 10px;"><i class="fas fa-sign-in-alt"></i> Begin
+                Journey</a>
         </div>
     </nav>
 
     <section class="hero">
         <div class="hero-content">
             <h1>🔥 Ignite Your Inner Light</h1>
-            <p>Ancient wisdom meets modern life in your personal digital sanctuary. Transform your spiritual journey through guided meditation, philosophy, and mindfulness practices.</p>
+            <p>Ancient wisdom meets modern life in your personal digital sanctuary. Transform your spiritual journey
+                through guided meditation, philosophy, and mindfulness practices.</p>
             <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 30px;">
-                <a href="marketplace.html" class="btn-primary" style="font-size: 1.2rem; padding: 18px 45px; display: inline-flex; align-items: center; gap: 10px;">
+                <a href="marketplace.html" class="btn-primary"
+                    style="font-size: 1.2rem; padding: 18px 45px; display: inline-flex; align-items: center; gap: 10px;">
                     <i class="fas fa-compass"></i> Explore Courses
                 </a>
-                <a href="register.html" class="btn-primary" style="font-size: 1.2rem; padding: 18px 45px; background: white; color: var(--color-primary); display: inline-flex; align-items: center; gap: 10px;">
+                <a href="register.html" class="btn-primary"
+                    style="font-size: 1.2rem; padding: 18px 45px; background: white; color: var(--color-primary); display: inline-flex; align-items: center; gap: 10px;">
                     <i class="fas fa-user-plus"></i> Join Free
                 </a>
             </div>
 
             <div class="daily-spark" id="dailySpark">
-                <p class="quote-text">"The soul always knows what to do to heal itself. The challenge is to silence the mind."</p>
+                <p class="quote-text">"The soul always knows what to do to heal itself. The challenge is to silence the
+                    mind."</p>
                 <small style="opacity: 0.8;"><i class="fas fa-quote-left"></i> Daily Spark</small>
             </div>
         </div>
@@ -294,11 +307,15 @@
     <!-- Featured Courses Section -->
     <section class="section" id="featuredSection" style="padding: 120px 50px; background: #fafafa;">
         <div style="text-align: center; margin-bottom: 60px;">
-            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i class="fas fa-fire"></i> Most Popular</p>
-            <h2 style="font-size: 3rem; font-family: var(--font-heading); margin-top: 10px;">Featured Spiritual Paths</h2>
-            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">Discover our most transformative courses, carefully curated to guide your spiritual awakening.</p>
+            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i
+                    class="fas fa-fire"></i> Most Popular</p>
+            <h2 style="font-size: 3rem; font-family: var(--font-heading); margin-top: 10px;">Featured Spiritual Paths
+            </h2>
+            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">
+                Discover our most transformative courses, carefully curated to guide your spiritual awakening.</p>
         </div>
-        <div id="featuredCourses" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+        <div id="featuredCourses"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
             <div class="glass-card" style="padding: 40px; text-align: center;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--color-saffron);"></i>
                 <p style="margin-top: 20px; color: var(--color-text-secondary);">Loading sacred paths...</p>
@@ -314,11 +331,15 @@
     <!-- Blog Section -->
     <section class="section" id="blogSection" style="padding: 120px 50px; background: white;">
         <div style="text-align: center; margin-bottom: 60px;">
-            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i class="fas fa-scroll"></i> Sacred Writings</p>
-            <h2 style="font-size: 3rem; font-family: var(--font-heading); margin-top: 10px;">Inner Circle Chronicles</h2>
-            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">Insights, reflections, and wisdom from our community of seekers and mentors.</p>
+            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i
+                    class="fas fa-scroll"></i> Sacred Writings</p>
+            <h2 style="font-size: 3rem; font-family: var(--font-heading); margin-top: 10px;">Inner Circle Chronicles
+            </h2>
+            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">
+                Insights, reflections, and wisdom from our community of seekers and mentors.</p>
         </div>
-        <div id="blogGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+        <div id="blogGrid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
             <div class="glass-card" style="padding: 40px; text-align: center;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--color-saffron);"></i>
                 <p style="margin-top: 20px; color: var(--color-text-secondary);">Channeling wisdom...</p>
@@ -329,11 +350,14 @@
     <!-- Events Section -->
     <section class="section" id="eventsSection" style="padding: 120px 50px; background: #fafafa;">
         <div style="text-align: center; margin-bottom: 60px;">
-            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i class="fas fa-calendar-alt"></i> Upcoming</p>
+            <p style="color: var(--color-saffron); font-weight: 700; text-transform: uppercase; letter-spacing: 2px;"><i
+                    class="fas fa-calendar-alt"></i> Upcoming</p>
             <h2 style="font-size: 3rem; font-family: var(--font-heading); margin-top: 10px;">Sacred Gatherings</h2>
-            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">Join our live sessions, webinars, and special events to deepen your practice.</p>
+            <p style="color: var(--color-text-secondary); max-width: 600px; margin: 20px auto; line-height: 1.8;">Join
+                our live sessions, webinars, and special events to deepen your practice.</p>
         </div>
-        <div id="eventsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+        <div id="eventsGrid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
             <div class="glass-card" style="padding: 40px; text-align: center;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--color-saffron);"></i>
                 <p style="margin-top: 20px; color: var(--color-text-secondary);">Aligning cosmic calendar...</p>
@@ -342,39 +366,54 @@
     </section>
 
     <!-- Testimonials Section -->
-    <section class="section" style="padding: 120px 50px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-saffron) 100%); color: white;">
+    <section class="section"
+        style="padding: 120px 50px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-saffron) 100%); color: white;">
         <div style="text-align: center; margin-bottom: 60px;">
             <h2 style="font-size: 3rem; font-family: var(--font-heading);">Voices of Transformation</h2>
-            <p style="opacity: 0.9; max-width: 600px; margin: 20px auto; line-height: 1.8;">Hear from our community members who have found their inner light.</p>
+            <p style="opacity: 0.9; max-width: 600px; margin: 20px auto; line-height: 1.8;">Hear from our community
+                members who have found their inner light.</p>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+            <div
+                style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
                 <div style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;">"</div>
-                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">This platform transformed my daily meditation practice. The guidance from Swami Dayananda is profound and accessible.</p>
+                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">This platform transformed my daily
+                    meditation practice. The guidance from Swami Dayananda is profound and accessible.</p>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">A</div>
+                    <div
+                        style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        A</div>
                     <div>
                         <strong>Arjun Kumar</strong>
                         <div style="font-size: 0.85rem; opacity: 0.8;">Software Engineer, Mumbai</div>
                     </div>
                 </div>
             </div>
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
+            <div
+                style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
                 <div style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;">"</div>
-                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">The Bhagavad Gita course opened my eyes to ancient wisdom. I feel more centered and purposeful in my life now.</p>
+                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">The Bhagavad Gita course opened my
+                    eyes to ancient wisdom. I feel more centered and purposeful in my life now.</p>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">P</div>
+                    <div
+                        style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        P</div>
                     <div>
                         <strong>Priya Sharma</strong>
                         <div style="font-size: 0.85rem; opacity: 0.8;">Teacher, Delhi</div>
                     </div>
                 </div>
             </div>
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
+            <div
+                style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 35px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);">
                 <div style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;">"</div>
-                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">The live sessions and community support make this more than just an online course - it's a true spiritual sanctuary.</p>
+                <p style="font-style: italic; line-height: 1.8; margin-bottom: 25px;">The live sessions and community
+                    support make this more than just an online course - it's a true spiritual sanctuary.</p>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">R</div>
+                    <div
+                        style="width: 50px; height: 50px; border-radius: 50%; background: var(--color-golden); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        R</div>
                     <div>
                         <strong>Raj Patel</strong>
                         <div style="font-size: 0.85rem; opacity: 0.8;">Entrepreneur, Bangalore</div>
@@ -386,9 +425,13 @@
 
     <!-- Newsletter Section -->
     <section style="padding: 100px 20px; background: var(--color-primary); color: white; text-align: center;">
-        <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 2.5rem;">🌟 Join the Inner Circle</h2>
-        <p style="margin-bottom: 40px; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.8;">Receive weekly wisdom, exclusive event invites, and special offers delivered to your inbox.</p>
-        <form id="newsletterForm" style="max-width: 600px; margin: 0 auto; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+        <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 2.5rem;">🌟 Join the Inner Circle
+        </h2>
+        <p
+            style="margin-bottom: 40px; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.8;">
+            Receive weekly wisdom, exclusive event invites, and special offers delivered to your inbox.</p>
+        <form id="newsletterForm"
+            style="max-width: 600px; margin: 0 auto; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
             <input type="email" name="email" class="form-control" placeholder="your@email.com" required
                 style="flex: 1; min-width: 300px; padding: 18px 25px; border-radius: 10px; border: none; font-size: 1rem;">
             <button type="submit" class="btn-primary"
@@ -420,10 +463,21 @@
             <div>
                 <h4 style="margin-bottom: 25px; color: var(--color-golden);">Quick Links</h4>
                 <ul style="list-style: none; opacity: 0.8; display: grid; gap: 15px;">
-                    <li><a href="marketplace.html" style="color: white; text-decoration: none; transition: all 0.3s ease;"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Explore Courses</a></li>
-                    <li><a href="#blogSection" style="color: white; text-decoration: none; transition: all 0.3s ease;"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Wisdom Blog</a></li>
-                    <li><a href="#eventsSection" style="color: white; text-decoration: none; transition: all 0.3s ease;"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Sacred Gatherings</a></li>
-                    <li><a href="login.html" style="color: white; text-decoration: none; transition: all 0.3s ease;"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Login / Register</a></li>
+                    <li><a href="marketplace.html"
+                            style="color: white; text-decoration: none; transition: all 0.3s ease;"><i
+                                class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Explore
+                            Courses</a></li>
+                    <li><a href="#blogSection"
+                            style="color: white; text-decoration: none; transition: all 0.3s ease;"><i
+                                class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Wisdom
+                            Blog</a></li>
+                    <li><a href="#eventsSection"
+                            style="color: white; text-decoration: none; transition: all 0.3s ease;"><i
+                                class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Sacred
+                            Gatherings</a></li>
+                    <li><a href="login.html" style="color: white; text-decoration: none; transition: all 0.3s ease;"><i
+                                class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> Login /
+                            Register</a></li>
                 </ul>
             </div>
             <div>
@@ -439,7 +493,8 @@
             Sanctuary. All rights reserved. | Made with 💛 for seekers worldwide</p>
     </footer>
 
-    <script src="../js/landing.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/landing.js?v=2"></script>
     <script>
         // Rotating Quotes
         const quotes = [

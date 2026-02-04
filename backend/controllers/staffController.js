@@ -14,8 +14,7 @@ exports.createCourse = async (req, res) => {
             mentors: [mentorID], // Assign creator as mentor
             difficulty: difficulty || 'Beginner',
             duration: duration || '4 Weeks',
-            approvalStatus: 'Draft', // Staff courses start as Draft, waiting for review
-            status: 'Draft', // Keep for backward compatibility
+            status: 'Draft', // Staff courses start as Draft
             createdBy: mentorID,
             thumbnail: 'https://via.placeholder.com/300x200'
         });
@@ -43,7 +42,7 @@ exports.uploadContent = async (req, res) => {
             type,
             fileUrl,
             previewDuration: previewDuration || 0,
-            approvalStatus: 'Pending'
+            status: 'Pending'
         });
 
         await newContent.save();
@@ -181,7 +180,7 @@ exports.getEnrolledStudents = async (req, res) => {
         // 3. Attach Progress - filter out enrollments with missing references
         const validEnrollments = enrollments.filter(e => e.studentID && e.courseID);
         console.log('Valid enrollments:', validEnrollments.length);
-        
+
         const insights = await Promise.all(validEnrollments.map(async (e) => {
             const progress = await Progress.findOne({ studentID: e.studentID._id, courseID: e.courseID._id });
             return {
@@ -201,9 +200,9 @@ exports.getEnrolledStudents = async (req, res) => {
 // Get Staff Courses
 exports.getStaffCourses = async (req, res) => {
     try {
-        const courses = await Course.find({ 
+        const courses = await Course.find({
             mentors: { $in: [req.user.id] },
-            approvalStatus: { $ne: 'Inactive' } // Exclude inactive/deleted courses
+            status: { $ne: 'Archived' } // Exclude archived courses
         });
         res.status(200).json(courses);
     } catch (err) {
@@ -211,14 +210,29 @@ exports.getStaffCourses = async (req, res) => {
     }
 };
 
+// Get Staff Modules (Replaces Materials)
+exports.getStaffModules = async (req, res) => {
+    try {
+        const { Module } = require('../models/index');
+        const modules = await Module.find({
+            createdBy: req.user.id,
+            status: { $ne: 'Archived' }
+        }).populate('courseId', 'title');
+
+        res.status(200).json(modules);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch modules', error: err.message });
+    }
+};
+
 // Get Deleted/Inactive Courses for Staff (for notifications)
 exports.getDeletedCourses = async (req, res) => {
     try {
-        const deletedCourses = await Course.find({ 
+        const deletedCourses = await Course.find({
             mentors: { $in: [req.user.id] },
-            approvalStatus: 'Inactive'
+            status: 'Archived'
         }).select('title deletedAt category');
-        
+
         res.status(200).json(deletedCourses);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch deleted courses', error: err.message });
