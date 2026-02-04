@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - InnerSpark Sanctuary</title>
+    <title>Login - InnerSpark</title>
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link
@@ -106,9 +106,9 @@
             <a href="index.html#featuredSection"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
                     class="fas fa-fire"></i> Featured</a>
-            <a href="marketplace.html"
+            <a href="courses.html"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
-                    class="fas fa-compass"></i> Explore Paths</a>
+                    class="fas fa-compass"></i> Explore Courses</a>
             <a href="index.html#eventsSection"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
                     class="fas fa-calendar-star"></i> Live Sessions</a>
@@ -127,7 +127,7 @@
                     <h2 style="font-family: var(--font-heading); color: var(--color-golden);">InnerSpark</h2>
                 </a>
                 <h2>Welcome Back</h2>
-                <p>Enter your sanctuary of growth.</p>
+                <p>Login to continue</p>
             </div>
 
             <div id="message" class="error"></div>
@@ -161,7 +161,7 @@
 
     <!-- Footer -->
     <footer style="padding: 40px 50px; background: #1a1a1a; color: white; text-align: center;">
-        <p style="opacity: 0.6; font-size: 0.9rem;">&copy; 2026 InnerSpark Sanctuary. All rights reserved.</p>
+        <p style="opacity: 0.6; font-size: 0.9rem;">&copy; 2026 InnerSpark Community. All rights reserved.</p>
     </footer>
 
     <script src="../js/auth.js"></script>
@@ -183,7 +183,7 @@
                 const result = await res.json();
 
                 if (res.ok) {
-                    UI.success('Your sanctuary door is open.');
+                    UI.success('Login successful');
                     localStorage.setItem('token', result.token);
                     localStorage.setItem('user', JSON.stringify(result.user));
 
@@ -194,10 +194,10 @@
                         else if (role === 'Admin') window.location.href = 'admin-dashboard.html';
                     }, 1000);
                 } else {
-                    UI.error(result.message || 'The sacred key did not turn.');
+                    UI.error(result.message || 'Login failed');
                 }
             } catch (err) {
-                UI.error('The connection to the sanctuary is unstable.');
+                UI.error('Connection failed');
             } finally {
                 UI.hideLoader();
             }

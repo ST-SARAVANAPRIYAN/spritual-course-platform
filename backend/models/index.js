@@ -86,14 +86,14 @@ const courseSchema = new Schema({
     thumbnail: { type: String },
     status: {
         type: String,
-        enum: ['Draft', 'Pending', 'Approved', 'Published', 'Archived'],
+        enum: ['Draft', 'Pending', 'Approved', 'Published', 'Inactive'],
         default: 'Draft'
     },
     // Draft: Initial creation
     // Pending: Submitted for approval
     // Approved: Approved by Admin (Upcoming)
     // Published: Live (Current)
-    // Archived: Soft deleted/Hidden
+    // Inactive: Soft deleted/Hidden
 
     totalLessons: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

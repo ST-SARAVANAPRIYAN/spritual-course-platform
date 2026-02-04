@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     courseID = params.get('course');
 
     if (!courseID) {
-        window.location.href = 'marketplace.html';
+        setTimeout(() => window.location.href = 'courses.html', 2000);
         return;
     }
 

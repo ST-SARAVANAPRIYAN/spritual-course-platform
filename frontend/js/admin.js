@@ -477,7 +477,7 @@ async function toggleUserStatus(id, reason = '', userName = 'User', userRole = '
         if (res.ok) {
             const result = await res.json();
             UI.success(result.message || 'Status updated');
-            
+
             // Show different popups for deactivation vs activation
             if (result.wasActive === true && result.newActive === false) {
                 // User was just DEACTIVATED
@@ -502,7 +502,7 @@ async function toggleUserStatus(id, reason = '', userName = 'User', userRole = '
                     });
                 }, 500);
             }
-            
+
             loadUserManagement(currentUserRoleView);
             // Hide modal if it's open
             document.getElementById('disableConfirmModal').style.display = 'none';
@@ -510,9 +510,9 @@ async function toggleUserStatus(id, reason = '', userName = 'User', userRole = '
             const result = await res.json();
             UI.error(result.message || 'Action failed');
         }
-    } catch (err) { 
+    } catch (err) {
         console.error('Toggle status error:', err);
-        UI.error('Action failed.'); 
+        UI.error('Action failed.');
     }
     finally { UI.hideLoader(); }
 }
@@ -875,7 +875,8 @@ function renderCourses(courses) {
             'Pending': { bg: '#fff3cd', text: '#856404' },
             'Approved': { bg: '#e6f4ea', text: '#1e7e34' },
             'Rejected': { bg: '#f8d7da', text: '#721c24' },
-            'Deleted': { bg: '#f8d7da', text: '#721c24' }
+            'Deleted': { bg: '#f8d7da', text: '#721c24' },
+            'Inactive': { bg: '#d6d8db', text: '#383d41' } // New Inactive style
         };
         return colors[status] || colors['Draft'];
     };
@@ -900,7 +901,7 @@ function renderCourses(courses) {
         const statusColor = getStatusColor(displayStatus);
 
         // Status Options for Dropdown
-        const options = ['Draft', 'Pending', 'Approved', 'Published', 'Archived'];
+        const options = ['Draft', 'Pending', 'Approved', 'Published', 'Inactive'];
 
         return `
                         <tr style="border-bottom:1px solid #f9f9f9; transition:background 0.2s;">
@@ -1620,7 +1621,7 @@ function switchEditTab(tabName, buttonElement, tabIndex) {
     // Update active button state
     const buttons = document.querySelectorAll('.edit-tab-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
-    
+
     if (buttonElement) {
         buttonElement.classList.add('active');
     } else if (typeof tabIndex === 'number') {

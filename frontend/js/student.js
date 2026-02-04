@@ -162,7 +162,7 @@ async function loadEnrolledCourses() {
         const container = document.querySelector('.course-grid');
 
         if (courses.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">You haven\'t joined any spiritual paths yet. Visit the Marketplace to begin.</p>';
+            container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">You haven\'t joined any spiritual paths yet. Visit the Course Catalog to begin.</p>';
             return;
         }
 
@@ -733,7 +733,7 @@ async function loadMarketplace() {
         `}).join('');
 
     } catch (err) {
-        UI.error('Marketplace temporarily closed.');
+        UI.error('Course catalog temporarily unavailable.');
     } finally {
         UI.hideLoader();
     }

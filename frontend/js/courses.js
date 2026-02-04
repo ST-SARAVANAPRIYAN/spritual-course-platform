@@ -5,14 +5,40 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadMarketplace();
 
-    // Category Filter Handlers
+    // Filter State
+    window.state = {
+        category: 'All Paths',
+        search: '',
+        sort: 'newest'
+    };
+
+    // Event Listeners
+    // 1. Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            window.state.search = e.target.value.toLowerCase().trim();
+            applyFilters();
+        });
+    }
+
+    // 2. Sort
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            window.state.sort = e.target.value;
+            applyFilters();
+        });
+    }
+
+    // 3. Category Tabs
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            const category = tab.textContent;
-            filterCourses(category);
+            window.state.category = tab.textContent;
+            applyFilters();
         });
     });
 });
@@ -22,12 +48,13 @@ let allCourses = [];
 async function loadMarketplace() {
     try {
         UI.showLoader();
-        const res = await fetch(`${API_URL}/courses/marketplace`);
+        const res = await fetch(`${Auth.apiBase}/courses/marketplace`);
         allCourses = await res.json();
-        renderCourses(allCourses);
+        // Initial render with filters
+        applyFilters();
     } catch (err) {
         console.error('Marketplace Error:', err);
-        UI.error(`The marketplace archive is currently shielded: ${err.message}`);
+        UI.error(`The course catalog is currently unavailable: ${err.message}`);
     } finally {
         UI.hideLoader();
     }
@@ -105,13 +132,13 @@ function renderCourses(courses) {
     } else {
         currentGrid.innerHTML = current.map(c => generateCard(c, false)).join('');
         // Track Impressions for current courses
-        current.forEach(c => trackMetric('View', `Marketplace List: ${c.title}`, c._id));
+        current.forEach(c => trackMetric('View', `Course List: ${c.title}`, c._id));
     }
 }
 
 async function trackMetric(type, metadata = '', courseID = null) {
     try {
-        await fetch(`${API_URL}/analytics/track`, {
+        await fetch(`${Auth.apiBase}/analytics/track`, {
             method: 'POST',
             headers: Auth.getHeaders(),
             body: JSON.stringify({ courseID, type, metadata })
@@ -119,21 +146,55 @@ async function trackMetric(type, metadata = '', courseID = null) {
     } catch (e) { }
 }
 
-function filterCourses(category) {
-    if (category === 'All Paths') {
-        renderCourses(allCourses);
-    } else {
-        const filtered = allCourses.filter(c => c.category.toLowerCase() === category.toLowerCase());
-        renderCourses(filtered);
+
+
+function applyFilters() {
+    let filtered = [...allCourses];
+    const s = window.state;
+
+    // 1. Filter by Category
+    if (s.category !== 'All Paths') {
+        filtered = filtered.filter(c => c.category && c.category.toLowerCase() === s.category.toLowerCase());
     }
+
+    // 2. Filter by Search
+    if (s.search) {
+        filtered = filtered.filter(c =>
+            (c.title && c.title.toLowerCase().includes(s.search)) ||
+            (c.description && c.description.toLowerCase().includes(s.search)) ||
+            (c.mentors && c.mentors[0] && c.mentors[0].name.toLowerCase().includes(s.search))
+        );
+    }
+
+    // 3. Sort
+    filtered.sort((a, b) => {
+        switch (s.sort) {
+            case 'price-asc':
+                return (a.price || 0) - (b.price || 0);
+            case 'price-desc':
+                return (b.price || 0) - (a.price || 0);
+            case 'title-asc':
+                return a.title.localeCompare(b.title);
+            case 'title-desc':
+                return b.title.localeCompare(a.title);
+            case 'newest':
+            default:
+                // Assuming newer items are at the end of the array by default or have createdAt
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        }
+    });
+
+    renderCourses(filtered);
 }
 
+
+
 async function openCourseModal(id) {
-    trackMetric('Click', 'Course Card in Marketplace', id);
+    trackMetric('Click', 'Course Card in Catalog', id);
     const modal = document.getElementById('coursePreviewModal');
     try {
         UI.showLoader();
-        const res = await fetch(`${API_URL}/courses/${id}`, {
+        const res = await fetch(`${Auth.apiBase}/courses/${id}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
@@ -169,7 +230,7 @@ async function openCourseModal(id) {
         // Fetch Preview Data separately to get public preview durations if not logged in
         let previews = [];
         try {
-            const previewRes = await fetch(`${API_URL}/courses/${id}/preview`);
+            const previewRes = await fetch(`${Auth.apiBase}/courses/${id}/preview`);
             if (previewRes.ok) {
                 const previewData = await previewRes.json();
                 previews = previewData.previews || [];

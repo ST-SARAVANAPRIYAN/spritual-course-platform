@@ -95,12 +95,12 @@ function renderHeader() {
 
         if (displayStatus === 'Published') {
             // Already Published - No Unpublish button as requested
-            btnHtml = `<span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-double"></i> Live on Marketplace</span>`;
+            btnHtml = `<span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-double"></i> Live in Course Catalog</span>`;
         } else if (displayStatus === 'Approved') {
             // Approved -> Publish
             btnHtml = `
                  <button onclick="toggleCourseStatus('Published')" class="btn btn-approve" style="font-size:0.8rem;">
-                    <i class="fas fa-rocket"></i> Publish to Marketplace
+                    <i class="fas fa-rocket"></i> Publish Course
                  </button>
             `;
         } else {

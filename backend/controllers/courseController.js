@@ -230,8 +230,8 @@ exports.deleteCourse = async (req, res) => {
             });
         }
 
-        // Soft delete - change status to Archived
-        course.status = 'Archived';
+        // Soft delete - change status to Inactive
+        course.status = 'Inactive';
         course.deletedAt = new Date();
         await course.save();
 

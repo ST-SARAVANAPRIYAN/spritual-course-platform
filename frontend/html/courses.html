@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanctuary Marketplace - InnerSpark</title>
+    <title>All Courses - InnerSpark</title>
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link
@@ -115,9 +115,9 @@
             <a href="index.html#featuredSection"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
                     class="fas fa-fire"></i> Featured</a>
-            <a href="marketplace.html"
+            <a href="courses.html"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
-                    class="fas fa-compass"></i> Explore Paths</a>
+                    class="fas fa-compass"></i> Explore Courses</a>
             <a href="index.html#eventsSection"
                 style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;"><i
                     class="fas fa-calendar-star"></i> Live Sessions</a>
@@ -130,7 +130,7 @@
     </nav>
 
     <header class="marketplace-header">
-        <h1 style="font-size: 3rem; margin-bottom: 15px;">Sanctuary Marketplace</h1>
+        <h1 style="font-size: 3rem; margin-bottom: 15px;">All Courses</h1>
         <p style="color: var(--color-text-secondary); font-size: 1.2rem; max-width: 600px; margin: 0 auto 40px;">
             Discover spiritual paths curated by enlightened mentors to guide your personal spark.</p>
 
@@ -139,7 +139,29 @@
             <div class="tab">Meditation</div>
             <div class="tab">Philosophy</div>
             <div class="tab">Motivation</div>
-            <div class="tab">Rituals</div>
+        </div>
+
+        <div class="filter-bar"
+            style="max-width: 800px; margin: 0 auto; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+            <div class="search-wrapper" style="position: relative; flex: 1; min-width: 250px;">
+                <input type="text" id="searchInput" placeholder="Search for wisdom..."
+                    style="width: 100%; padding: 12px 15px 12px 45px; border-radius: 25px; border: 1px solid rgba(0,0,0,0.1); font-family: var(--font-body); outline: none; transition: all 0.3s ease;">
+                <i class="fas fa-search"
+                    style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+            </div>
+
+            <div class="sort-wrapper" style="position: relative; min-width: 200px;">
+                <select id="sortSelect"
+                    style="width: 100%; padding: 12px 15px; border-radius: 25px; border: 1px solid rgba(0,0,0,0.1); font-family: var(--font-body); outline: none; appearance: none; background: white; cursor: pointer;">
+                    <option value="newest">Sort by: Newest</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="title-asc">Name: A-Z</option>
+                    <option value="title-desc">Name: Z-A</option>
+                </select>
+                <i class="fas fa-chevron-down"
+                    style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none;"></i>
+            </div>
         </div>
     </header>
 
@@ -201,7 +223,7 @@
             <div>
                 <h4 style="margin-bottom: 25px; color: var(--color-golden);">Quick Links</h4>
                 <ul style="list-style: none; opacity: 0.8; display: grid; gap: 15px;">
-                    <li><a href="marketplace.html" style="color: white; text-decoration: none;">Explore Courses</a></li>
+                    <li><a href="courses.html" style="color: white; text-decoration: none;">Explore Courses</a></li>
                     <li><a href="index.html#eventsSection" style="color: white; text-decoration: none;">Sacred
                             Gatherings</a></li>
                     <li><a href="login.html" style="color: white; text-decoration: none;">Login / Register</a></li>
@@ -216,13 +238,13 @@
             </div>
         </div>
         <p style="text-align: center; margin-top: 40px; opacity: 0.4; font-size: 0.9rem;">&copy; 2026 InnerSpark
-            Sanctuary. All rights reserved.</p>
+            Community. All rights reserved.</p>
     </footer>
 
-    <script src="../js/auth.js"></script>
     <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
     <script src="../js/utils.js"></script>
-    <script src="../js/marketplace.js?v=2"></script>
+    <script src="../js/courses.js?v=2"></script>
     <script src="../js/chatbot.js"></script>
 </body>
 

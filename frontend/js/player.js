@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentModuleID = params.get('content'); // URL param 'content' maps to module ID
 
     if (!currentCourseID) {
-        window.location.href = 'marketplace.html';
+        window.location.href = 'courses.html';
         return;
     }
 
