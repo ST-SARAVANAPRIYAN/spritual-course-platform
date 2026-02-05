@@ -124,6 +124,19 @@ function switchSection(section) {
     }
 }
 
+function loadSettings() {
+    // Determine user role and load appropriate settings
+    const auth = Auth.checkAuth(['Admin']);
+    if (auth && auth.user) {
+        // Populate profile form (Mock or from User object)
+        const nameInput = document.querySelector('#adminProfileForm input[value="Admin User"]');
+        if (nameInput) nameInput.value = auth.user.name || 'Admin User';
+
+        const emailInput = document.querySelector('#adminProfileForm input[type="email"]');
+        if (emailInput) emailInput.value = auth.user.email || 'admin@innerspark.com';
+    }
+}
+
 /* --- OVERVIEW & STATS --- */
 async function loadStats() {
     try {
@@ -2074,7 +2087,7 @@ let messagesPerPage = 20;
 async function loadMessages(page = 1) {
     try {
         currentPage = page;
-        
+
         // Get filter values
         const search = document.getElementById('messageSearch').value.trim();
         const status = document.getElementById('messageStatusFilter').value;
@@ -2142,7 +2155,7 @@ function renderMessagesTable(messages) {
     if (messages.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="padding: 40px; text-align: center; color: #9ca3af;">
+                <td colspan="5" style="padding: 40px; text-align: center; color: #9ca3af;">
                     <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
                     <p style="margin: 0; font-size: 1.1rem;">No messages found</p>
                     <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Try adjusting your filters</p>
@@ -2153,54 +2166,63 @@ function renderMessagesTable(messages) {
     }
 
     tbody.innerHTML = messages.map(msg => {
-        const statusColors = {
-            'New': '#3b82f6',
-            'Read': '#8b5cf6',
-            'Replied': '#10b981',
-            'Archived': '#6b7280'
-        };
-
-        const priorityColors = {
-            'Urgent': '#ef4444',
-            'High': '#f59e0b',
-            'Medium': '#3b82f6',
-            'Low': '#6b7280'
-        };
-
         const date = new Date(msg.createdAt);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric',
+        const formattedDate = date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
         });
 
+        // Determine pill class based on status
+        let statusClass = 'status-read'; // default
+        if (msg.status === 'New') statusClass = 'status-new';
+        else if (msg.status === 'Replied') statusClass = 'status-replied';
+        else if (msg.status === 'Archived') statusClass = 'status-archived';
+
         return `
-            <tr style="border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s;" onclick="viewMessage('${msg._id}')" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
-                <td style="padding: 15px;">
-                    <span style="padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: ${statusColors[msg.status]}15; color: ${statusColors[msg.status]};">
+            <tr onclick="viewMessage('${msg._id}')">
+                <td>
+                    <span class="status-pill ${statusClass}">
+                        ${msg.status === 'New' ? '<i class="fas fa-circle" style="font-size: 0.5rem;"></i>' : ''} 
                         ${msg.status}
                     </span>
                 </td>
-                <td style="padding: 15px;">
-                    <span style="padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: ${priorityColors[msg.priority]}15; color: ${priorityColors[msg.priority]};">
-                        ${msg.priority}
-                    </span>
+                <td>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 600; color: #1f2937;">${msg.name}</span>
+                        <span style="font-size: 0.8rem; color: #9ca3af;">${msg.email}</span>
+                    </div>
                 </td>
-                <td style="padding: 15px; font-weight: 500; color: #111827;">${msg.name}</td>
-                <td style="padding: 15px; color: #6b7280;">${msg.email}</td>
-                <td style="padding: 15px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${msg.subject}</td>
-                <td style="padding: 15px; color: #6b7280; font-size: 0.85rem;">${formattedDate}</td>
-                <td style="padding: 15px; text-align: center;">
-                    <button class="btn-primary" onclick="event.stopPropagation(); viewMessage('${msg._id}')" style="padding: 6px 12px; font-size: 0.85rem;">
-                        <i class="fas fa-eye"></i> View
-                    </button>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        ${msg.priority === 'Urgent' ? '<i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>' : ''}
+                        <span style="color: #4b5563; font-weight: 500;">${msg.subject}</span>
+                    </div>
                 </td>
-            </tr>
+                <td style="color: #6b7280; font-size: 0.85rem;">${formattedDate}</td>
+                <td style="text-align: right;">
+                    <i class="fas fa-chevron-right" style="color: #d1d5db;"></i>
+                </td>
         `;
     }).join('');
 }
+
+// Global function for Settings Tab Switching
+window.switchSettingsTab = function (element, tabId) {
+    // 1. Update Sidebar Active State
+    document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    element.classList.add('active');
+
+    // 2. Update Content Panel
+    document.querySelectorAll('.settings-content-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    const target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+};
 
 function renderMessagesPagination(currentPage, totalPages, total) {
     const info = document.getElementById('messagesInfo');
@@ -2221,7 +2243,7 @@ function renderMessagesPagination(currentPage, totalPages, total) {
     // Previous button
     if (currentPage > 1) {
         buttons += `<button class="btn-secondary" onclick="loadMessages(${currentPage - 1})" style="padding: 8px 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; cursor: pointer;">
-            <i class="fas fa-chevron-left"></i> Previous
+    <i class="fas fa-chevron-left"></i> Previous
         </button>`;
     }
 
@@ -2230,7 +2252,7 @@ function renderMessagesPagination(currentPage, totalPages, total) {
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
             const active = i === currentPage ? 'background: var(--color-saffron); color: white;' : 'background: #e5e7eb; color: #374151;';
             buttons += `<button onclick="loadMessages(${i})" style="padding: 8px 14px; ${active} border: none; border-radius: 6px; cursor: pointer; font-weight: ${i === currentPage ? '600' : '400'};">
-                ${i}
+    ${i}
             </button>`;
         } else if (i === currentPage - 3 || i === currentPage + 3) {
             buttons += `<span style="padding: 8px;">...</span>`;
@@ -2240,7 +2262,7 @@ function renderMessagesPagination(currentPage, totalPages, total) {
     // Next button
     if (currentPage < totalPages) {
         buttons += `<button class="btn-secondary" onclick="loadMessages(${currentPage + 1})" style="padding: 8px 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; cursor: pointer;">
-            Next <i class="fas fa-chevron-right"></i>
+    Next <i class="fas fa-chevron-right"></i>
         </button>`;
     }
 
@@ -2282,9 +2304,9 @@ async function viewMessage(messageId) {
         });
 
         // Set reply email link
-        const subject = encodeURIComponent(`Re: ${msg.subject}`);
+        const subject = encodeURIComponent(`Re: ${msg.subject} `);
         const replyLink = document.getElementById('replyEmailLink');
-        replyLink.href = `mailto:${msg.email}?subject=${subject}`;
+        replyLink.href = `mailto:${msg.email}?subject = ${subject} `;
 
         // Show modal
         document.getElementById('messageDetailsModal').style.display = 'flex';
@@ -2322,7 +2344,7 @@ async function updateMessage(updates) {
     if (!currentMessageId) return;
 
     try {
-        const res = await fetch(`${Auth.apiBase}/contact/admin/${currentMessageId}`, {
+        const res = await fetch(`${Auth.apiBase} /contact/admin / ${currentMessageId} `, {
             method: 'PATCH',
             headers: Auth.getHeaders(),
             body: JSON.stringify(updates)
