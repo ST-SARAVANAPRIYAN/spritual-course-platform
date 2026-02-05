@@ -24,6 +24,11 @@ const userSchema = new Schema({
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
     lastLogin: { type: Date }, // Track last login
+    
+    // OTP for registration
+    registrationOTP: { type: String },
+    registrationOTPExpires: { type: Date },
+    registrationOTPAttempts: { type: Number, default: 0 },
 
     // Extended Profile
     initial: { type: String },
@@ -350,5 +355,22 @@ module.exports = {
         }, { timestamps: true });
 
         return mongoose.model('ContactMessage', contactMessageSchema);
+    })(),
+
+    // 13. Course Subscribers Collection
+    CourseSubscriber: (() => {
+        const courseSubscriberSchema = new Schema({
+            courseID: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+            name: { type: String, required: true },
+            email: { type: String, required: true },
+            phone: { type: String, required: true },
+            notified: { type: Boolean, default: false }, // Whether they've been notified
+            notifiedAt: { type: Date }
+        }, { timestamps: true });
+
+        // Compound index to prevent duplicate subscriptions
+        courseSubscriberSchema.index({ courseID: 1, email: 1 }, { unique: true });
+
+        return mongoose.model('CourseSubscriber', courseSubscriberSchema);
     })()
 };

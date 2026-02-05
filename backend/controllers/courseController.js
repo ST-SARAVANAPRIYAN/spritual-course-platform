@@ -1,4 +1,5 @@
-const { Course, Content, Impression, User } = require('../models/index');
+const { Course, Content, Impression, User, CourseSubscriber } = require('../models/index');
+const { sendCoursePublishedNotification } = require('../utils/emailService');
 
 // Get Enrolled Courses for Student
 exports.getEnrolledCourses = async (req, res) => {
@@ -198,8 +199,54 @@ exports.updateCourse = async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const course = await Course.findByIdAndUpdate(id, updates, { new: true });
-        if (!course) return res.status(404).json({ message: 'Course not found' });
+        
+        // Get the old course to check status change
+        const oldCourse = await Course.findById(id);
+        if (!oldCourse) return res.status(404).json({ message: 'Course not found' });
+        
+        const course = await Course.findByIdAndUpdate(id, updates, { new: true }).populate('mentors', 'name');
+        
+        // If status changed from anything to Published, notify subscribers
+        if (oldCourse.status !== 'Published' && updates.status === 'Published') {
+            // Find all subscribers for this course who haven't been notified
+            const subscribers = await CourseSubscriber.find({ 
+                courseID: id, 
+                notified: false 
+            });
+            
+            if (subscribers.length > 0) {
+                console.log(`📧 Notifying ${subscribers.length} subscribers about published course: ${course.title}`);
+                
+                // Send emails to all subscribers
+                const emailPromises = subscribers.map(async (subscriber) => {
+                    try {
+                        await sendCoursePublishedNotification({
+                            subscriberName: subscriber.name,
+                            subscriberEmail: subscriber.email,
+                            courseTitle: course.title,
+                            courseCategory: course.category,
+                            courseMentor: course.mentors?.map(m => m.name).join(', ') || 'InnerSpark Team',
+                            coursePrice: course.price
+                        });
+                        
+                        // Mark subscriber as notified
+                        subscriber.notified = true;
+                        subscriber.notifiedAt = new Date();
+                        await subscriber.save();
+                        
+                        return { success: true, email: subscriber.email };
+                    } catch (error) {
+                        console.error(`Failed to notify ${subscriber.email}:`, error.message);
+                        return { success: false, email: subscriber.email, error: error.message };
+                    }
+                });
+                
+                const results = await Promise.allSettled(emailPromises);
+                const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+                console.log(`✅ Successfully notified ${successCount}/${subscribers.length} subscribers`);
+            }
+        }
+        
         res.status(200).json({ message: 'Course updated', course });
     } catch (err) {
         res.status(500).json({ message: 'Update failed', error: err.message });

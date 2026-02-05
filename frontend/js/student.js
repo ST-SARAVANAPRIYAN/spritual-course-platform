@@ -735,6 +735,8 @@ async function loadMarketplace() {
                     </div>
                     ${isEnrolled ?
                     `<button onclick="switchSection('journey')" class="btn-primary" style="width: 100%; padding: 10px; background: var(--color-success); border: none;"><i class="fas fa-check"></i> Enrolled</button>` :
+                    c.status === 'Approved' ?
+                    `<button onclick="openNotifyModal('${c._id}', '${c.title.replace(/'/g, "\\'")}')" class="btn-secondary" style="width: 100%; padding: 10px; background: #F59E0B; color: white; border: none;"><i class="fas fa-bell"></i> Notify Me</button>` :
                     `<button onclick="purchaseCourse('${c._id}', '${c.price}')" class="btn-primary" style="width: 100%; padding: 10px;"><i class="fas fa-cart-plus"></i> Enroll Now</button>`
                 }
                 </div>
@@ -1421,4 +1423,143 @@ window.openCreateTicketModal = openCreateTicketModal;
 window.closeCreateTicketModal = closeCreateTicketModal;
 window.viewStudentTicket = viewStudentTicket;
 window.closeViewTicketModal = closeViewTicketModal;
+
+// --- COURSE SUBSCRIPTION / NOTIFY ME FEATURE ---
+
+function openNotifyModal(courseId, courseTitle) {
+    window.currentNotifyCourseId = courseId;
+    window.currentNotifyCourseTitle = courseTitle;
+    
+    // Create modal if it doesn't exist
+    if (!document.getElementById('notifyMeModal')) {
+        const modalHTML = `
+            <div id="notifyMeModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); overflow-y: auto; padding: 20px;">
+                <div class="modal-content glass-card" style="position: relative; margin: auto; padding: 0; max-width: 500px; width: 100%; max-height: calc(100vh - 40px); overflow-y: auto; border-radius: 16px; animation: slideDown 0.3s ease; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); padding: 25px; border-radius: 16px 16px 0 0; color: white;">
+                        <h2 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-bell"></i> Get Notified
+                        </h2>
+                        <p style="margin: 8px 0 0; opacity: 0.95; font-size: 0.9rem;" id="notifyCourseTitle"></p>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
+                            Subscribe to get notified when this course becomes available. We'll send you an email with all the details!
+                        </p>
+                        <form id="notifyMeForm">
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 500;">Name <span style="color: red;">*</span></label>
+                                <input type="text" id="notifyName" class="form-control" placeholder="Your full name" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 500;">Email <span style="color: red;">*</span></label>
+                                <input type="email" id="notifyEmail" class="form-control" placeholder="your.email@example.com" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 25px;">
+                                <label style="display: block; margin-bottom: 8px; color: #333; font-weight: 500;">Phone Number <span style="color: red;">*</span></label>
+                                <input type="tel" id="notifyPhone" class="form-control" placeholder="10-digit phone number" required maxlength="10" pattern="[0-9]{10}" oninput="validateNotifyPhone()" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                                <div id="phoneValidationMsg" style="margin-top: 5px; font-size: 0.85rem;"></div>
+                            </div>
+                            <div style="display: flex; gap: 12px;">
+                                <button type="button" onclick="closeNotifyModal()" class="btn-secondary" style="flex: 1; padding: 12px; border: 1px solid #ddd; background: white; color: #666; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="submitNotifyBtn" class="btn-primary" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                                    <i class="fas fa-bell"></i> Notify Me
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add form submit handler
+        document.getElementById('notifyMeForm').addEventListener('submit', handleNotifySubmit);
+    }
+    
+    // Show modal and set course title
+    document.getElementById('notifyCourseTitle').textContent = courseTitle;
+    document.getElementById('notifyMeModal').style.display = 'block';
+    
+    // Clear form
+    document.getElementById('notifyMeForm').reset();
+    document.getElementById('phoneValidationMsg').textContent = '';
+}
+
+function closeNotifyModal() {
+    document.getElementById('notifyMeModal').style.display = 'none';
+}
+
+function validateNotifyPhone() {
+    const phoneInput = document.getElementById('notifyPhone');
+    const validationMsg = document.getElementById('phoneValidationMsg');
+    
+    // Remove non-numeric characters
+    phoneInput.value = phoneInput.value.replace(/\D/g, '');
+    
+    const phone = phoneInput.value;
+    const remaining = 10 - phone.length;
+    
+    if (phone.length === 0) {
+        validationMsg.textContent = '';
+        validationMsg.style.color = '';
+    } else if (phone.length < 10) {
+        validationMsg.textContent = `${remaining} more digit${remaining > 1 ? 's' : ''} required`;
+        validationMsg.style.color = '#DC2626';
+    } else if (phone.length === 10) {
+        validationMsg.innerHTML = '<i class="fas fa-check-circle"></i> Valid phone number';
+        validationMsg.style.color = '#10B981';
+    }
+}
+
+async function handleNotifySubmit(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('notifyName').value.trim();
+    const email = document.getElementById('notifyEmail').value.trim();
+    const phone = document.getElementById('notifyPhone').value.trim();
+    
+    // Validate phone
+    if (!/^[0-9]{10}$/.test(phone)) {
+        UI.error('Please enter a valid 10-digit phone number');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submitNotifyBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+    
+    try {
+        const res = await fetch(`${Auth.apiBase}/subscribers/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                courseID: window.currentNotifyCourseId,
+                name,
+                email,
+                phone
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            UI.success(data.message || 'Successfully subscribed! We will notify you when the course is available.');
+            closeNotifyModal();
+        } else {
+            UI.error(data.message || 'Subscription failed. Please try again.');
+        }
+    } catch (err) {
+        console.error('Subscription error:', err);
+        UI.error('Network error. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-bell"></i> Notify Me';
+    }
+}
+
+window.openNotifyModal = openNotifyModal;
+window.closeNotifyModal = closeNotifyModal;
+window.validateNotifyPhone = validateNotifyPhone;
 window.sendStudentReply = sendStudentReply;

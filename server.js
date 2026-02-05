@@ -90,6 +90,7 @@ app.use('/api/settings', require('./backend/routes/settings'));
 app.use('/api/uploads', require('./backend/routes/upload'));
 app.use('/api/tickets', require('./backend/routes/tickets'));
 app.use('/api/contact', require('./backend/routes/contact'));
+app.use('/api/subscribers', require('./backend/routes/subscribers'));
 
 // New modular content system routes
 app.use('/api', require('./backend/routes/modules'));
@@ -102,10 +103,40 @@ app.get('/', (req, res) => {
 // Global Error Handler
 app.use(require('./backend/middleware/errorMiddleware'));
 
+// Cleanup incomplete registrations function
+const cleanupIncompleteRegistrations = async () => {
+    try {
+        const { User } = require('./backend/models/index');
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        
+        const result = await User.deleteMany({
+            isVerified: false,
+            $or: [
+                { createdAt: { $lt: oneDayAgo } },
+                { registrationOTPExpires: { $lt: new Date() } }
+            ]
+        });
+        
+        if (result.deletedCount > 0) {
+            console.log(`🧹 Cleaned up ${result.deletedCount} incomplete registrations`);
+        }
+    } catch (error) {
+        console.error('❌ Error cleaning up incomplete registrations:', error.message);
+    }
+};
+
 // Start Server
 if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`🚀 InnerSpark Server running on http://localhost:${PORT}`);
+    // Run cleanup on server start
+    connectDB().then(() => {
+        cleanupIncompleteRegistrations();
+        
+        // Schedule cleanup every 6 hours
+        setInterval(cleanupIncompleteRegistrations, 6 * 60 * 60 * 1000);
+        
+        app.listen(PORT, () => {
+            console.log(`🚀 InnerSpark Server running on http://localhost:${PORT}`);
+        });
     });
 }
 

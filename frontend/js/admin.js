@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* --- NAVIGATION --- */
 function switchSection(section) {
     // Hide all sections
-    ['overview', 'analytics', 'users', 'courses', 'content', 'finance', 'tickets', 'messages', 'settings'].forEach(s => {
+    ['overview', 'analytics', 'users', 'courses', 'content', 'finance', 'tickets', 'messages', 'subscribers', 'settings'].forEach(s => {
         const el = document.getElementById(s + 'Section');
         if (el) el.style.display = 'none';
 
@@ -118,6 +118,9 @@ function switchSection(section) {
     }
     if (section === 'messages') {
         loadMessages();
+    }
+    if (section === 'subscribers') {
+        loadSubscribers();
     }
     if (section === 'settings') {
         loadSettings();
@@ -2441,3 +2444,156 @@ document.addEventListener('DOMContentLoaded', () => {
         messageSortFilter.addEventListener('change', () => loadMessages(1));
     }
 });
+
+// --- SUBSCRIBERS MANAGEMENT ---
+
+async function loadSubscribers() {
+    try {
+        UI.showLoader();
+        const filterStatus = document.getElementById('subscriberFilterStatus')?.value || '';
+        
+        const res = await fetch(`${Auth.apiBase}/subscribers/all`, {
+            headers: Auth.getHeaders()
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.message || 'Failed to load subscribers');
+        }
+        
+        let subscribers = data.data.subscribers;
+        
+        // Filter by status
+        if (filterStatus === 'pending') {
+            subscribers = subscribers.filter(s => !s.notified);
+        } else if (filterStatus === 'notified') {
+            subscribers = subscribers.filter(s => s.notified);
+        }
+        
+        // Load stats
+        loadSubscriberStats();
+        
+        const tbody = document.getElementById('subscribersTableBody');
+        
+        if (subscribers.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                        <i class="fas fa-bell-slash" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                        No subscribers found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = subscribers.map(sub => {
+            const subscribedDate = new Date(sub.createdAt).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            
+            const notifiedDate = sub.notifiedAt 
+                ? new Date(sub.notifiedAt).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                })
+                : '-';
+            
+            const statusBadge = sub.notified
+                ? '<span style="background: var(--color-success); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem;"><i class="fas fa-check"></i> Notified</span>'
+                : '<span style="background: #F59E0B; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem;"><i class="fas fa-clock"></i> Pending</span>';
+            
+            const courseTitle = sub.courseID?.title || 'Unknown Course';
+            const courseStatus = sub.courseID?.status || '-';
+            
+            return `
+                <tr>
+                    <td>${sub.name}</td>
+                    <td><a href="mailto:${sub.email}" style="color: var(--color-primary); text-decoration: none;">${sub.email}</a></td>
+                    <td><a href="tel:${sub.phone}" style="color: #666; text-decoration: none;">${sub.phone}</a></td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <strong>${courseTitle}</strong>
+                            <span style="font-size: 0.8rem; color: #999;">${courseStatus}</span>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>${subscribedDate}</td>
+                    <td>${notifiedDate}</td>
+                    <td>
+                        <button onclick="deleteSubscriber('${sub._id}')" class="btn-icon-danger" title="Delete" style="background: none; border: none; color: var(--color-error); cursor: pointer; padding: 5px 10px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (err) {
+        console.error('Error loading subscribers:', err);
+        UI.error('Failed to load subscribers');
+        document.getElementById('subscribersTableBody').innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--color-error);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                    Failed to load subscribers. Please try again.
+                </td>
+            </tr>
+        `;
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+async function loadSubscriberStats() {
+    try {
+        const res = await fetch(`${Auth.apiBase}/subscribers/stats`, {
+            headers: Auth.getHeaders()
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            document.getElementById('totalSubscribersCount').textContent = data.data.totalSubscribers || 0;
+            document.getElementById('pendingSubscribersCount').textContent = data.data.pendingCount || 0;
+            document.getElementById('notifiedSubscribersCount').textContent = data.data.notifiedCount || 0;
+        }
+    } catch (err) {
+        console.error('Error loading subscriber stats:', err);
+    }
+}
+
+async function deleteSubscriber(subscriberId) {
+    if (!confirm('Are you sure you want to delete this subscriber? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/subscribers/${subscriberId}`, {
+            method: 'DELETE',
+            headers: Auth.getHeaders()
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            UI.success('Subscriber deleted successfully');
+            loadSubscribers(); // Reload the list
+        } else {
+            UI.error(data.message || 'Failed to delete subscriber');
+        }
+    } catch (err) {
+        console.error('Error deleting subscriber:', err);
+        UI.error('Failed to delete subscriber');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+window.loadSubscribers = loadSubscribers;
+window.deleteSubscriber = deleteSubscriber;
