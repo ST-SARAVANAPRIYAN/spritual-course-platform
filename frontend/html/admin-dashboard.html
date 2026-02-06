@@ -1005,6 +1005,23 @@
             <div class="scrollable-content">
                 <!-- OVERVIEW SECTION -->
                 <section id="overviewSection">
+                    <!-- Admin Status Diagnostic Panel -->
+                    <div id="adminStatusDiagnostic" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <i class="fas fa-user-shield" style="font-size: 2rem;"></i>
+                                <div>
+                                    <div style="font-size: 0.85rem; opacity: 0.9;">Admin Privilege Status</div>
+                                    <div id="diagnosticStatus" style="font-size: 1.2rem; font-weight: 600;">Checking...</div>
+                                    <div id="diagnosticDetails" style="font-size: 0.75rem; opacity: 0.8; margin-top: 3px;"></div>
+                                </div>
+                            </div>
+                            <button onclick="refreshAdminStatus()" class="btn-primary" style="background: white; color: #667eea; border: none; padding: 8px 16px; font-size: 0.85rem;">
+                                <i class="fas fa-sync-alt"></i> Refresh Status
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="stats-row" id="adminStats">
                         <div class="stat-card glass-card">
                             <div class="stat-icon" style="background: rgba(52, 152, 219, 0.1); color: #3498db;"><i

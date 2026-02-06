@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force Session Reset - InnerSpark</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔄</div>
+        <h1>Session Reset Required</h1>
+        <p>Your admin privileges have been updated in the database, but your browser session is outdated.</p>
+        
+        <div class="info">
+            <p><strong>Why this is happening:</strong></p>
+            <ul style="text-align: left; margin: 10px 0;">
+                <li>You were recently set as the default admin</li>
+                <li>Your browser has cached old session data</li>
+                <li>The system needs to reload your privileges</li>
+            </ul>
+        </div>
+
+        <p style="font-size: 1.1rem; margin: 20px 0;">
+            Click below to clear your session and login with updated privileges.
+        </p>
+
+        <button onclick="resetSession()">Clear Session & Login</button>
+
+        <p style="margin-top: 30px; color: #666; font-size: 0.9rem;">
+            This will log you out and redirect to the login page.
+        </p>
+    </div>
+
+    <script>
+        function resetSession() {
+            // Clear all localStorage
+            localStorage.clear();
+            
+            // Clear all sessionStorage
+            sessionStorage.clear();
+            
+            // Clear all cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Show success message
+            document.querySelector('.container').innerHTML = `
+                <div class="icon" style="color: #10b981;">✓</div>
+                <h1 style="color: #10b981;">Session Cleared!</h1>
+                <p>Redirecting to login page...</p>
+            `;
+            
+            // Redirect to login
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+        }
+
+        // Auto-display current session info
+        window.onload = () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                const infoDiv = document.querySelector('.info');
+                infoDiv.innerHTML += `
+                    <p style="margin-top: 15px;"><strong>Current Session:</strong></p>
+                    <ul style="text-align: left; margin: 10px 0; font-size: 0.9rem;">
+                        <li>Name: ${user.name}</li>
+                        <li>Email: ${user.email || 'N/A'}</li>
+                        <li>Role: ${user.role}</li>
+                        <li>Default Admin: ${user.isDefaultAdmin === true ? '⭐ YES' : user.isDefaultAdmin === false ? '❌ NO' : '⚠️ UNKNOWN (needs update)'}</li>
+                    </ul>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

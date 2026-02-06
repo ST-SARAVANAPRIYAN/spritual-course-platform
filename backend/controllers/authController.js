@@ -358,7 +358,18 @@ exports.getProfile = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
         status: 'success',
-        data: { user }
+        data: {
+            id: user._id,
+            name: user.name,
+            role: user.role,
+            email: user.email,
+            studentID: user.studentID,
+            phone: user.phone,
+            profilePic: user.profilePic,
+            active: user.active,
+            isDefaultAdmin: user.isDefaultAdmin || false,
+            lastLogin: user.lastLogin
+        }
     });
 });
 

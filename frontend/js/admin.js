@@ -5,6 +5,146 @@
 let selectedContentID = null;
 let currentUserRoleView = 'Student';
 
+// Admin Status Diagnostic Functions
+async function checkAdminStatusDiagnostic() {
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const diagnosticPanel = document.getElementById('adminStatusDiagnostic');
+    const statusEl = document.getElementById('diagnosticStatus');
+    const detailsEl = document.getElementById('diagnosticDetails');
+    
+    if (!currentUser || currentUser.role !== 'Admin') {
+        if (diagnosticPanel) diagnosticPanel.style.display = 'none';
+        return;
+    }
+    
+    // Show the diagnostic panel
+    if (diagnosticPanel) diagnosticPanel.style.display = 'block';
+    
+    // CRITICAL: Validate session against server
+    try {
+        const res = await fetch(`${Auth.apiBase}/auth/profile`, {
+            headers: Auth.getHeaders()
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            const serverUser = data.data;
+            
+            // Compare localStorage with server data
+            if (currentUser.isDefaultAdmin !== serverUser.isDefaultAdmin) {
+                console.warn('⚠️ SESSION MISMATCH DETECTED!');
+                console.warn('localStorage isDefaultAdmin:', currentUser.isDefaultAdmin);
+                console.warn('Server isDefaultAdmin:', serverUser.isDefaultAdmin);
+                
+                // Force logout with clear message
+                const shouldLogout = confirm(
+                    '⚠️ SESSION DATA MISMATCH DETECTED!\n\n' +
+                    'Your admin privileges have changed in the database, but your session is outdated.\n\n' +
+                    'You MUST log out and log back in for changes to take effect.\n\n' +
+                    'Click OK to logout now.'
+                );
+                
+                if (shouldLogout) {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                    return;
+                } else {
+                    statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ⚠️ SESSION MISMATCH!';
+                    detailsEl.textContent = 'Your privileges changed. You MUST logout and login again!';
+                    diagnosticPanel.style.background = 'linear-gradient(135deg, #ff0000 0%, #ff6b6b 100%)';
+                    return;
+                }
+            }
+            
+            // Update localStorage with fresh server data
+            const mergedUser = {
+                ...currentUser,
+                isDefaultAdmin: serverUser.isDefaultAdmin || false
+            };
+            localStorage.setItem('user', JSON.stringify(mergedUser));
+        }
+    } catch (error) {
+        console.error('Failed to validate session:', error);
+    }
+    
+    // Check if isDefaultAdmin exists
+    if (!currentUser.hasOwnProperty('isDefaultAdmin')) {
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ⚠️ STALE SESSION DATA';
+        detailsEl.innerHTML = 'Your session is missing privilege data. <strong>Please log out and log back in.</strong>';
+        diagnosticPanel.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+        
+        // Auto-show logout prompt after 2 seconds
+        setTimeout(() => {
+            const shouldLogout = confirm(
+                'Your session is outdated.\n\n' +
+                'Click OK to logout now and refresh your privileges.'
+            );
+            if (shouldLogout) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }, 2000);
+        return;
+    }
+    
+    if (currentUser.isDefaultAdmin === true) {
+        statusEl.innerHTML = '<i class="fas fa-shield-alt"></i> ⭐ DEFAULT ADMIN';
+        detailsEl.textContent = 'You have full privileges to manage all admins, staff, and students.';
+        diagnosticPanel.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    } else {
+        statusEl.innerHTML = '<i class="fas fa-user-shield"></i> 👤 NORMAL ADMIN';
+        detailsEl.textContent = 'You can manage students and staff, but not other admins (requires default admin).';
+        diagnosticPanel.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+    }
+}
+
+async function refreshAdminStatus() {
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    
+    try {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        button.disabled = true;
+        
+        // Fetch fresh user data from server
+        const res = await fetch(`${Auth.apiBase}/auth/profile`, {
+            headers: Auth.getHeaders()
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to fetch profile');
+        }
+        
+        const data = await res.json();
+        const updatedUser = data.data;
+        
+        // Update localStorage with fresh data
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const mergedUser = {
+            ...currentUser,
+            isDefaultAdmin: updatedUser.isDefaultAdmin || false
+        };
+        
+        localStorage.setItem('user', JSON.stringify(mergedUser));
+        
+        // Re-check diagnostic
+        checkAdminStatusDiagnostic();
+        
+        UI.success('Admin status refreshed! Page will reload in 2 seconds...');
+        
+        // Reload page to update all UI elements
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Refresh failed:', error);
+        UI.error('Failed to refresh status. Please log out and log back in.');
+        button.innerHTML = originalContent;
+        button.disabled = false;
+    }
+}
+
 // Toast notification function
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
@@ -47,6 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Load Dashboard Stats
     loadStats();
+    
+    // 3. Check admin status and show diagnostic panel
+    checkAdminStatusDiagnostic();
 
     // 3. Initial Load
     loadQueue(); // For Overview
@@ -353,6 +496,16 @@ async function loadUserManagement(role) {
     // Get current user to check if they're default admin
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const isCurrentUserDefaultAdmin = currentUser && currentUser.isDefaultAdmin === true;
+    
+    console.log('🔍 DEBUG - Current User Object:', currentUser);
+    console.log('🔍 DEBUG - isDefaultAdmin value:', currentUser?.isDefaultAdmin);
+    console.log('🔍 DEBUG - Type of isDefaultAdmin:', typeof currentUser?.isDefaultAdmin);
+    console.log('🔍 DEBUG - isCurrentUserDefaultAdmin result:', isCurrentUserDefaultAdmin);
+    
+    // Alert user if localStorage might be stale
+    if (currentUser && currentUser.role === 'Admin' && !currentUser.hasOwnProperty('isDefaultAdmin')) {
+        console.warn('⚠️  WARNING: User object missing isDefaultAdmin field! You may need to log out and back in.');
+    }
 
     container.innerHTML = '<p>Loading records...</p>';
 
@@ -389,7 +542,16 @@ async function loadUserManagement(role) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${users.map((u, index) => `
+                    ${users.map((u, index) => {
+                        // Debug logging for each user
+                        if (u.role === 'Admin') {
+                            console.log(`👤 Admin User: ${u.name}`, {
+                                isDefaultAdmin: u.isDefaultAdmin,
+                                isCurrentUserDefaultAdmin: isCurrentUserDefaultAdmin,
+                                shouldShowActiveButtons: !(u.isDefaultAdmin || !isCurrentUserDefaultAdmin)
+                            });
+                        }
+                        return `
                         <tr>
                             <td style="padding: 15px; color: #666;">${index + 1}</td>
                             <td style="padding: 15px;">
@@ -448,7 +610,7 @@ async function loadUserManagement(role) {
                                     </button>`}
                             </td>
                         </tr>
-                    `).join('')}
+                    `;}).join('')}
                 </tbody>
             </table>
         `;

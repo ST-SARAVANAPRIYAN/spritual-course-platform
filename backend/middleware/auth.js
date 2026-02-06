@@ -21,7 +21,7 @@ const authorize = (roles = []) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'innerspark_secret_key');
             
             // SECURITY CHECK: Verify user still exists and is active
-            const user = await User.findById(decoded.id).select('active role name');
+            const user = await User.findById(decoded.id).select('active role name isDefaultAdmin');
             
             if (!user) {
                 return res.status(401).json({ 
@@ -37,7 +37,10 @@ const authorize = (roles = []) => {
                 });
             }
             
-            req.user = decoded;
+            req.user = {
+                ...decoded,
+                isDefaultAdmin: user.isDefaultAdmin || false
+            };
 
             // Check Maintenance Mode
             const Settings = require('../models/Settings');

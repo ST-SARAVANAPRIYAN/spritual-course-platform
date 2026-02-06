@@ -430,8 +430,7 @@ exports.deleteUser = async (req, res) => {
 
         // Only default admin can delete other admins
         if (user.role === 'Admin') {
-            const currentAdmin = await User.findById(req.user.id);
-            if (!currentAdmin.isDefaultAdmin) {
+            if (!req.user.isDefaultAdmin) {
                 return res.status(403).json({ 
                     message: 'Only the default admin can delete other admins.',
                     requiresDefaultAdmin: true
@@ -477,8 +476,7 @@ exports.toggleUserStatus = async (req, res) => {
 
         // Only default admin can disable other admins
         if (user.role === 'Admin' && user.active) {
-            const currentAdmin = await User.findById(req.user.id);
-            if (!currentAdmin.isDefaultAdmin) {
+            if (!req.user.isDefaultAdmin) {
                 return res.status(403).json({ 
                     message: 'Only the default admin can disable other admins.',
                     requiresDefaultAdmin: true
@@ -520,8 +518,7 @@ exports.setDefaultAdmin = async (req, res) => {
         const { id } = req.params;
         
         // Only current default admin can change default status
-        const currentAdmin = await User.findById(req.user.id);
-        if (!currentAdmin.isDefaultAdmin) {
+        if (!req.user.isDefaultAdmin) {
             return res.status(403).json({ 
                 message: 'Only the current default admin can transfer default admin privileges.',
                 requiresDefaultAdmin: true
