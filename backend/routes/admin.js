@@ -48,8 +48,9 @@ router.post('/add-staff', adminController.addStaff);
 // User Management Routes
 router.get('/users', adminController.getUsers);
 router.post('/users', adminController.createUser);
+router.patch('/set-default-admin/:id', adminController.setDefaultAdmin); // Moved before generic routes
+router.patch('/users/:id/status', adminController.toggleUserStatus);
 router.put('/users/:id', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
-router.patch('/users/:id/status', adminController.toggleUserStatus);
 
 module.exports = router;

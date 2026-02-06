@@ -15,6 +15,8 @@ const userSchema = new Schema({
     password: { type: String, required: true },
     phone: { type: String },
     profilePic: { type: String },
+    active: { type: Boolean, default: true },
+    isDefaultAdmin: { type: Boolean, default: false }, // Only one admin can be default
 
     // Extended Profile
     initial: { type: String },

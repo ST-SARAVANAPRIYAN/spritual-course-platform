@@ -106,7 +106,7 @@ function renderCourses(courses) {
 
     // Helper to generate Card HTML
     const generateCard = (c, isUpcoming) => `
-        <div class="course-card glass-premium" ${!isUpcoming ? `onclick="openCourseModal('${c._id}')"` : ''} style="background: white; border-radius: var(--border-radius-lg); overflow: hidden; cursor: ${isUpcoming ? 'default' : 'pointer'}; transition: var(--transition-smooth); opacity: ${isUpcoming ? '0.9' : '1'};">
+        <div class="course-card glass-premium" style="background: white; border-radius: var(--border-radius-lg); overflow: hidden; cursor: default; transition: var(--transition-smooth); opacity: ${isUpcoming ? '0.9' : '1'};">
             <div class="course-thumb" style="background-image: url('${getThumbnail(c.thumbnail)}'); background-size: cover; background-position: center; height: 200px; width: 100%; position: relative;">
                 ${isUpcoming ? '<div style="position: absolute; top: 10px; right: 10px; background: var(--color-saffron); color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.8rem;">Coming Soon</div>' : ''}
             </div>
@@ -121,7 +121,7 @@ function renderCourses(courses) {
                     <span><i class="fas fa-layer-group"></i> ${c.totalLessons || 0} Lessons</span>
                     ${isUpcoming ? '<span><i class="fas fa-clock"></i> Releases Soon</span>' : '<span><i class="fas fa-star" style="color: var(--color-golden);"></i> 4.9</span>'}
                 </div>
-                ${isUpcoming ? `<button onclick="event.stopPropagation(); openNotifyModal('${c._id}', '${c.title.replace(/'/g, "\\'")}')" class="btn-primary" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); cursor: pointer;"><i class="fas fa-bell"></i> Notify Me</button>` : ''}
+                ${isUpcoming ? `<button onclick="openNotifyModal('${c._id}', '${c.title.replace(/'/g, "\\'")}')" class="btn-primary" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); cursor: pointer;"><i class="fas fa-bell"></i> Notify Me</button>` : `<button onclick="openExploreModal('${c._id}')" class="btn-primary" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-golden) 100%); cursor: pointer;"><i class="fas fa-compass"></i> Explore Course</button>`}
             </div>
         </div>
     `;
@@ -495,3 +495,144 @@ async function handleNotifySubmit(e) {
 window.openNotifyModal = openNotifyModal;
 window.closeNotifyModal = closeNotifyModal;
 window.validateNotifyPhone = validateNotifyPhone;
+
+// --- COURSE EXPLORATION MODAL ---
+
+function openExploreModal(courseId) {
+    // Create modal if it doesn't exist
+    if (!document.getElementById('exploreCourseModal')) {
+        const modalHTML = `
+            <div id="exploreCourseModal" class="modal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); overflow-y: auto; padding: 20px; align-items: center; justify-content: center;">
+                <div class="modal-content glass-card" style="position: relative; background: white; margin: auto; max-width: 800px; width: 100%; max-height: calc(100vh - 40px); overflow-y: auto; border-radius: 20px; animation: slideDown 0.3s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <button onclick="closeExploreModal()" style="position: absolute; top: 20px; right: 20px; background: white; border: none; font-size: 2rem; cursor: pointer; color: #999; z-index: 10; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: all 0.3s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">&times;</button>
+                    
+                    <div id="exploreModalThumb" style="width: 100%; height: 300px; background-size: cover; background-position: center; background-repeat: no-repeat; border-radius: 20px 20px 0 0; position: relative;">
+                        <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                            <h2 id="exploreModalTitle" style="color: white; font-size: 2rem; margin: 0; font-family: var(--font-heading); text-shadow: 0 2px 10px rgba(0,0,0,0.5);"></h2>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 40px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                            <div>
+                                <p id="exploreModalMentor" style="color: var(--color-primary); font-weight: 600; font-size: 1.1rem; margin: 0 0 5px 0;">
+                                    <i class="fas fa-user-circle"></i> <span></span>
+                                </p>
+                                <p id="exploreModalCategory" style="color: #666; font-size: 0.9rem; margin: 0;">
+                                    <i class="fas fa-tag"></i> <span></span>
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p id="exploreModalPrice" style="font-size: 2.5rem; font-weight: 700; color: var(--color-saffron); margin: 0; line-height: 1;"></p>
+                                <p style="font-size: 0.85rem; color: #999; margin: 5px 0 0 0;">Lifetime Access</p>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.3rem;">
+                                <i class="fas fa-info-circle"></i> Course Overview
+                            </h3>
+                            <p id="exploreModalDescription" style="color: #555; line-height: 1.8; font-size: 1rem;"></p>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: var(--color-primary); margin-bottom: 5px;">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <p id="exploreModalLessons" style="font-weight: 600; color: #333; margin: 0; font-size: 1.1rem;"></p>
+                                <p style="font-size: 0.85rem; color: #666; margin: 5px 0 0 0;">Lessons</p>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: var(--color-saffron); margin-bottom: 5px;">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <p style="font-weight: 600; color: #333; margin: 0; font-size: 1.1rem;">4.9</p>
+                                <p style="font-size: 0.85rem; color: #666; margin: 5px 0 0 0;">Rating</p>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; color: var(--color-success); margin-bottom: 5px;">
+                                    <i class="fas fa-infinity"></i>
+                                </div>
+                                <p style="font-weight: 600; color: #333; margin: 0; font-size: 1.1rem;">Lifetime</p>
+                                <p style="font-size: 0.85rem; color: #666; margin: 5px 0 0 0;">Access</p>
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #FFF7ED 0%, #FFFBEB 100%); padding: 20px; border-radius: 12px; border-left: 4px solid var(--color-saffron); margin-bottom: 30px;">
+                            <p style="margin: 0; color: #92400E; font-size: 0.95rem; line-height: 1.6;">
+                                <i class="fas fa-lightbulb" style="color: var(--color-saffron); margin-right: 8px;"></i>
+                                <strong>Ready to start your journey?</strong> Create an account to enroll in this course and unlock your path to self-discovery.
+                            </p>
+                        </div>
+                        
+                        <button onclick="redirectToRegister()" class="btn-primary" style="width: 100%; padding: 18px; font-size: 1.2rem; font-weight: 600; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-golden) 100%); border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(139, 69, 19, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(139, 69, 19, 0.3)'">
+                            <i class="fas fa-user-plus"></i> Register Now to Enroll
+                        </button>
+                        
+                        <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #999;">
+                            <i class="fas fa-shield-alt" style="color: var(--color-success);"></i> Secure registration • Money-back guarantee
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+    
+    // Fetch course details and populate modal
+    loadCourseDetails(courseId);
+    
+    // Show modal
+    const modal = document.getElementById('exploreCourseModal');
+    modal.style.display = 'flex';
+    trackMetric('Click', 'Explore Course Button', courseId);
+}
+
+async function loadCourseDetails(courseId) {
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/courses/${courseId}`);
+        
+        if (!res.ok) {
+            throw new Error('Failed to load course details');
+        }
+        
+        const data = await res.json();
+        const course = data.course;
+        
+        // Populate modal with course data
+        document.getElementById('exploreModalTitle').textContent = course.title;
+        document.getElementById('exploreModalMentor').querySelector('span').textContent = course.mentorID?.name || 'Mentor';
+        document.getElementById('exploreModalCategory').querySelector('span').textContent = course.category || 'General';
+        document.getElementById('exploreModalPrice').textContent = `$${course.price}`;
+        document.getElementById('exploreModalDescription').textContent = course.description || 'Discover the transformative power of this course.';
+        document.getElementById('exploreModalLessons').textContent = course.totalLessons || 0;
+        
+        const thumbUrl = getThumbnail(course.thumbnail);
+        document.getElementById('exploreModalThumb').style.backgroundImage = `url('${thumbUrl}')`;
+        
+    } catch (err) {
+        console.error('Error loading course details:', err);
+        UI.error('Failed to load course details. Please try again.');
+        closeExploreModal();
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+function closeExploreModal() {
+    const modal = document.getElementById('exploreCourseModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function redirectToRegister() {
+    trackMetric('Click', 'Register Now from Explore Modal');
+    window.location.href = 'register.html';
+}
+
+window.openExploreModal = openExploreModal;
+window.closeExploreModal = closeExploreModal;
+window.redirectToRegister = redirectToRegister;

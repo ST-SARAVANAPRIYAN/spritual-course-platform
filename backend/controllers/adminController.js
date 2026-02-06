@@ -240,7 +240,7 @@ exports.uploadBanner = async (req, res) => {
         const banner = new Banner({
             title,
             link,
-            imageUrl: req.file.path
+            imageUrl: `/uploads/content/${req.file.filename}` // Server-relative path
         });
         await banner.save();
         res.status(201).json({ message: 'Banner illuminated in marketplace!', banner });
@@ -330,9 +330,12 @@ exports.createUser = async (req, res) => {
         if (role === 'Student') {
             const count = await User.countDocuments({ role: 'Student' });
             studentID = `IS-${year}-${String(count + 1).padStart(4, '0')}`;
-        } else {
+        } else if (role === 'Staff') {
             const count = await User.countDocuments({ role: 'Staff' });
             studentID = `STF-${year}-${String(count + 1).padStart(4, '0')}`;
+        } else if (role === 'Admin') {
+            const count = await User.countDocuments({ role: 'Admin' });
+            studentID = `ADM-${year}-${String(count + 1).padStart(4, '0')}`;
         }
 
         const newUser = new User({
@@ -415,6 +418,14 @@ exports.deleteUser = async (req, res) => {
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Prevent deletion of default admin
+        if (user.role === 'Admin' && user.isDefaultAdmin) {
+            return res.status(403).json({ 
+                message: 'Cannot delete default admin. Please set another admin as default first.',
+                isDefaultAdmin: true
+            });
+        }
+
         // Strict ID Check (Frontend should also handle this, but double check)
         // Since we are deleting, we can't store logs IN the user document. 
         // We will just proceed with deletion if confirmed.
@@ -434,6 +445,22 @@ exports.toggleUserStatus = async (req, res) => {
 
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Prevent disabling default admin
+        if (user.role === 'Admin' && user.isDefaultAdmin && user.active) {
+            return res.status(403).json({ 
+                message: 'Cannot disable the default admin. Please set another admin as default first.',
+                isDefaultAdmin: true
+            });
+        }
+
+        // Prevent admin from disabling themselves
+        if (req.user.id === id && user.active) {
+            return res.status(403).json({ 
+                message: 'You cannot disable your own account.',
+                isSelf: true
+            });
+        }
 
         const wasActive = user.active; // Track previous status
         const newStatus = !user.active;
@@ -460,5 +487,42 @@ exports.toggleUserStatus = async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ message: 'Failed to update status', error: err.message });
+    }
+};
+
+// Set Default Admin
+exports.setDefaultAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find the target admin
+        const targetAdmin = await User.findById(id);
+        if (!targetAdmin) return res.status(404).json({ message: 'Admin not found' });
+        
+        // Verify it's an admin
+        if (targetAdmin.role !== 'Admin') {
+            return res.status(400).json({ message: 'User must be an Admin to be set as default' });
+        }
+        
+        // Remove default status from all other admins
+        await User.updateMany(
+            { role: 'Admin', isDefaultAdmin: true },
+            { $set: { isDefaultAdmin: false } }
+        );
+        
+        // Set this admin as default
+        targetAdmin.isDefaultAdmin = true;
+        await targetAdmin.save();
+        
+        res.status(200).json({ 
+            message: 'Default admin updated successfully',
+            defaultAdmin: {
+                id: targetAdmin._id,
+                name: targetAdmin.name,
+                email: targetAdmin.email
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to set default admin', error: err.message });
     }
 };

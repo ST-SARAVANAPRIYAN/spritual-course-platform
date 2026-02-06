@@ -155,6 +155,7 @@
         .tabs {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
         }
 
         .tab-btn {
@@ -167,6 +168,7 @@
             color: var(--color-text-secondary);
             transition: all 0.2s;
             font-size: 0.9rem;
+            white-space: nowrap; /* Keep text on one line */
         }
 
         .tab-btn.active {
@@ -589,6 +591,35 @@
             padding: 0 40px 40px 40px;
             display: flex;
             flex-direction: column;
+        }
+
+        /* Dashboard Content Sections - Scrollable */
+        .dashboard-content-section {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 10px; /* Space for scrollbar */
+            min-height: 0; /* Important for flex children with overflow */
+        }
+
+        /* Professional scrollbar styling */
+        .dashboard-content-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .dashboard-content-section::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+
+        .dashboard-content-section::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .dashboard-content-section::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--color-golden), var(--color-saffron));
         }
 
         /* Users Section Specific Layout for Internal Scroll */
@@ -1063,6 +1094,7 @@
                         <div class="tabs">
                             <button class="tab-btn active" onclick="switchUserTab('Student')">Students</button>
                             <button class="tab-btn" onclick="switchUserTab('Staff')">Staff</button>
+                            <button class="tab-btn" onclick="switchUserTab('Admin')">Admins</button>
                         </div>
                     </div>
 
@@ -1395,10 +1427,6 @@
                 <!-- Subscribers Section -->
                 <div id="subscribersSection" class="dashboard-content-section" style="display: none;">
                     <div class="content-header" style="margin-bottom: 30px;">
-                        <h2
-                            style="font-size: 2rem; background: linear-gradient(to right, #333, #666); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                            Course Subscribers
-                        </h2>
                         <p style="color: #666; font-size: 1.1rem;">Manage users who want to be notified about upcoming
                             courses.</p>
                     </div>
@@ -1476,13 +1504,6 @@
                 </div>
 
                 <div id="settingsSection" class="dashboard-content-section" style="display: none;">
-                    <div class="content-header" style="margin-bottom: 30px;">
-                        <h2
-                            style="font-size: 2rem; background: linear-gradient(to right, #333, #666); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                            Settings</h2>
-                        <p style="color: #666; font-size: 1.1rem;">Configure your workspace preferences.</p>
-                    </div>
-
                     <div class="settings-layout">
                         <!-- Sidebar Navigation -->
                         <div class="settings-sidebar">
@@ -1642,71 +1663,181 @@
     </div>
 
     <!-- ADD USER MODAL -->
+    <!-- Multi-Stage Add User Modal -->
     <div id="addUserModal" class="modal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
-        <div class="glass-card" style="background: white; padding: 30px; border-radius: 15px; width: 500px;">
-            <h3 style="margin-bottom: 20px;">Add New User</h3>
-            <form id="addUserForm" onsubmit="event.preventDefault(); submitAddUser();">
-                <div class="form-group">
-                    <label>Role</label>
-                    <select name="role" class="form-control" onchange="toggleStudentFields(this.value)">
-                        <option value="Student">Student</option>
-                        <option value="Staff">Staff</option>
-                    </select>
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; overflow-y: auto; padding: 20px 0;">
+        <div class="glass-card" style="background: white; border-radius: 15px; width: 90%; max-width: 550px; margin: auto; max-height: calc(100vh - 40px); display: flex; flex-direction: column; position: relative;">
+            <!-- Close Button -->
+            <button onclick="closeAddUserModal()"
+                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10; color: #999; transition: color 0.3s;"
+                onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'">&times;</button>
+            
+            <!-- Modal Header -->
+            <div style="padding: 25px 30px 20px; border-bottom: 2px solid #f0f0f0;">
+                <h3 style="margin: 0; color: #333; font-size: 1.5rem;">
+                    <i class="fas fa-user-plus" style="color: #4a90e2; margin-right: 10px;"></i>
+                    Add New User
+                </h3>
+                <!-- Progress Indicator -->
+                <div id="stageProgress" style="display: flex; gap: 8px; margin-top: 15px;">
+                    <div class="progress-dot active" data-stage="1" style="flex: 1; height: 4px; background: #4a90e2; border-radius: 2px; transition: all 0.3s;"></div>
+                    <div class="progress-dot" data-stage="2" style="flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; transition: all 0.3s;"></div>
+                    <div class="progress-dot" data-stage="3" style="flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; transition: all 0.3s;"></div>
+                    <div class="progress-dot" data-stage="4" style="flex: 1; height: 4px; background: #e0e0e0; border-radius: 2px; transition: all 0.3s;"></div>
                 </div>
-                <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control"
-                        required></div>
-                <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control"
-                        required></div>
-                <div class="form-group"><label>Password</label><input type="password" name="password"
-                        class="form-control" required></div>
-                <div class="form-group"><label>Phone</label><input type="text" name="phone" class="form-control"></div>
+            </div>
 
-                <div id="studentOnlyFields">
-                    <div class="form-group"><label>Initial</label><input type="text" name="initial"
-                            class="form-control"></div>
-                    <div class="form-group">
-                        <label>Gender</label>
-                        <select name="gender" class="form-control">
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="flex: 1;">Create User</button>
-                    <button type="button" onclick="document.getElementById('addUserModal').style.display='none'"
-                        class="btn-primary" style="background: #999; flex: 1;">Cancel</button>
-                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-                        <button type="button" class="btn-primary" style="background: #ccc;" onclick="nextStep(1)">&larr;
-                            Back</button>
-                        <button type="button" class="btn-primary" onclick="nextStep(3)">Next &rarr;</button>
-                    </div>
-                </div>
-
-                <!-- Step 3: Specifics -->
-                <div class="form-step" id="step3" style="display: none;">
-                    <h5 style="color: #666; margin-bottom: 15px;">Step 3: Verification</h5>
-                    <div id="studentOnlyFields">
-                        <div class="form-group"><label>Initial</label><input type="text" name="initial"
-                                class="form-control" placeholder="e.g. K"></div>
-                        <div class="form-group"><label>Father's Name</label><input type="text" name="fatherName"
-                                class="form-control"></div>
+            <!-- Modal Body (Scrollable) -->
+            <div style="padding: 30px; overflow-y: auto; flex: 1;">
+                <form id="addUserForm">
+                    <!-- Stage 1: Role Selection -->
+                    <div class="user-form-stage" id="userStage1" style="display: block;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <i class="fas fa-user-tag" style="font-size: 3rem; color: #4a90e2; margin-bottom: 15px;"></i>
+                            <h4 style="color: #333; margin-bottom: 10px;">Select User Role</h4>
+                            <p style="color: #666; font-size: 0.9rem;">Choose the appropriate role for this user</p>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 10px; display: block;">User Role <span style="color: #e74c3c;">*</span></label>
+                            <select name="role" id="userRole" class="form-control" style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="Student">Student - Learning Platform Access</option>
+                                <option value="Staff">Staff - Content Management & Teaching</option>
+                                <option value="Admin">Admin - Full System Control</option>
+                            </select>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #4a90e2;">
+                            <p style="margin: 0; font-size: 0.85rem; color: #666;">
+                                <i class="fas fa-info-circle" style="color: #4a90e2; margin-right: 8px;"></i>
+                                Each role will be assigned a unique ID upon creation
+                            </p>
+                        </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                        <button type="button" class="btn-primary" style="background: #ccc;" onclick="nextStep(2)">&larr;
-                            Back</button>
-                        <button type="submit" class="btn-primary" onclick="submitAddUser()">Create User</button>
+                    <!-- Stage 2: Name & Initial -->
+                    <div class="user-form-stage" id="userStage2" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <i class="fas fa-id-card" style="font-size: 3rem; color: #4a90e2; margin-bottom: 15px;"></i>
+                            <h4 style="color: #333; margin-bottom: 10px;">Personal Information</h4>
+                            <p style="color: #666; font-size: 0.9rem;">Enter the user's basic details</p>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Full Name <span style="color: #e74c3c;">*</span></label>
+                            <input type="text" name="name" id="userName" class="form-control" 
+                                placeholder="e.g., John Doe" 
+                                style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;" required>
+                        </div>
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Initial</label>
+                            <input type="text" name="initial" id="userInitial" class="form-control" 
+                                placeholder="e.g., K" maxlength="5"
+                                style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                            <small style="color: #999; font-size: 0.8rem;">Optional - Used for formal identification</small>
+                        </div>
+                        <div class="form-group" id="genderFieldContainer" style="margin-top: 20px; display: none;">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Gender</label>
+                            <select name="gender" id="userGender" class="form-control" style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                                <option value="">-- Select --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
-            </form>
-            <button onclick="document.getElementById('addUserModal').style.display='none'"
-                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+
+                    <!-- Stage 3: Contact & Credentials -->
+                    <div class="user-form-stage" id="userStage3" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <i class="fas fa-key" style="font-size: 3rem; color: #4a90e2; margin-bottom: 15px;"></i>
+                            <h4 style="color: #333; margin-bottom: 10px;">Contact & Credentials</h4>
+                            <p style="color: #666; font-size: 0.9rem;">Set login details and contact information</p>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Email Address <span style="color: #e74c3c;">*</span></label>
+                            <input type="email" name="email" id="userEmail" class="form-control" 
+                                placeholder="user@example.com"
+                                style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;" required>
+                        </div>
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Phone Number</label>
+                            <input type="tel" name="phone" id="userPhone" class="form-control" 
+                                placeholder="+91 98765 43210"
+                                style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        </div>
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Password <span style="color: #e74c3c;">*</span></label>
+                            <input type="password" name="password" id="userPassword" class="form-control" 
+                                placeholder="Minimum 6 characters" minlength="6"
+                                style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 8px;" required>
+                            <small style="color: #999; font-size: 0.8rem;">🔒 Password will be securely encrypted</small>
+                        </div>
+                    </div>
+
+                    <!-- Stage 4: Confirmation -->
+                    <div class="user-form-stage" id="userStage4" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <i class="fas fa-clipboard-check" style="font-size: 3rem; color: #4a90e2; margin-bottom: 15px;"></i>
+                            <h4 style="color: #333; margin-bottom: 10px;">Confirm Details</h4>
+                            <p style="color: #666; font-size: 0.9rem;">Please review before creating the account</p>
+                        </div>
+                        <div id="confirmationDetails" style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 2px solid #e0e0e0;">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Success Stage (Hidden initially) -->
+                    <div class="user-form-stage" id="userStageSuccess" style="display: none; text-align: center;">
+                        <div style="margin-bottom: 25px;">
+                            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; animation: scaleIn 0.5s ease;">
+                                <i class="fas fa-check" style="font-size: 2.5rem; color: white;"></i>
+                            </div>
+                            <h4 style="color: #27ae60; margin-bottom: 10px;">User Created Successfully!</h4>
+                            <p style="color: #666; font-size: 0.9rem;">The account has been created and is ready to use</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #667eea, #764ba2); padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                            <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; margin-bottom: 8px;">Generated User ID</p>
+                            <div id="generatedUserId" style="font-size: 1.8rem; font-weight: bold; color: white; letter-spacing: 2px; font-family: monospace;">
+                                <!-- ID will be shown here -->
+                            </div>
+                        </div>
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 0.85rem; color: #856404;">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                                <strong>Important:</strong> Please note this ID for future reference
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div id="stageActions" style="padding: 20px 30px; border-top: 2px solid #f0f0f0; display: flex; gap: 10px; justify-content: space-between;">
+                <button type="button" id="btnPrevStage" onclick="previousUserStage()" 
+                    class="btn-primary" style="flex: 1; background: #6c757d; padding: 12px; font-size: 1rem; border-radius: 8px; display: none;">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+                <button type="button" id="btnNextStage" onclick="nextUserStage()" 
+                    class="btn-primary" style="flex: 2; background: #4a90e2; padding: 12px; font-size: 1rem; border-radius: 8px;">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button type="button" id="btnCreateUser" onclick="submitMultiStageUser()" 
+                    class="btn-primary" style="flex: 2; background: #27ae60; padding: 12px; font-size: 1rem; border-radius: 8px; display: none;">
+                    <i class="fas fa-check-circle"></i> Create User
+                </button>
+                <button type="button" id="btnCloseSuccess" onclick="closeAddUserModal()" 
+                    class="btn-primary" style="flex: 1; background: #4a90e2; padding: 12px; font-size: 1rem; border-radius: 8px; display: none;">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
         </div>
     </div>
+
+    <style>
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+    </style>
 
     <!-- COMPREHENSIVE EDIT MODAL -->
     <!-- COMPREHENSIVE EDIT MODAL -->
@@ -1753,6 +1884,7 @@
                         <select name="role" id="editUserRole" class="form-control">
                             <option value="Student">Student</option>
                             <option value="Staff">Staff</option>
+                            <option value="Admin">Admin</option>
                         </select>
                     </div>
                     <div style="text-align: right; margin-top: 20px;">

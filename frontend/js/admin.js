@@ -311,6 +311,7 @@ async function loadUserManagement(role) {
                             <td style="padding: 15px;">
                                 <div style="font-weight: 600;">${u.name}</div>
                                 <small style="color: #999;">${u.role}</small>
+                                ${u.role === 'Admin' && u.isDefaultAdmin ? '<div style="margin-top: 5px;"><span style="background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-shield-alt"></i> DEFAULT ADMIN</span></div>' : ''}
                             </td>
                             <td style="padding: 15px; font-family: monospace;">${u.studentID || '-'}</td>
                             <td style="padding: 15px;">${u.email}</td>
@@ -323,12 +324,20 @@ async function loadUserManagement(role) {
                                 <button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: #337ab7; margin-right: 5px;" onclick='openEditUserModal(${JSON.stringify(u).replace(/'/g, "&#39;")})'>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: ${u.active ? '#f0ad4e' : '#5cb85c'}; margin-right: 5px;" onclick="requestToggleStatus('${u._id}', '${u.studentID || ''}', '${u.role}', ${u.active}, '${u.name}')">
+                                <button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: ${u.active ? '#f0ad4e' : '#5cb85c'}; margin-right: 5px;" onclick="requestToggleStatus('${u._id}', '${u.studentID || ''}', '${u.role}', ${u.active}, '${u.name}', ${u.isDefaultAdmin || false})" ${u.isDefaultAdmin ? 'title="Default admin cannot be disabled"' : ''}>
                                     ${u.active ? 'Disable' : 'Enable'}
                                 </button>
-                                <button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: #d9534f;" onclick="requestDeleteUser('${u._id}', '${u.studentID || ''}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                ${u.role === 'Admin' && !u.isDefaultAdmin ? 
+                                    `<button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: #FF6B6B; margin-right: 5px;" onclick="setDefaultAdmin('${u._id}', '${u.name}')" title="Set as Default Admin">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </button>` : ''}
+                                ${u.role === 'Admin' && u.isDefaultAdmin ? 
+                                    `<button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: #ccc; cursor: not-allowed;" disabled title="Default admin cannot be deleted">
+                                        <i class="fas fa-lock"></i>
+                                    </button>` :
+                                    `<button class="btn-primary" style="padding: 5px 10px; font-size: 0.7rem; background: #d9534f;" onclick="requestDeleteUser('${u._id}', '${u.studentID || ''}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>`}
                             </td>
                         </tr>
                     `).join('')}
@@ -352,15 +361,267 @@ function debounceLoadUsers() {
 }
 
 // Step Control for Add User
+// Multi-Stage User Form Variables
+let currentUserStage = 1;
+const totalUserStages = 4;
+
 function nextStep(step) {
-    document.querySelectorAll('.form-step').forEach(el => el.style.display = 'none');
-    document.getElementById(`step${step}`).style.display = 'block';
+    const stepElements = document.querySelectorAll('.form-step');
+    if (stepElements && stepElements.length > 0) {
+        stepElements.forEach(el => el.style.display = 'none');
+        const targetStep = document.getElementById(`step${step}`);
+        if (targetStep) {
+            targetStep.style.display = 'block';
+        }
+    }
 }
 
 function openAddUserModal() {
+    currentUserStage = 1;
     document.getElementById('addUserForm').reset();
-    nextStep(1); // Reset to step 1
+    updateUserStageDisplay();
     document.getElementById('addUserModal').style.display = 'flex';
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+    currentUserStage = 1;
+    document.getElementById('addUserForm').reset();
+    // Hide success stage and show stage 1
+    document.getElementById('userStageSuccess').style.display = 'none';
+    updateUserStageDisplay();
+    // Reload users to show the newly created user
+    loadUserManagement(currentUserRoleView);
+}
+
+function updateUserStageDisplay() {
+    // Hide all stages
+    document.querySelectorAll('.user-form-stage').forEach(stage => {
+        stage.style.display = 'none';
+    });
+
+    // Show current stage
+    const currentStageElement = document.getElementById(`userStage${currentUserStage}`);
+    if (currentStageElement) {
+        currentStageElement.style.display = 'block';
+    }
+
+    // Update progress dots
+    document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+        if (index < currentUserStage) {
+            dot.style.background = '#4a90e2';
+        } else {
+            dot.style.background = '#e0e0e0';
+        }
+    });
+
+    // Update buttons
+    const btnPrev = document.getElementById('btnPrevStage');
+    const btnNext = document.getElementById('btnNextStage');
+    const btnCreate = document.getElementById('btnCreateUser');
+
+    btnPrev.style.display = currentUserStage > 1 ? 'block' : 'none';
+    btnNext.style.display = currentUserStage < totalUserStages ? 'block' : 'none';
+    btnCreate.style.display = currentUserStage === totalUserStages ? 'block' : 'none';
+}
+
+function validateCurrentUserStage() {
+    const form = document.getElementById('addUserForm');
+    
+    if (currentUserStage === 1) {
+        const role = document.getElementById('userRole').value;
+        if (!role) {
+            UI.error('Please select a user role');
+            return false;
+        }
+    } else if (currentUserStage === 2) {
+        const name = document.getElementById('userName').value.trim();
+        if (!name) {
+            UI.error('Please enter the full name');
+            return false;
+        }
+        if (name.length < 3) {
+            UI.error('Name must be at least 3 characters long');
+            return false;
+        }
+    } else if (currentUserStage === 3) {
+        const email = document.getElementById('userEmail').value.trim();
+        const password = document.getElementById('userPassword').value;
+        
+        if (!email) {
+            UI.error('Please enter an email address');
+            return false;
+        }
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            UI.error('Please enter a valid email address');
+            return false;
+        }
+        
+        if (!password) {
+            UI.error('Please enter a password');
+            return false;
+        }
+        
+        if (password.length < 6) {
+            UI.error('Password must be at least 6 characters long');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function nextUserStage() {
+    if (!validateCurrentUserStage()) {
+        return;
+    }
+
+    // Special handling for stage transitions
+    if (currentUserStage === 1) {
+        // Update gender field visibility based on role
+        const role = document.getElementById('userRole').value;
+        const genderContainer = document.getElementById('genderFieldContainer');
+        genderContainer.style.display = role === 'Student' ? 'block' : 'none';
+    }
+
+    if (currentUserStage === 3) {
+        // Moving to confirmation stage - populate the confirmation details
+        populateConfirmationDetails();
+    }
+
+    currentUserStage++;
+    updateUserStageDisplay();
+}
+
+function previousUserStage() {
+    if (currentUserStage > 1) {
+        currentUserStage--;
+        updateUserStageDisplay();
+    }
+}
+
+function populateConfirmationDetails() {
+    const role = document.getElementById('userRole').value;
+    const name = document.getElementById('userName').value;
+    const initial = document.getElementById('userInitial').value;
+    const email = document.getElementById('userEmail').value;
+    const phone = document.getElementById('userPhone').value;
+    const gender = document.getElementById('userGender').value;
+
+    const roleLabels = {
+        'Student': '<span style="background: #3498db; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem;"><i class="fas fa-graduation-cap"></i> Student</span>',
+        'Staff': '<span style="background: #9b59b6; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem;"><i class="fas fa-chalkboard-teacher"></i> Staff</span>',
+        'Admin': '<span style="background: #e74c3c; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem;"><i class="fas fa-user-shield"></i> Admin</span>'
+    };
+
+    let html = `
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Role</label>
+            <div>${roleLabels[role] || role}</div>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Full Name</label>
+            <div style="font-weight: 600; color: #333; font-size: 1.1rem;">${name}</div>
+        </div>
+    `;
+
+    if (initial) {
+        html += `
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Initial</label>
+                <div style="color: #555;">${initial}</div>
+            </div>
+        `;
+    }
+
+    if (gender && role === 'Student') {
+        html += `
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Gender</label>
+                <div style="color: #555;">${gender}</div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Email</label>
+            <div style="color: #555;"><i class="fas fa-envelope" style="color: #4a90e2; margin-right: 8px;"></i>${email}</div>
+        </div>
+    `;
+
+    if (phone) {
+        html += `
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">Phone</label>
+                <div style="color: #555;"><i class="fas fa-phone" style="color: #4a90e2; margin-right: 8px;"></i>${phone}</div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e0e0e0;">
+            <p style="margin: 0; font-size: 0.85rem; color: #666;">
+                <i class="fas fa-shield-alt" style="color: #27ae60; margin-right: 8px;"></i>
+                Password is encrypted and secure
+            </p>
+        </div>
+    `;
+
+    document.getElementById('confirmationDetails').innerHTML = html;
+}
+
+async function submitMultiStageUser() {
+    const form = document.getElementById('addUserForm');
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    // Remove empty fields
+    Object.keys(data).forEach(key => {
+        if (!data[key]) delete data[key];
+    });
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/admin/users`, {
+            method: 'POST',
+            headers: Auth.getHeaders(),
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        
+        if (res.ok) {
+            // Show success stage
+            document.getElementById('userStageSuccess').style.display = 'block';
+            document.getElementById('userStage4').style.display = 'none';
+            
+            // Display the generated ID
+            document.getElementById('generatedUserId').textContent = result.studentID || 'ID-GENERATED';
+            
+            // Update buttons for success stage
+            document.getElementById('stageActions').style.display = 'flex';
+            document.getElementById('btnPrevStage').style.display = 'none';
+            document.getElementById('btnNextStage').style.display = 'none';
+            document.getElementById('btnCreateUser').style.display = 'none';
+            document.getElementById('btnCloseSuccess').style.display = 'block';
+            
+            // Update progress to complete
+            document.querySelectorAll('.progress-dot').forEach(dot => {
+                dot.style.background = '#27ae60';
+            });
+            
+            loadStats(); // Refresh dashboard stats
+        } else {
+            UI.error(result.message || 'Failed to create user');
+        }
+    } catch (err) {
+        console.error('Create user error:', err);
+        UI.error('Creation failed. Please try again.');
+    } finally {
+        UI.hideLoader();
+    }
 }
 
 function openEditUserModal(user) {
@@ -425,14 +686,23 @@ async function confirmDeleteAction() {
             body: JSON.stringify({ reason, confirmID: inputID })
         });
 
+        const result = await res.json();
+
         if (res.ok) {
             UI.success('User permanently deleted.');
             closeDeleteModal();
             loadUserManagement(currentUserRoleView);
         } else {
-            UI.error('Deletion failed.');
+            if (result.isDefaultAdmin) {
+                UI.error('Cannot delete default admin. Please set another admin as default first.');
+            } else {
+                UI.error(result.message || 'Deletion failed.');
+            }
         }
-    } catch (err) { UI.error('Network error.'); }
+    } catch (err) { 
+        console.error('Delete error:', err);
+        UI.error('Network error.'); 
+    }
     finally { UI.hideLoader(); }
 }
 
@@ -449,36 +719,18 @@ function suggestionDeactivate() {
 }
 
 function toggleStudentFields(role) {
+    // Legacy function - kept for compatibility if needed elsewhere
     const fields = document.getElementById('studentOnlyFields');
-    fields.style.display = role === 'Student' ? 'block' : 'none';
+    if (fields) {
+        fields.style.display = role === 'Student' ? 'block' : 'none';
+    }
 }
 
+// Legacy function - now replaced by submitMultiStageUser
 async function submitAddUser() {
-    const form = document.getElementById('addUserForm');
-    const data = Object.fromEntries(new FormData(form).entries());
-
-    try {
-        UI.showLoader();
-        const res = await fetch(`${Auth.apiBase}/admin/users`, {
-            method: 'POST',
-            headers: Auth.getHeaders(),
-            body: JSON.stringify(data)
-        });
-        const result = await res.json();
-        if (res.ok) {
-            UI.success('User created successfully.');
-            form.reset();
-            document.getElementById('addUserModal').style.display = 'none';
-            loadUserManagement(currentUserRoleView);
-            loadStats();
-        } else {
-            UI.error(result.message);
-        }
-    } catch (err) {
-        UI.error('Creation failed.');
-    } finally {
-        UI.hideLoader();
-    }
+    console.warn('submitAddUser() is deprecated. Use submitMultiStageUser() instead.');
+    // Fallback to new function
+    return submitMultiStageUser();
 }
 
 async function submitEditUser() {
@@ -568,9 +820,24 @@ async function toggleUserStatus(id, reason = '', userName = 'User', userRole = '
 
 let targetDisableID = null;
 
-function requestToggleStatus(id, studentID, role, isActive, userName) {
+function requestToggleStatus(id, studentID, role, isActive, userName, isDefaultAdmin = false) {
+    // Get current logged-in user
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    
     // If active, we are DISABLING -> Show Prompt
     if (isActive) {
+        // Check if trying to disable default admin
+        if (isDefaultAdmin) {
+            UI.error('Cannot disable the default admin. Please set another admin as default first.');
+            return;
+        }
+        
+        // Check if admin is trying to disable themselves
+        if (currentUser && currentUser.id === id) {
+            UI.error('You cannot disable your own account.');
+            return;
+        }
+        
         targetDisableID = id;
         document.getElementById('disableTargetID').textContent = studentID || 'NO-ID';
 
@@ -603,6 +870,33 @@ async function deleteUser(id) {
         }
     } catch (err) { UI.error('Deletion failed.'); }
     finally { UI.hideLoader(); }
+}
+
+async function setDefaultAdmin(adminId, adminName) {
+    const confirmed = confirm(`Set "${adminName}" as the default admin?\n\nThe current default admin will lose their default status, and this admin will become protected from deletion.`);
+    if (!confirmed) return;
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/admin/set-default-admin/${adminId}`, {
+            method: 'PATCH',
+            headers: Auth.getHeaders()
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+            UI.success(`${adminName} is now the default admin`);
+            loadUserManagement(currentUserRoleView);
+        } else {
+            UI.error(result.message || 'Failed to set default admin');
+        }
+    } catch (err) {
+        console.error('Set default admin error:', err);
+        UI.error('Failed to set default admin');
+    } finally {
+        UI.hideLoader();
+    }
 }
 
 

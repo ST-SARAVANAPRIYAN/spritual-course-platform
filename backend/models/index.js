@@ -17,6 +17,7 @@ const userSchema = new Schema({
     additionalPhone: { type: String }, // Additional contact number
     profilePic: { type: String },
     active: { type: Boolean, default: true },
+    isDefaultAdmin: { type: Boolean, default: false }, // Only one admin can be default
 
     // Verification & Security
     isVerified: { type: Boolean, default: false },
