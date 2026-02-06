@@ -41,7 +41,7 @@ function switchSection(sectionName) {
     }
 }
 
-// Make switchSection available globally for onclick attributes
+// Make switchSection available globally for onclick attributes IMMEDIATELY
 window.switchSection = switchSection;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -554,87 +554,26 @@ async function loadMyMaterials() {
         const materials = await res.json();
         const list = document.getElementById('myMaterialsList');
 
-        if (materials.length === 0) {
-            list.innerHTML = '<p style="color: var(--color-text-secondary);">No materials uploaded yet.</p>';
-            return;
-        }
-
-        // Group materials by course for hierarchical display
-        const groupedByCourse = {};
-        materials.forEach(material => {
-            const courseTitle = material.courseID?.title || 'Unassigned';
-            const courseId = material.courseID?._id || 'none';
-            if (!groupedByCourse[courseId]) {
-                groupedByCourse[courseId] = {
-                    title: courseTitle,
-                    materials: []
-                };
-            }
-            groupedByCourse[courseId].materials.push(material);
-        });
-
-        // Group by approval status for summary
-        const pending = materials.filter(m => m.approvalStatus === 'Pending');
-        const approved = materials.filter(m => m.approvalStatus === 'Approved');
-        const rejected = materials.filter(m => m.approvalStatus === 'Rejected');
-
-        let html = '';
-
-        // Summary cards
-        html += `
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${pending.length}</div>
-                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-clock"></i> Pending Approval</div>
+        // Show migration notice
+        list.innerHTML = `
+            <div style="text-align: center; padding: 60px 40px; background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-radius: 16px; max-width: 600px; margin: 0 auto;">
+                <div style="font-size: 4rem; margin-bottom: 20px; color: var(--color-primary);">
+                    <i class="fas fa-sync-alt"></i>
                 </div>
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${approved.length}</div>
-                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-check-circle"></i> Approved</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 25px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${rejected.length}</div>
-                    <div style="font-size: 0.9rem; opacity: 0.95;"><i class="fas fa-times-circle"></i> Needs Correction</div>
-                </div>
+                <h3 style="color: var(--color-primary); margin-bottom: 15px; font-size: 1.5rem;">System Upgraded!</h3>
+                <p style="color: #666; line-height: 1.7; margin-bottom: 25px; font-size: 1rem;">
+                    The material management system has been upgraded to a more powerful <strong>Modular Content System</strong>.
+                </p>
+                <p style="color: #666; line-height: 1.7; margin-bottom: 30px; font-size: 0.95rem;">
+                    You can now create, organize, and manage course content with enhanced features including modules, lessons, quizzes, and more.
+                </p>
+                <a href="module-manager.html" class="btn-primary" style="display: inline-block; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    <i class="fas fa-arrow-right"></i> Go to Module Manager
+                </a>
             </div>
         `;
+        return;
 
-        // Display materials grouped by course
-        html += '<h3 style="margin: 30px 0 20px; color: #333;"><i class="fas fa-layer-group"></i> Materials by Course</h3>';
-
-        Object.keys(groupedByCourse).forEach(courseId => {
-            const courseGroup = groupedByCourse[courseId];
-            const courseMaterials = courseGroup.materials;
-
-            // Count statuses for this course
-            const coursePending = courseMaterials.filter(m => m.approvalStatus === 'Pending').length;
-            const courseApproved = courseMaterials.filter(m => m.approvalStatus === 'Approved').length;
-            const courseRejected = courseMaterials.filter(m => m.approvalStatus === 'Rejected').length;
-
-            html += `
-                <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
-                        <div>
-                            <h4 style="margin: 0; color: var(--color-golden); font-size: 1.3rem;">
-                                <i class="fas fa-book-open"></i> ${courseGroup.title}
-                            </h4>
-                            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
-                                ${courseMaterials.length} material(s) uploaded
-                            </p>
-                        </div>
-                        <div style="display: flex; gap: 15px; font-size: 0.85rem;">
-                            ${coursePending > 0 ? `<span style="color: var(--color-saffron); font-weight: 600;"><i class="fas fa-clock"></i> ${coursePending} Pending</span>` : ''}
-                            ${courseApproved > 0 ? `<span style="color: var(--color-success); font-weight: 600;"><i class="fas fa-check"></i> ${courseApproved} Approved</span>` : ''}
-                            ${courseRejected > 0 ? `<span style="color: var(--color-error); font-weight: 600;"><i class="fas fa-times"></i> ${courseRejected} Rejected</span>` : ''}
-                        </div>
-                    </div>
-                    <div>
-                        ${courseMaterials.map(m => renderMaterialCard(m, m.approvalStatus !== 'Approved')).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        list.innerHTML = html;
     } catch (err) {
         console.error(err);
         UI.error('Failed to load materials');

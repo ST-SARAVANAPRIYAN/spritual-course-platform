@@ -44,6 +44,14 @@ router.get('/admin/all', authorize(['Admin']), courseController.getAllCoursesAdm
 // @route   GET /api/courses/admin/view/:id (Must be before /:id route)
 router.get('/admin/view/:id', authorize(['Admin']), courseController.getCourseWithEnrollments);
 
+// Legacy materials endpoint for backwards compatibility with staff dashboard
+// MUST be before /:id route to avoid being matched as an ID parameter
+router.get('/materials/my', authorize(['Staff', 'Admin']), (req, res) => {
+    // Materials have been migrated to the new modular content system
+    // Return empty array for backwards compatibility
+    res.status(200).json([]);
+});
+
 // @route   GET /api/courses/:id
 // @desc    Get course details with optional auth for access check
 router.get('/:id', optionalAuth, courseController.getCourseDetails);
