@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Module - AWARENESS ACADEMY</title>
     <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/skeleton.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Quill Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -47,20 +48,19 @@
             color: white;
         }
 
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+        }
+
         .btn-secondary {
             background: #6c757d;
             color: white;
         }
 
-        .action-bar {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .form-section {
@@ -105,6 +105,93 @@
             background-color: var(--color-background);
             font-family: 'Poppins', sans-serif;
         }
+
+        /* Content Type Selector */
+        .content-type-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .content-type-option {
+            flex: 1;
+            padding: 24px;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .content-type-option:hover {
+            border-color: var(--color-golden);
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-type-option.active {
+            border-color: var(--color-golden);
+            background: linear-gradient(135deg, #fffbf0 0%, #fff9e6 100%);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+        }
+
+        .content-type-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .content-type-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            color: var(--color-golden);
+        }
+
+        .content-type-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+
+        .content-type-desc {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .file-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .file-info-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .file-info-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .file-info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #212529;
+        }
     </style>
 </head>
 
@@ -125,6 +212,35 @@
             </div>
         </div>
 
+        <!-- Content Type Selector -->
+        <div class="form-section" id="contentTypeSelectorSection">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Choose Content Type</h3>
+            <div class="content-type-selector">
+                <div class="content-type-option active" data-type="rich-content">
+                    <div class="content-type-icon">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <div class="content-type-title">Rich Content</div>
+                    <div class="content-type-desc">Create content with text editor</div>
+                </div>
+                <div class="content-type-option" data-type="video">
+                    <div class="content-type-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="content-type-title">Video Upload</div>
+                    <div class="content-type-desc">Upload video file (MP4, WebM, MOV)</div>
+                </div>
+                <div class="content-type-option" data-type="pdf">
+                    <div class="content-type-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div class="content-type-title">PDF Upload</div>
+                    <div class="content-type-desc">Upload PDF document</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Basic Info Section -->
         <div class="form-section">
             <div class="form-group">
                 <label for="moduleTitle">Module Title</label>
@@ -138,12 +254,48 @@
             </div>
         </div>
 
-        <div class="form-section">
+        <!-- Rich Content Section -->
+        <div class="form-section content-section active" id="richContentSection">
             <div class="form-group" style="margin-bottom: 0;">
                 <label>Content</label>
                 <!-- Toolbar will be injected by Quill -->
                 <div id="editor-container"></div>
             </div>
+        </div>
+
+        <!-- Video Upload Section -->
+        <div class="form-section content-section" id="videoSection">
+            <div class="form-group">
+                <label>Video File</label>
+                <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                    style="display: none;">
+                <div class="file-upload-zone" id="videoUploadZone">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">Click or drag video file here</div>
+                    <div class="file-upload-hint">Supported: MP4, WebM, MOV, AVI (Max: 500MB)</div>
+                </div>
+            </div>
+            <div id="videoProgressContainer"></div>
+            <div id="videoPreviewContainer"></div>
+        </div>
+
+        <!-- PDF Upload Section -->
+        <div class="form-section content-section" id="pdfSection">
+            <div class="form-group">
+                <label>PDF File</label>
+                <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+                <div class="file-upload-zone" id="pdfUploadZone">
+                    <div class="file-upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="file-upload-text">Click or drag PDF file here</div>
+                    <div class="file-upload-hint">Supported: PDF only (Max: 50MB)</div>
+                </div>
+            </div>
+            <div id="pdfProgressContainer"></div>
+            <div id="pdfPreviewContainer"></div>
         </div>
     </div>
 

@@ -176,12 +176,28 @@ function renderModules() {
         return;
     }
 
+    // Helper function to get content type icon
+    const getContentTypeIcon = (contentType) => {
+        switch (contentType) {
+            case 'video':
+                return '<i class="fas fa-video" style="color: #856404;" title="Video"></i>';
+            case 'pdf':
+                return '<i class="fas fa-file-pdf" style="color: #721c24;" title="PDF"></i>';
+            case 'rich-content':
+            default:
+                return '<i class="fas fa-align-left" style="color: #0056b3;" title="Rich Content"></i>';
+        }
+    };
+
     container.innerHTML = modules.map(module => `
         <div class="module-item" data-module-id="${module._id}">
             <div class="module-header">
                 <i class="fas fa-grip-vertical drag-handle"></i>
                 <div class="module-info">
-                    <div class="module-title">${module.order + 1}. ${module.title}</div>
+                    <div class="module-title">
+                        ${getContentTypeIcon(module.contentType || 'rich-content')}
+                        ${module.order + 1}. ${module.title}
+                    </div>
                     <div class="module-meta">
                         ${module.status === 'Published' ? '<span style="color: #28a745;">• Published</span>' : (module.status === 'Approved' ? '<span style="color: #17a2b8;">• Approved (Upcoming)</span>' : '<span style="color: #ffc107;">• ' + module.status + '</span>')}
                     </div>

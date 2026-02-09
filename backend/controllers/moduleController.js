@@ -13,7 +13,7 @@ exports.createModule = catchAsync(async (req, res, next) => {
     console.log('User:', req.user);
     console.log('Body:', req.body);
 
-    const { courseId, title, description, content } = req.body;
+    const { courseId, title, description, content, contentType, fileUrl, fileMetadata } = req.body;
 
     // Validation
     if (!courseId || !title) {
@@ -37,6 +37,21 @@ exports.createModule = catchAsync(async (req, res, next) => {
         return next(new AppError('Only course mentors or admins can create modules', 403));
     }
 
+    // Validate content based on type
+    const moduleContentType = contentType || 'rich-content';
+
+    if (moduleContentType === 'rich-content') {
+        // Rich content should have content field
+        if (!content) {
+            return next(new AppError('Content is required for rich-content modules', 400));
+        }
+    } else if (moduleContentType === 'video' || moduleContentType === 'pdf') {
+        // Video/PDF should have fileUrl and fileMetadata
+        if (!fileUrl || !fileMetadata) {
+            return next(new AppError(`File URL and metadata are required for ${moduleContentType} modules`, 400));
+        }
+    }
+
     // Get current max order for this course
     const maxOrderModule = await Module.findOne({ courseId })
         .sort({ order: -1 })
@@ -49,6 +64,9 @@ exports.createModule = catchAsync(async (req, res, next) => {
         title,
         description,
         content: content || '',
+        contentType: moduleContentType,
+        fileUrl: fileUrl || null,
+        fileMetadata: fileMetadata || null,
         order: nextOrder,
         createdBy: req.user.id,
         status: isAdmin ? 'Approved' : 'Draft' // Admins auto-approve, Staff start as Draft
@@ -120,7 +138,7 @@ exports.getModule = catchAsync(async (req, res, next) => {
 // Update module
 exports.updateModule = catchAsync(async (req, res, next) => {
     const { id } = req.params;
-    const { title, description, content, isPublished } = req.body;
+    const { title, description, content, isPublished, fileUrl, fileMetadata } = req.body;
 
     console.log('📦 Updating module:', id);
 
@@ -140,7 +158,15 @@ exports.updateModule = catchAsync(async (req, res, next) => {
     // Update fields
     if (title) module.title = title;
     if (description !== undefined) module.description = description;
-    if (content !== undefined) module.content = content;
+
+    // Update content based on contentType
+    if (module.contentType === 'rich-content') {
+        if (content !== undefined) module.content = content;
+    } else if (module.contentType === 'video' || module.contentType === 'pdf') {
+        // Allow updating file if new one uploaded
+        if (fileUrl) module.fileUrl = fileUrl;
+        if (fileMetadata) module.fileMetadata = fileMetadata;
+    }
 
     // Approval/Status Logic
     if (isAdmin) {
@@ -166,7 +192,7 @@ exports.updateModule = catchAsync(async (req, res, next) => {
         }
 
         // Critical edits reset approval
-        if ((title || description || content) && (module.status === 'Approved' || module.status === 'Published')) {
+        if ((title || description || content || fileUrl) && (module.status === 'Approved' || module.status === 'Published')) {
             module.status = 'Pending'; // Re-submit for approval
         }
     }

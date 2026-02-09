@@ -23,8 +23,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// Static Files
-app.use('/uploads', express.static(path.join(__dirname, 'backend/uploads')));
+// Static Files - Only serve non-protected content
+// Protected files (videos/pdfs) must go through authentication
+app.use('/uploads/content', express.static(path.join(__dirname, 'backend/uploads/content')));
+app.use('/uploads/profiles', express.static(path.join(__dirname, 'backend/uploads/profiles')));
+app.use('/uploads/thumbnails', express.static(path.join(__dirname, 'backend/uploads/thumbnails')));
 app.use(express.static(path.join(__dirname, 'frontend/html')));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -95,6 +98,9 @@ app.use('/api/subscribers', require('./backend/routes/subscribers'));
 // New modular content system routes
 app.use('/api', require('./backend/routes/modules'));
 
+// Secure file serving for videos and PDFs (requires authentication)
+app.use('/api/secure-files', require('./backend/routes/secureFiles'));
+
 // Basic Route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend/html/index.html'));
@@ -108,7 +114,7 @@ const cleanupIncompleteRegistrations = async () => {
     try {
         const { User } = require('./backend/models/index');
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        
+
         const result = await User.deleteMany({
             isVerified: false,
             $or: [
@@ -116,7 +122,7 @@ const cleanupIncompleteRegistrations = async () => {
                 { registrationOTPExpires: { $lt: new Date() } }
             ]
         });
-        
+
         if (result.deletedCount > 0) {
             console.log(`🧹 Cleaned up ${result.deletedCount} incomplete registrations`);
         }
@@ -130,10 +136,10 @@ if (require.main === module) {
     // Run cleanup on server start
     connectDB().then(() => {
         cleanupIncompleteRegistrations();
-        
+
         // Schedule cleanup every 6 hours
         setInterval(cleanupIncompleteRegistrations, 6 * 60 * 60 * 1000);
-        
+
         app.listen(PORT, () => {
             console.log(`🚀 InnerSpark Server running on http://localhost:${PORT}`);
         });

@@ -168,7 +168,8 @@ function selectModule(id) {
     statusBadge.textContent = module.status || 'Draft';
     statusBadge.className = `status-badge status-${module.status || 'Draft'}`;
 
-    document.getElementById('moduleBody').innerHTML = module.content || '<p>No content.</p>';
+    // Render content based on content type
+    renderModuleContent(module);
 
     // Admin Action Panel
     const actionPanel = document.getElementById('moduleActionPanel');
@@ -318,3 +319,121 @@ async function deleteModule() {
         UI.hideLoader();
     }
 }
+
+/**
+ * Render module content based on content type
+ */
+async function renderModuleContent(module) {
+    const container = document.getElementById('moduleBody');
+    const contentType = module.contentType || 'rich-content';
+
+    if (contentType === 'rich-content') {
+        // Display rich HTML content
+        container.innerHTML = module.content || '<p>No content.</p>';
+    } else if (contentType === 'video') {
+        // Display actual video player for admin/staff preview
+        if (module.fileUrl && module.fileMetadata) {
+            container.innerHTML = `
+                <div style="background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                    <div id="videoPlayerContainer" style="position: relative;">
+                        <div style="padding: 40px; text-align: center; color: white;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                            <p>Loading video...</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                    <strong>File:</strong> ${module.fileMetadata.originalName} 
+                    <span style="color: #6c757d; margin-left: 10px;">(${formatFileSize(module.fileMetadata.fileSize)})</span>
+                </div>
+            `;
+
+            // Fetch and display video
+            try {
+                const response = await fetch(`${Auth.apiBase}/secure-files/${module._id}`, {
+                    headers: Auth.getHeaders()
+                });
+
+                if (!response.ok) throw new Error('Failed to load video');
+
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                const videoContainer = document.getElementById('videoPlayerContainer');
+                videoContainer.innerHTML = `
+                    <video controls controlsList="nodownload" style="width: 100%; max-height: 500px; display: block;">
+                        <source src="${blobUrl}" type="${module.fileMetadata.mimeType}">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } catch (error) {
+                console.error('Error loading video:', error);
+                const videoContainer = document.getElementById('videoPlayerContainer');
+                videoContainer.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #dc3545;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Failed to load video: ${error.message}</p>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = '<p style="color: #dc3545;">Video file not found.</p>';
+        }
+    } else if (contentType === 'pdf') {
+        // Display PDF viewer for admin/staff preview
+        if (module.fileUrl && module.fileMetadata) {
+            container.innerHTML = `
+                <div id="pdfViewerContainer" style="background: #f0f0f0; border-radius: 8px; padding: 20px; min-height: 400px;">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6c757d;"></i>
+                        <p style="color: #6c757d;">Loading PDF...</p>
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                    <strong>File:</strong> ${module.fileMetadata.originalName} 
+                    <span style="color: #6c757d; margin-left: 10px;">(${formatFileSize(module.fileMetadata.fileSize)})</span>
+                </div>
+            `;
+
+            // Fetch and display PDF using iframe
+            try {
+                const response = await fetch(`${Auth.apiBase}/secure-files/${module._id}`, {
+                    headers: Auth.getHeaders()
+                });
+
+                if (!response.ok) throw new Error('Failed to load PDF');
+
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                const pdfContainer = document.getElementById('pdfViewerContainer');
+                pdfContainer.innerHTML = `
+                    <iframe src="${blobUrl}" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>
+                `;
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                const pdfContainer = document.getElementById('pdfViewerContainer');
+                pdfContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Failed to load PDF: ${error.message}</p>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = '<p style="color: #dc3545;">PDF file not found.</p>';
+        }
+    }
+}
+
+/**
+ * Format file size helper
+ */
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+

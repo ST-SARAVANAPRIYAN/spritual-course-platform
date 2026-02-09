@@ -23,6 +23,24 @@ const moduleSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    contentType: {
+        type: String,
+        enum: ['rich-content', 'video', 'pdf'],
+        default: 'rich-content',
+        required: true
+    },
+    fileUrl: {
+        type: String,
+        // Relative path for video/pdf files (e.g., /uploads/videos/{courseId}/{moduleId}.mp4)
+        // Null for rich-content type
+    },
+    fileMetadata: {
+        originalName: String,
+        fileSize: Number, // in bytes
+        mimeType: String,
+        duration: Number, // for videos, in seconds (optional)
+        uploadedAt: Date
+    },
     order: {
         type: Number,
         required: true,
@@ -55,5 +73,6 @@ const moduleSchema = new mongoose.Schema({
 // Indexes for performance
 moduleSchema.index({ courseId: 1, order: 1 });
 moduleSchema.index({ createdBy: 1 });
+moduleSchema.index({ contentType: 1 });
 
 module.exports = mongoose.model('Module', moduleSchema);
