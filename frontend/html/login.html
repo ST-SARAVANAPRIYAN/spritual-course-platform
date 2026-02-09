@@ -115,16 +115,33 @@
 </head>
 
 <body>
-    <nav class="nav" id="mainNav" style="background: rgba(255, 255, 255, 0.95); box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: fixed; top: 0; width: 100%; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
-        <a href="index.html" class="logo" style="font-size: 1.8rem; font-family: var(--font-heading); font-weight: 700; color: var(--color-text-primary); display: flex; align-items: center; gap: 10px; text-decoration: none;">
+    <!-- SECURITY: Auto-logout when visiting login page -->
+    <!-- This prevents back/forward button session exploit -->
+    <script>
+        (function () {
+            // If user lands on login page, clear any existing session
+            // This is a security measure to prevent back-button session hijacking
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        })();
+    </script>
+    <nav class="nav" id="mainNav"
+        style="background: rgba(255, 255, 255, 0.95); box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: fixed; top: 0; width: 100%; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; z-index: 1000;">
+        <a href="index.html" class="logo"
+            style="font-size: 1.8rem; font-family: var(--font-heading); font-weight: 700; color: var(--color-text-primary); display: flex; align-items: center; gap: 10px; text-decoration: none;">
             <i class="fas fa-bolt" style="color: var(--color-golden);"></i> AWARENESS ACADEMY
         </a>
         <div class="nav-links">
-            <a href="index.html" style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Home</a>
-            <a href="about.html" style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">About</a>
-            <a href="courses.html" style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Courses</a>
-            <a href="contact.html" style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Contact</a>
-            <a href="login.html" class="btn-primary" style="background: var(--color-saffron); color: white; padding: 12px 30px; border-radius: 30px; margin-left: 30px; text-decoration: none;">Login</a>
+            <a href="index.html"
+                style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Home</a>
+            <a href="about.html"
+                style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">About</a>
+            <a href="courses.html"
+                style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Courses</a>
+            <a href="contact.html"
+                style="color: var(--color-text-primary); text-decoration: none; margin-left: 30px; font-weight: 500;">Contact</a>
+            <a href="login.html" class="btn-primary"
+                style="background: var(--color-saffron); color: white; padding: 12px 30px; border-radius: 30px; margin-left: 30px; text-decoration: none;">Login</a>
         </div>
     </nav>
     <div style="height: 80px;"></div> <!-- Spacer for fixed nav -->
@@ -150,9 +167,10 @@
                 <div class="form-group">
                     <label>Password</label>
                     <div class="password-wrapper">
-                        <input type="password" name="password" id="loginPassword" class="form-control" placeholder="Enter your password"
-                            required style="padding-right: 45px;">
-                        <i class="fas fa-eye password-toggle" id="toggleLoginPassword" onclick="togglePasswordVisibility('loginPassword', 'toggleLoginPassword')"></i>
+                        <input type="password" name="password" id="loginPassword" class="form-control"
+                            placeholder="Enter your password" required style="padding-right: 45px;">
+                        <i class="fas fa-eye password-toggle" id="toggleLoginPassword"
+                            onclick="togglePasswordVisibility('loginPassword', 'toggleLoginPassword')"></i>
                     </div>
                     <div style="text-align: right; margin-top: 5px;">
                         <a href="forgot-password.html"
@@ -172,45 +190,65 @@
 
     <!-- Footer -->
     <footer class="footer" style="background: #111; color: white; padding: 80px 50px;">
-        <div class="footer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 50px; max-width: 1200px; margin: 0 auto; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 50px;">
+        <div class="footer-grid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 50px; max-width: 1200px; margin: 0 auto; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 50px;">
             <div>
-                <a href="index.html" class="footer-logo" style="color: white; text-decoration: none; font-size: 1.5rem; font-family: var(--font-heading); font-weight: 700;">✨ AWARENESS ACADEMY</a>
-                <p style="opacity: 0.7; line-height: 1.8; margin-top: 15px;">A sacred space for those seeking to rediscover their internal light through ancient wisdom and modern mindfulness.</p>
+                <a href="index.html" class="footer-logo"
+                    style="color: white; text-decoration: none; font-size: 1.5rem; font-family: var(--font-heading); font-weight: 700;">✨
+                    AWARENESS ACADEMY</a>
+                <p style="opacity: 0.7; line-height: 1.8; margin-top: 15px;">A sacred space for those seeking to
+                    rediscover their internal light through ancient wisdom and modern mindfulness.</p>
                 <div class="social-icons" style="display: flex; gap: 15px; margin-top: 20px;">
-                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i class="fab fa-instagram"></i></a>
-                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i class="fab fa-twitter"></i></a>
-                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i
+                            class="fab fa-instagram"></i></a>
+                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i
+                            class="fab fa-twitter"></i></a>
+                    <a href="#" style="color: rgba(255,255,255,0.6); font-size: 1.2rem; transition: color 0.3s;"><i
+                            class="fab fa-facebook-f"></i></a>
                 </div>
             </div>
             <div>
                 <h4 style="color: var(--color-golden); margin-bottom: 20px;">Discover</h4>
                 <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 15px;"><a href="about.html" style="color: #aaa; text-decoration: none;">Our Story</a></li>
-                    <li style="margin-bottom: 15px;"><a href="courses.html" style="color: #aaa; text-decoration: none;">All Courses</a></li>
-                    <li style="margin-bottom: 15px;"><a href="blog.html" style="color: #aaa; text-decoration: none;">Wisdom Blog</a></li>
-                    <li style="margin-bottom: 15px;"><a href="contact.html" style="color: #aaa; text-decoration: none;">Contact Us</a></li>
+                    <li style="margin-bottom: 15px;"><a href="about.html"
+                            style="color: #aaa; text-decoration: none;">Our Story</a></li>
+                    <li style="margin-bottom: 15px;"><a href="courses.html"
+                            style="color: #aaa; text-decoration: none;">All Courses</a></li>
+                    <li style="margin-bottom: 15px;"><a href="blog.html"
+                            style="color: #aaa; text-decoration: none;">Wisdom Blog</a></li>
+                    <li style="margin-bottom: 15px;"><a href="contact.html"
+                            style="color: #aaa; text-decoration: none;">Contact Us</a></li>
                 </ul>
             </div>
             <div>
                 <h4 style="color: var(--color-golden); margin-bottom: 20px;">Community</h4>
                 <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 15px;"><a href="login.html" style="color: #aaa; text-decoration: none;">Login / Register</a></li>
-                    <li style="margin-bottom: 15px;"><a href="#" style="color: #aaa; text-decoration: none;">Events</a></li>
-                    <li style="margin-bottom: 15px;"><a href="#" style="color: #aaa; text-decoration: none;">Support</a></li>
-                    <li style="margin-bottom: 15px;"><a href="terms.html" style="color: #aaa; text-decoration: none;">Terms & Conditions</a></li>
-                    <li style="margin-bottom: 15px;"><a href="privacy.html" style="color: #aaa; text-decoration: none;">Privacy Policy</a></li>
+                    <li style="margin-bottom: 15px;"><a href="login.html"
+                            style="color: #aaa; text-decoration: none;">Login / Register</a></li>
+                    <li style="margin-bottom: 15px;"><a href="#" style="color: #aaa; text-decoration: none;">Events</a>
+                    </li>
+                    <li style="margin-bottom: 15px;"><a href="#" style="color: #aaa; text-decoration: none;">Support</a>
+                    </li>
+                    <li style="margin-bottom: 15px;"><a href="terms.html"
+                            style="color: #aaa; text-decoration: none;">Terms & Conditions</a></li>
+                    <li style="margin-bottom: 15px;"><a href="privacy.html"
+                            style="color: #aaa; text-decoration: none;">Privacy Policy</a></li>
                 </ul>
             </div>
             <div>
                 <h4 style="color: var(--color-golden); margin-bottom: 20px;">Newsletter</h4>
                 <p style="opacity: 0.7; margin-bottom: 15px; font-size: 0.9rem;">Receive weekly wisdom directly.</p>
                 <div style="position: relative;">
-                    <input type="email" placeholder="Email" style="width: 100%; padding: 10px; border-radius: 5px; border: none; outline: none;">
-                    <button style="position: absolute; right: 5px; top: 5px; background: var(--color-saffron); border: none; color: white; border-radius: 3px; padding: 5px 10px; cursor: pointer;"><i class="fas fa-arrow-right"></i></button>
+                    <input type="email" placeholder="Email"
+                        style="width: 100%; padding: 10px; border-radius: 5px; border: none; outline: none;">
+                    <button
+                        style="position: absolute; right: 5px; top: 5px; background: var(--color-saffron); border: none; color: white; border-radius: 3px; padding: 5px 10px; cursor: pointer;"><i
+                            class="fas fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
-        <div style="text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); opacity: 0.5; font-size: 0.85rem;">
+        <div
+            style="text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); opacity: 0.5; font-size: 0.85rem;">
             &copy; 2026 AWARENESS ACADEMY. All rights reserved.
         </div>
     </footer>

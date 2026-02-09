@@ -20,6 +20,39 @@ const Auth = {
             return;
         }
 
+        // SECURITY: Check if token is expired (JWT format validation)
+        try {
+            const tokenParts = token.split('.');
+            if (tokenParts.length === 3) {
+                const payload = JSON.parse(atob(tokenParts[1]));
+                const expiry = payload.exp * 1000; // JWT exp is in seconds
+
+                if (expiry && Date.now() > expiry) {
+                    // Token expired - clear and redirect
+                    console.log('Token expired, clearing session');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+
+                    if (passive) {
+                        return null;
+                    }
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+        } catch (e) {
+            // Invalid token format - clear session
+            console.log('Invalid token format, clearing session');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            if (passive) {
+                return null;
+            }
+            window.location.href = 'login.html';
+            return;
+        }
+
         if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
             if (passive) {
                 return null; // Return null if role doesn't match in passive mode
@@ -87,6 +120,29 @@ const Auth = {
         } else {
             alert(message);
             window.location.href = 'login.html';
+        }
+    },
+
+    // SECURITY: Validate session with backend
+    validateSession: async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return false;
+
+        try {
+            const res = await fetch(Auth.apiBase + '/auth/validate', {
+                method: 'GET',
+                headers: Auth.getHeaders()
+            });
+
+            if (!res.ok) {
+                // Token is invalid, clear local storage
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                return false;
+            }
+            return true;
+        } catch (err) {
+            return false;
         }
     }
 };
@@ -182,3 +238,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// SECURITY: Re-validate session on browser back/forward navigation
+// This prevents cached pages from being shown after logout
+window.addEventListener('pageshow', async (event) => {
+    // If page is loaded from cache (back/forward navigation)
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        const token = localStorage.getItem('token');
+
+        // If token exists, validate it
+        if (token) {
+            const isValid = await Auth.validateSession();
+            if (!isValid && !isLoggingOut) {
+                // Session invalid, redirect to login
+                window.location.href = 'login.html';
+            }
+        }
+    }
+});
+
+// SECURITY: Clear sensitive data when page is unloaded (if configured for strict mode)
+// Uncomment below for maximum security (user will need to re-login on every tab close)
+// window.addEventListener('beforeunload', () => {
+//     localStorage.removeItem('token');
+//     localStorage.removeItem('user');
+// });

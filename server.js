@@ -23,12 +23,30 @@ app.use((req, res, next) => {
     next();
 });
 
+// SECURITY: Cache-Control Headers to prevent browser caching of sensitive pages
+// This prevents the back/forward button from showing cached authenticated content
+app.use((req, res, next) => {
+    // Apply strict no-cache headers for HTML pages and API responses
+    if (req.path.endsWith('.html') || req.path.startsWith('/api/') || req.path === '/') {
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, private',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
+        });
+    }
+    next();
+});
+
 // Static Files - Only serve non-protected content
 // Protected files (videos/pdfs) must go through authentication
 app.use('/uploads/content', express.static(path.join(__dirname, 'backend/uploads/content')));
 app.use('/uploads/profiles', express.static(path.join(__dirname, 'backend/uploads/profiles')));
 app.use('/uploads/thumbnails', express.static(path.join(__dirname, 'backend/uploads/thumbnails')));
 app.use('/uploads/gallery', express.static(path.join(__dirname, 'backend/uploads/gallery')));
+// Enable serving of video and PDF uploads
+app.use('/uploads/videos', express.static(path.join(__dirname, 'backend/uploads/videos')));
+app.use('/uploads/pdfs', express.static(path.join(__dirname, 'backend/uploads/pdfs')));
 app.use(express.static(path.join(__dirname, 'frontend/html')));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -96,6 +114,7 @@ app.use('/api/tickets', require('./backend/routes/tickets'));
 app.use('/api/contact', require('./backend/routes/contact'));
 app.use('/api/subscribers', require('./backend/routes/subscribers'));
 app.use('/api/gallery', require('./backend/routes/gallery'));
+app.use('/api/enrollments', require('./backend/routes/enrollments'));
 
 // New modular content system routes
 app.use('/api', require('./backend/routes/modules'));

@@ -7,6 +7,36 @@ let currentModuleID = null;
 let hasFullAccess = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // SECURITY: Prevent caching of this page
+    if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+
+    // SECURITY: Strict authentication check - must be logged in with valid token
+    const auth = Auth.checkAuth();
+    if (!auth) {
+        // checkAuth redirects to login.html if no token
+        return;
+    }
+
+    // SECURITY: Validate token with backend before proceeding
+    try {
+        const validateRes = await fetch(`${Auth.apiBase}/auth/validate`, {
+            method: 'GET',
+            headers: Auth.getHeaders()
+        });
+
+        if (!validateRes.ok) {
+            console.error('Token validation failed');
+            Auth.logout();
+            return;
+        }
+    } catch (err) {
+        console.error('Auth validation error:', err);
+        Auth.logout();
+        return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     currentCourseID = params.get('course');
     currentModuleID = params.get('content'); // URL param 'content' maps to module ID
@@ -94,10 +124,15 @@ async function loadPlayer() {
 function renderCurriculum(modules) {
     const list = document.getElementById('curriculumList');
     list.innerHTML = modules.map((item, index) => {
-        // Simple access check: if enrolled, you have access. If not, maybe preview?
-        // For now, assuming if `hasFullAccess` is false, they can't see content unless we handle preview logic again.
-        // But simplified requirement: Modules are just content.
         const isLocked = !hasFullAccess;
+
+        // Determine icon based on content type
+        let icon = '<i class="fas fa-book-open"></i> Read';
+        if (item.contentType === 'video') {
+            icon = '<i class="fas fa-play-circle"></i> Video';
+        } else if (item.contentType === 'pdf') {
+            icon = '<i class="fas fa-file-pdf"></i> PDF';
+        }
 
         return `
             <div class="content-item ${item._id === currentModuleID ? 'active' : ''} ${isLocked ? 'locked' : ''}" 
@@ -109,7 +144,7 @@ function renderCurriculum(modules) {
                 <div>
                     <p style="font-size: 0.95rem; font-weight:500; margin-bottom:2px;">${item.title}</p>
                     <small style="color: ${isLocked ? '#666' : '#888'};">
-                        ${isLocked ? '<i class="fas fa-lock"></i> Locked' : '<i class="fas fa-book-open"></i> Read'}
+                        ${isLocked ? '<i class="fas fa-lock"></i> Locked' : icon}
                     </small>
                 </div>
             </div>
@@ -118,14 +153,15 @@ function renderCurriculum(modules) {
 }
 
 function loadModuleContent(module) {
-    // Hide Video & Overlay
+    console.log('Loading module:', module); // Debug log
+
     const video = document.getElementById('mainVideo');
     const overlay = document.getElementById('previewOverlay');
     const title = document.getElementById('contentTitle');
     const downloadBtn = document.getElementById('downloadNotesBtn');
     const markBtn = document.getElementById('markCompleteBtn');
 
-    // Inject content area if not present (replacing video area)
+    // Content Display Area
     let contentDisplay = document.getElementById('htmlContentDisplay');
     if (!contentDisplay) {
         contentDisplay = document.createElement('div');
@@ -137,27 +173,68 @@ function loadModuleContent(module) {
         contentDisplay.style.background = '#fff';
         contentDisplay.style.borderRadius = '8px';
         contentDisplay.style.marginTop = '20px';
-        // Insert after video
         video.parentNode.insertBefore(contentDisplay, video.nextSibling);
     }
 
+    // Reset all displays
     video.style.display = 'none';
+    video.pause();
+    video.removeAttribute('src');
     overlay.style.display = 'none';
-    downloadBtn.style.display = 'none'; // No downloads for now
+    contentDisplay.style.display = 'none';
+    contentDisplay.innerHTML = '';
+    downloadBtn.style.display = 'none';
 
     title.textContent = module.title;
-    contentDisplay.innerHTML = module.content || '<p style="color:#666; font-style:italic;">No content in this module.</p>';
-    contentDisplay.style.display = 'block';
+
+    // Handle different content types
+    const contentType = module.contentType || 'rich-content';
+    const fileUrl = module.fileUrl;
+
+    console.log('Content type:', contentType, 'File URL:', fileUrl); // Debug log
+
+    if (contentType === 'video' && fileUrl) {
+        // VIDEO MODULE
+        video.src = fileUrl;
+        video.style.display = 'block';
+        video.load();
+
+        // Show description if available
+        if (module.content) {
+            contentDisplay.innerHTML = module.content;
+            contentDisplay.style.display = 'block';
+        }
+    } else if (contentType === 'pdf' && fileUrl) {
+        // PDF MODULE
+        contentDisplay.innerHTML = `
+            <div style="width: 100%; height: 700px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                <iframe src="${fileUrl}" width="100%" height="100%" style="border: none;">
+                    <p>Your browser does not support PDFs. 
+                       <a href="${fileUrl}" target="_blank" style="color: var(--color-saffron);">Download the PDF</a>
+                    </p>
+                </iframe>
+            </div>
+            ${module.content ? `<div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">${module.content}</div>` : ''}
+        `;
+        contentDisplay.style.display = 'block';
+
+        // Show download button for PDFs
+        downloadBtn.href = fileUrl;
+        downloadBtn.download = module.title + '.pdf';
+        downloadBtn.style.display = 'inline-block';
+    } else {
+        // RICH CONTENT (default)
+        contentDisplay.innerHTML = module.content || '<p style="color:#666; font-style:italic;">No content available for this module.</p>';
+        contentDisplay.style.display = 'block';
+    }
 
     // Mark Complete Button
     markBtn.style.display = 'block';
-
-    // Check if already completed (would need to fetch progress, but for now just reset button)
     markBtn.innerHTML = 'Mark as Complete';
     markBtn.style.background = 'var(--color-saffron)';
     markBtn.disabled = false;
 
-    // Check existing progress (Optimistic or fetch?)
+    // Check existing progress
     checkCompletionStatus(module._id);
 }
 

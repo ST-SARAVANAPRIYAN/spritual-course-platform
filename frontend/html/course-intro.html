@@ -775,55 +775,37 @@
         }
 
         async function handleEnroll() {
-            const auth = Auth.checkAuth([], false);
+            // Use passive check so we handle redirection ourselves
+            const auth = Auth.checkAuth([], true);
 
             if (!auth || !auth.user) {
+                // Redirect to register page for new users
                 const returnUrl = encodeURIComponent(`course-intro.html?id=${courseId}`);
-                window.location.href = `login.html?redirect=${returnUrl}`;
+                window.location.href = `register.html?redirect=${returnUrl}`;
                 return;
             }
 
+            // Non-students cannot enroll
             if (auth.user.role !== 'Student') {
-                UI.error('Only students can enroll in courses');
+                UI.info('Please log in as a student to enroll in courses');
+                window.location.href = 'student-dashboard.html';
                 return;
             }
 
             const btn = document.getElementById('enrollBtn');
+
+            // If already enrolled (button says "Continue Learning"), go to player
             if (btn.textContent.includes('Continue')) {
                 window.location.href = `player.html?course=${courseId}`;
                 return;
             }
 
-            try {
-                UI.showLoader();
-                const res = await fetch(`${Auth.apiBase}/enrollments`, {
-                    method: 'POST',
-                    headers: {
-                        ...Auth.getHeaders(),
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ courseId })
-                });
-
-                if (res.ok) {
-                    UI.success('Successfully enrolled! Redirecting...');
-                    setTimeout(() => {
-                        window.location.href = `player.html?course=${courseId}`;
-                    }, 1000);
-                } else {
-                    const error = await res.json();
-                    if (error.message?.includes('already enrolled')) {
-                        window.location.href = `player.html?course=${courseId}`;
-                    } else {
-                        UI.error(error.message || 'Enrollment failed');
-                    }
-                }
-            } catch (error) {
-                console.error('Enrollment error:', error);
-                UI.error('Failed to enroll. Please try again.');
-            } finally {
-                UI.hideLoader();
-            }
+            // User is logged in but NOT enrolled - redirect to dashboard
+            // They can enroll from the dashboard or view enrollment options
+            UI.info('Please complete enrollment from your dashboard to access this course.');
+            setTimeout(() => {
+                window.location.href = 'student-dashboard.html';
+            }, 1500);
         }
     </script>
 

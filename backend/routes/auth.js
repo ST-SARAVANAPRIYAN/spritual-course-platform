@@ -49,6 +49,20 @@ router.post('/resend-verification', authController.resendVerification);
 // @route   GET /api/auth/ping
 router.get('/ping', (req, res) => res.send('pong'));
 
+// @route   GET /api/auth/validate
+// @desc    Validate token and session - used for security checks
+router.get('/validate', authorize(), (req, res) => {
+    // If we reach here, token is valid (authorize middleware passed)
+    res.status(200).json({
+        valid: true,
+        user: {
+            id: req.user.id,
+            role: req.user.role,
+            name: req.user.name
+        }
+    });
+});
+
 // @route   POST /api/auth/forgot-password
 // @desc    Request Password Reset
 router.post('/forgot-password', (req, res, next) => {
