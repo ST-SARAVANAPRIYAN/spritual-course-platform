@@ -4,7 +4,7 @@ const fs = require('fs');
 
 // Ensure upload directories exist
 const uploadDir = 'backend/uploads';
-['videos', 'pdfs', 'thumbnails', 'profiles'].forEach(subDir => {
+['videos', 'pdfs', 'thumbnails', 'profiles', 'gallery'].forEach(subDir => {
     const dir = path.join(uploadDir, subDir);
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -19,6 +19,7 @@ const storage = multer.diskStorage({
         else if (file.mimetype === 'application/pdf') subDir = 'pdfs';
         else if (file.mimetype.startsWith('image/')) {
             if (req.body.type === 'profile') subDir = 'profiles';
+            else if (req.path.includes('gallery')) subDir = 'gallery';
             else subDir = 'thumbnails';
         }
         cb(null, path.join(uploadDir, subDir));

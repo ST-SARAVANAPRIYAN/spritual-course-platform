@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - AWARENESS ACADEMY</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #f8f5f0 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 245, 240, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-golden);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--color-golden);
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--color-golden);
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--color-saffron) 0%, var(--color-golden) 100%);
+            color: white;
+            padding: 80px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .hero-section h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-section p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Gallery Container */
+        .gallery-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 30px;
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .gallery-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .gallery-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* Gallery Grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 35px;
+            margin-top: 40px;
+        }
+
+        .gallery-item {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+            transition: transform 0.4s, box-shadow 0.4s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .gallery-image-wrapper {
+            position: relative;
+            height: 280px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+
+        .gallery-item:hover .gallery-image {
+            transform: scale(1.08);
+        }
+
+        .gallery-description {
+            padding: 25px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .description-text {
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .gallery-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .like-button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #e74c3c 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .like-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .like-button.liked {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .like-button i {
+            font-size: 1.2rem;
+            animation: heartBeat 1s infinite;
+        }
+
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.1); }
+            20%, 40% { transform: scale(0.95); }
+        }
+
+        .like-button:active {
+            transform: scale(0.95);
+        }
+
+        .date-stamp {
+            color: #999;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            text-align: center;
+            padding: 100px 30px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--color-golden);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 100px 30px;
+        }
+
+        .empty-state i {
+            font-size: 5rem;
+            color: #ddd;
+            margin-bottom: 25px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.8rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .empty-state p {
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        /* Mobile Burger Menu */
+        .burger-menu {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .burger-menu span {
+            width: 25px;
+            height: 3px;
+            background: #333;
+            transition: 0.3s;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-section h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero-section p {
+                font-size: 1rem;
+            }
+
+            .gallery-grid {
+                grid-template-columns: 1fr;
+                gap: 25px;
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                right: -100%;
+                width: 70%;
+                height: calc(100vh - 70px);
+                background: white;
+                flex-direction: column;
+                padding: 40px 20px;
+                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+                transition: right 0.3s;
+                align-items: flex-start;
+            }
+
+            .nav-links.active {
+                right: 0;
+            }
+
+            .burger-menu {
+                display: flex;
+            }
+
+            .burger-menu.active span:nth-child(1) {
+                transform: rotate(45deg) translate(6px, 6px);
+            }
+
+            .burger-menu.active span:nth-child(2) {
+                opacity: 0;
+            }
+
+            .burger-menu.active span:nth-child(3) {
+                transform: rotate(-45deg) translate(6px, -6px);
+            }
+
+            .gallery-header h2 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-section {
+                padding: 50px 20px;
+            }
+
+            .hero-section h1 {
+                font-size: 1.8rem;
+            }
+
+            .gallery-container {
+                padding: 40px 15px;
+            }
+
+            .gallery-item {
+                border-radius: 15px;
+            }
+
+            .gallery-description {
+                padding: 20px;
+            }
+
+            .like-button {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 60px;
+        }
+
+        .footer p {
+            margin: 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">AWARENESS ACADEMY</a>
+            <div class="burger-menu" id="burgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="courses.html" class="nav-link">Courses</a>
+                <a href="gallery.html" class="nav-link" style="color: var(--color-golden);">Gallery</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+                <a href="login.html" class="nav-link" id="authLink">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1><i class="fas fa-images"></i> Our Gallery</h1>
+        <p>Explore our collection of inspiring moments and memories</p>
+    </section>
+
+    <!-- Gallery Container -->
+    <div class="gallery-container">
+        <!-- Gallery Grid -->
+        <div id="galleryGrid" class="gallery-grid">
+            <!-- Images will be loaded dynamically -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner"></div>
+            <p style="color: #666; font-size: 1.1rem;">Loading gallery...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-images"></i>
+            <h3>No Images Yet</h3>
+            <p>Check back soon for new updates!</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 AWARENESS ACADEMY. All rights reserved.</p>
+    </footer>
+
+    <script src="../js/config.js"></script>
+    <script>
+        // API Base URL for public gallery
+        const API_BASE = CONFIG.API_BASE_URL;
+
+        // Generate unique identifier for user
+        function getUserIdentifier() {
+            let identifier = localStorage.getItem('galleryUserId');
+            if (!identifier) {
+                identifier = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('galleryUserId', identifier);
+            }
+            return identifier;
+        }
+
+        // Load gallery images
+        async function loadGallery() {
+            const grid = document.getElementById('galleryGrid');
+            const loading = document.getElementById('loadingState');
+            const empty = document.getElementById('emptyState');
+
+            try {
+                loading.style.display = 'block';
+                empty.style.display = 'none';
+                grid.innerHTML = '';
+
+                const res = await fetch(`${API_BASE}/gallery/images?active=true&limit=100`);
+                const data = await res.json();
+
+                loading.style.display = 'none';
+
+                if (res.ok && data.images && data.images.length > 0) {
+                    const userIdentifier = getUserIdentifier();
+
+                    grid.innerHTML = data.images.map(img => {
+                        const hasLiked = img.likedBy && img.likedBy.includes(userIdentifier);
+                        return `
+                            <div class="gallery-item">
+                                <div class="gallery-image-wrapper">
+                                    <img src="/${img.imageUrl}" 
+                                         alt="${img.description}" 
+                                         class="gallery-image"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Image'" />
+                                </div>
+                                <div class="gallery-description">
+                                    <p class="description-text">${img.description}</p>
+                                    <div class="gallery-footer">
+                                        <button class="like-button ${hasLiked ? 'liked' : ''}" 
+                                                onclick="toggleLike('${img._id}')"
+                                                data-image-id="${img._id}"
+                                                data-liked="${hasLiked}">
+                                            <i class="fas fa-heart"></i>
+                                            <span class="like-count">${img.likes || 0}</span>
+                                        </button>
+                                        <div class="date-stamp">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            ${new Date(img.createdAt).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    empty.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error loading gallery:', err);
+                loading.style.display = 'none';
+                grid.innerHTML = `
+                    <div style="text-align: center; padding: 60px 30px; grid-column: 1 / -1;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 15px;"></i>
+                        <p style="color: #666; font-size: 1.1rem;">Failed to load gallery. Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Toggle like
+        async function toggleLike(imageId) {
+            const button = document.querySelector(`[data-image-id="${imageId}"]`);
+            const likeCount = button.querySelector('.like-count');
+            const isLiked = button.getAttribute('data-liked') === 'true';
+
+            try {
+                // Optimistic UI update
+                const currentCount = parseInt(likeCount.textContent);
+                likeCount.textContent = isLiked ? currentCount - 1 : currentCount + 1;
+                button.classList.toggle('liked');
+                button.setAttribute('data-liked', !isLiked);
+
+                const res = await fetch(`${API_BASE}/gallery/like/${imageId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        identifier: getUserIdentifier()
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Update with server response
+                    likeCount.textContent = data.likes;
+                    button.setAttribute('data-liked', data.liked);
+                    if (data.liked) {
+                        button.classList.add('liked');
+                    } else {
+                        button.classList.remove('liked');
+                    }
+                } else {
+                    // Revert on error
+                    likeCount.textContent = currentCount;
+                    button.classList.toggle('liked');
+                    button.setAttribute('data-liked', isLiked);
+                    console.error('Failed to toggle like:', data.message);
+                }
+            } catch (err) {
+                // Revert on error
+                const currentCount = parseInt(likeCount.textContent);
+                likeCount.textContent = isLiked ? currentCount + 1 : currentCount - 1;
+                button.classList.toggle('liked');
+                button.setAttribute('data-liked', isLiked);
+                console.error('Error toggling like:', err);
+            }
+        }
+
+        // Burger menu toggle
+        document.getElementById('burgerMenu').addEventListener('click', function () {
+            this.classList.toggle('active');
+            document.getElementById('navLinks').classList.toggle('active');
+        });
+
+        // Check if user is logged in
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+            document.getElementById('authLink').textContent = 'Dashboard';
+            document.getElementById('authLink').href = user.role === 'Admin' ? 'admin-dashboard.html' : 
+                                                       user.role === 'Staff' ? 'staff-dashboard.html' : 
+                                                       'student-dashboard.html';
+        }
+
+        // Load gallery on page load
+        loadGallery();
+
+        // Expose toggleLike globally
+        window.toggleLike = toggleLike;
+    </script>
+</body>
+
+</html>

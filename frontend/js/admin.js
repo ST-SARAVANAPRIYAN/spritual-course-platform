@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* --- NAVIGATION --- */
 function switchSection(section) {
     // Hide all sections
-    ['overview', 'analytics', 'users', 'courses', 'content', 'finance', 'tickets', 'messages', 'subscribers', 'settings'].forEach(s => {
+    ['overview', 'analytics', 'users', 'courses', 'content', 'finance', 'tickets', 'messages', 'subscribers', 'gallery', 'settings'].forEach(s => {
         const el = document.getElementById(s + 'Section');
         if (el) el.style.display = 'none';
 
@@ -352,6 +352,9 @@ function switchSection(section) {
     }
     if (section === 'subscribers') {
         loadSubscribers();
+    }
+    if (section === 'gallery') {
+        initGallerySection();
     }
     if (section === 'settings') {
         loadSettings();
@@ -3352,3 +3355,429 @@ async function deleteSubscriber(subscriberId) {
 
 window.loadSubscribers = loadSubscribers;
 window.deleteSubscriber = deleteSubscriber;
+
+/* ========================================
+   GALLERY MANAGEMENT
+======================================== */
+
+let selectedGalleryFile = null;
+let allGalleryImages = [];
+
+function initGallerySection() {
+    loadGalleryImages();
+    setupGalleryUploadHandlers();
+}
+
+// Open upload modal
+function openGalleryUploadModal() {
+    document.getElementById('galleryUploadModal').style.display = 'flex';
+    resetGalleryForm();
+}
+
+// Close upload modal
+function closeGalleryUploadModal() {
+    document.getElementById('galleryUploadModal').style.display = 'none';
+    resetGalleryForm();
+}
+
+// Reset form
+function resetGalleryForm() {
+    selectedGalleryFile = null;
+    document.getElementById('galleryUploadForm').reset();
+    document.getElementById('galleryDescription').value = '';
+    document.getElementById('galleryCharCount').textContent = '0 / 100 characters';
+    document.getElementById('galleryImagePreview').style.display = 'none';
+    document.getElementById('galleryDropZone').style.display = 'block';
+    document.getElementById('galleryImageInput').value = '';
+    updateGalleryUploadButton();
+}
+
+// Remove preview
+function removeGalleryPreview() {
+    selectedGalleryFile = null;
+    document.getElementById('galleryImageInput').value = '';
+    document.getElementById('galleryImagePreview').style.display = 'none';
+    document.getElementById('galleryDropZone').style.display = 'block';
+    updateGalleryUploadButton();
+}
+
+// Setup upload handlers
+function setupGalleryUploadHandlers() {
+    const dropZone = document.getElementById('galleryDropZone');
+    const fileInput = document.getElementById('galleryImageInput');
+    const form = document.getElementById('galleryUploadForm');
+    const descriptionInput = document.getElementById('galleryDescription');
+    const charCount = document.getElementById('galleryCharCount');
+
+    if (!dropZone || !fileInput || !form || !descriptionInput || !charCount) {
+        console.warn('Gallery upload elements not found');
+        return;
+    }
+
+    // Drag and drop handlers
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--color-golden)';
+        dropZone.style.background = 'rgba(199, 151, 47, 0.15)';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'rgba(199, 151, 47, 0.3)';
+        dropZone.style.background = 'rgba(199, 151, 47, 0.05)';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(199, 151, 47, 0.3)';
+        dropZone.style.background = 'rgba(199, 151, 47, 0.05)';
+        
+        if (e.dataTransfer.files.length > 0) {
+            handleGalleryFileSelect(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleGalleryFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Description character count
+    descriptionInput.addEventListener('input', () => {
+        const length = descriptionInput.value.length;
+        charCount.textContent = `${length} / 100 characters`;
+        charCount.style.color = length >= 10 && length <= 100 ? '#10b981' : length > 100 ? '#e74c3c' : '#666';
+        updateGalleryUploadButton();
+    });
+
+    // Form submission
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        uploadGalleryImage();
+    });
+}
+
+function handleGalleryFileSelect(file) {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+        UI.error('Only JPEG, JPG, and PNG images are allowed');
+        return;
+    }
+
+    // Validate file size (10KB - 500KB)
+    const minSize = 10 * 1024; // 10KB
+    const maxSize = 500 * 1024; // 500KB
+
+    if (file.size < minSize) {
+        UI.error(`Image too small. Minimum size is 10KB. Your image is ${(file.size / 1024).toFixed(2)}KB`);
+        return;
+    }
+
+    if (file.size > maxSize) {
+        UI.error(`Image too large. Maximum size is 500KB. Your image is ${(file.size / 1024).toFixed(2)}KB`);
+        return;
+    }
+
+    selectedGalleryFile = file;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('galleryPreviewImg').src = e.target.result;
+        document.getElementById('galleryFileSizeInfo').textContent = `File size: ${(file.size / 1024).toFixed(2)}KB`;
+        document.getElementById('galleryImagePreview').style.display = 'block';
+        document.getElementById('galleryDropZone').style.display = 'none';
+        updateGalleryUploadButton();
+    };
+    reader.readAsDataURL(file);
+}
+
+function updateGalleryUploadButton() {
+    const btn = document.getElementById('galleryUploadBtn');
+    const description = document.getElementById('galleryDescription').value;
+    const isValid = selectedGalleryFile && description.length >= 10 && description.length <= 100;
+    btn.disabled = !isValid;
+    btn.style.opacity = isValid ? '1' : '0.5';
+    btn.style.cursor = isValid ? 'pointer' : 'not-allowed';
+}
+
+// Search gallery images
+function searchGalleryImages() {
+    const searchTerm = document.getElementById('gallerySearchInput').value.toLowerCase();
+    const filteredImages = allGalleryImages.filter(img => 
+        img.description.toLowerCase().includes(searchTerm)
+    );
+    displayGalleryImages(filteredImages);
+}
+
+// Filter gallery images
+function filterGalleryImages() {
+    const filter = document.getElementById('galleryFilterSelect').value;
+    let filteredImages = [...allGalleryImages];
+    
+    if (filter === 'recent') {
+        filteredImages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (filter === 'popular') {
+        filteredImages.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    }
+    
+    displayGalleryImages(filteredImages);
+}
+
+async function uploadGalleryImage() {
+    if (!selectedGalleryFile) {
+        UI.error('Please select an image');
+        return;
+    }
+
+    const description = document.getElementById('galleryDescription').value.trim();
+    if (description.length < 10 || description.length > 100) {
+        UI.error('Description must be between 10 and 100 characters');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', selectedGalleryFile);
+    formData.append('description', description);
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/gallery/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            UI.success('✓ Image uploaded successfully!');
+            closeGalleryUploadModal();
+            loadGalleryImages();
+            
+            // Show success confirmation
+            setTimeout(() => {
+                UI.success('Your image is now live in the gallery!');
+            }, 500);
+        } else {
+            UI.error(data.message || 'Failed to upload image');
+        }
+    } catch (err) {
+        console.error('Error uploading image:', err);
+        UI.error('Failed to upload image');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+async function loadGalleryImages() {
+    const loadingState = document.getElementById('galleryLoadingState');
+    const emptyState = document.getElementById('galleryEmptyState');
+
+    try {
+        loadingState.style.display = 'block';
+        emptyState.style.display = 'none';
+
+        const res = await fetch(`${Auth.apiBase}/gallery/images?active=true&limit=100`, {
+            headers: Auth.getHeaders()
+        });
+
+        const data = await res.json();
+
+        loadingState.style.display = 'none';
+
+        if (res.ok && data.images && data.images.length > 0) {
+            allGalleryImages = data.images;
+            displayGalleryImages(allGalleryImages);
+        } else {
+            allGalleryImages = [];
+            emptyState.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Error loading gallery images:', err);
+        loadingState.style.display = 'none';
+        UI.error('Failed to load gallery images');
+    }
+}
+
+function displayGalleryImages(images) {
+    const grid = document.getElementById('galleryImagesGrid');
+    const emptyState = document.getElementById('galleryEmptyState');
+
+    if (images.length === 0) {
+        grid.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    
+    grid.innerHTML = images.map(img => `
+        <div class="gallery-card" style="background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: all 0.3s; position: relative;">
+            <!-- Image Container -->
+            <div style="position: relative; height: 220px; overflow: hidden; background: #f8f8f8;">
+                <img src="/${img.imageUrl}" alt="${img.description}" 
+                     style="width: 100%; height: 100%; object-fit: cover;" 
+                     onerror="this.src='https://via.placeholder.com/400x220?text=Image+Error'" />
+                
+                <!-- 3-Dot Menu -->
+                <div class="gallery-menu" style="position: absolute; top: 12px; right: 12px;">
+                    <button onclick="toggleGalleryMenu(event, '${img._id}')" 
+                            style="background: rgba(255,255,255,0.95); border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                            onmouseover="this.style.background='white'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'"
+                            onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'">
+                        <i class="fas fa-ellipsis-v" style="color: #555;"></i>
+                    </button>
+                    <div id="menu-${img._id}" class="gallery-dropdown" 
+                         style="display: none; position: absolute; top: 42px; right: 0; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.15); overflow: hidden; min-width: 140px; z-index: 100;">
+                        <button onclick="editGalleryImage('${img._id}', '${img.description.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" 
+                                style="width: 100%; padding: 12px 18px; border: none; background: none; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #333; font-size: 0.9rem; transition: background 0.2s;"
+                                onmouseover="this.style.background='#f5f5f5'"
+                                onmouseout="this.style.background='none'">
+                            <i class="fas fa-edit" style="color: #4a90e2; width: 16px;"></i>
+                            Edit
+                        </button>
+                        <button onclick="deleteGalleryImage('${img._id}')" 
+                                style="width: 100%; padding: 12px 18px; border: none; background: none; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #e74c3c; font-size: 0.9rem; transition: background 0.2s;"
+                                onmouseover="this.style.background='#fff5f5'"
+                                onmouseout="this.style.background='none'">
+                            <i class="fas fa-trash" style="width: 16px;"></i>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Heart Icon with Like Count -->
+                <div style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.75); color: white; padding: 8px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+                    <span>${img.likes || 0}</span>
+                </div>
+            </div>
+            
+            <!-- Card Content -->
+            <div style="padding: 18px 20px;">
+                <p style="margin: 0; color: #333; font-size: 0.95rem; line-height: 1.6; min-height: 48px; overflow: hidden; text-overflow: ellipsis;">${img.description}</p>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <small style="color: #999; font-size: 0.85rem;">
+                        <i class="fas fa-clock"></i> ${new Date(img.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </small>
+                    <small style="color: #666; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-user" style="color: var(--color-golden);"></i> ${img.uploadedBy?.name || 'Unknown'}
+                    </small>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Add hover effect
+    document.querySelectorAll('.gallery-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+            this.style.boxShadow = '0 12px 35px rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 5px 20px rgba(0,0,0,0.08)';
+        });
+    });
+}
+
+// Toggle 3-dot menu
+function toggleGalleryMenu(event, imageId) {
+    event.stopPropagation();
+    const menu = document.getElementById(`menu-${imageId}`);
+    const isVisible = menu.style.display === 'block';
+    
+    // Close all menus
+    document.querySelectorAll('.gallery-dropdown').forEach(m => m.style.display = 'none');
+    
+    // Toggle current menu
+    menu.style.display = isVisible ? 'none' : 'block';
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', () => {
+    document.querySelectorAll('.gallery-dropdown').forEach(m => m.style.display = 'none');
+});
+
+async function editGalleryImage(imageId, currentDescription) {
+    const newDescription = prompt('Enter new description (10-100 characters):', currentDescription);
+    
+    if (newDescription === null) return; // Cancelled
+    
+    if (newDescription.trim().length < 10 || newDescription.trim().length > 100) {
+        UI.error('Description must be between 10 and 100 characters');
+        return;
+    }
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/gallery/image/${imageId}/description`, {
+            method: 'PUT',
+            headers: {
+                ...Auth.getHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description: newDescription.trim() })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            UI.success('Description updated successfully');
+            loadGalleryImages();
+        } else {
+            UI.error(data.message || 'Failed to update description');
+        }
+    } catch (err) {
+        console.error('Error updating description:', err);
+        UI.error('Failed to update description');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+async function deleteGalleryImage(imageId) {
+    if (!confirm('Are you sure you want to permanently delete this image? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/gallery/image/${imageId}`, {
+            method: 'DELETE',
+            headers: Auth.getHeaders()
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            UI.success('Image deleted successfully');
+            loadGalleryImages();
+        } else {
+            UI.error(data.message || 'Failed to delete image');
+        }
+    } catch (err) {
+        console.error('Error deleting image:', err);
+        UI.error('Failed to delete image');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+// Expose functions globally
+window.initGallerySection = initGallerySection;
+window.loadGalleryImages = loadGalleryImages;
+window.editGalleryImage = editGalleryImage;
+window.deleteGalleryImage = deleteGalleryImage;
+window.openGalleryUploadModal = openGalleryUploadModal;
+window.closeGalleryUploadModal = closeGalleryUploadModal;
+window.removeGalleryPreview = removeGalleryPreview;
+window.searchGalleryImages = searchGalleryImages;
+window.filterGalleryImages = filterGalleryImages;
+window.toggleGalleryMenu = toggleGalleryMenu;

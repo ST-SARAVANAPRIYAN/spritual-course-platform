@@ -376,5 +376,29 @@ module.exports = {
         courseSubscriberSchema.index({ courseID: 1, email: 1 }, { unique: true });
 
         return mongoose.model('CourseSubscriber', courseSubscriberSchema);
+    })(),
+
+    // 14. Gallery Collection
+    Gallery: (() => {
+        const gallerySchema = new Schema({
+            imageUrl: { type: String, required: true },
+            description: { 
+                type: String, 
+                required: true,
+                minlength: 10,
+                maxlength: 100,
+                trim: true
+            },
+            likes: { type: Number, default: 0, min: 0 },
+            likedBy: [{ type: String }], // Store IP addresses or session IDs
+            uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+            fileSize: { type: Number }, // in bytes
+            fileName: { type: String },
+            active: { type: Boolean, default: true }
+        }, { timestamps: true });
+
+        gallerySchema.index({ active: 1, createdAt: -1 });
+
+        return mongoose.model('Gallery', gallerySchema);
     })()
 };

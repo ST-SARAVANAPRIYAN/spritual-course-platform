@@ -905,6 +905,18 @@
         .data-table tbody tr:hover {
             background: #f9fafb;
         }
+
+        /* Modal Animation */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -959,6 +971,11 @@
                 <li class="nav-item">
                     <a href="#" class="nav-link" onclick="switchSection('subscribers')" title="Course Subscribers">
                         <i class="fas fa-bell"></i> <span class="link-text">Subscribers</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="switchSection('gallery')" title="Gallery Management">
+                        <i class="fas fa-images"></i> <span class="link-text">Gallery</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -1516,6 +1533,136 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GALLERY SECTION -->
+                <div id="gallerySection" class="dashboard-content-section" style="display: none;">
+                    <!-- Header with Search, Filter, and Upload Button -->
+                    <div class="glass-ultra" style="padding: 20px 30px; border-radius: 20px; margin-bottom: 30px;">
+                        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                            <!-- Search -->
+                            <div style="flex: 1; min-width: 250px; position: relative;">
+                                <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+                                <input type="text" id="gallerySearchInput" class="form-control" placeholder="Search by description..." 
+                                       style="padding: 12px 15px 12px 45px; border-radius: 10px; width: 100%; border: 2px solid #e0e0e0;" 
+                                       onkeyup="searchGalleryImages()" />
+                            </div>
+                            
+                            <!-- Filter -->
+                            <div style="min-width: 180px;">
+                                <select id="galleryFilterSelect" class="form-control" 
+                                        style="padding: 12px 15px; border-radius: 10px; border: 2px solid #e0e0e0;" 
+                                        onchange="filterGalleryImages()">
+                                    <option value="all">All Images</option>
+                                    <option value="recent">Recently Added</option>
+                                    <option value="popular">Most Liked</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Upload Button -->
+                            <button class="btn-primary" onclick="openGalleryUploadModal()" 
+                                    style="padding: 12px 25px; border-radius: 10px; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Upload Image</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Grid -->
+                    <div class="glass-ultra" style="padding: 30px; border-radius: 20px;">
+
+                        <div id="galleryImagesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px;">
+                            <!-- Images will be loaded dynamically -->
+                        </div>
+
+                        <div id="galleryEmptyState" style="text-align: center; padding: 60px 20px; display: none;">
+                            <i class="fas fa-images" style="font-size: 4rem; color: #ddd; margin-bottom: 20px;"></i>
+                            <p style="color: #666; font-size: 1.1rem;">No images in gallery yet. Click "Upload Image" to add your first image!</p>
+                        </div>
+
+                        <div id="galleryLoadingState" style="text-align: center; padding: 60px 20px;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--color-golden);"></i>
+                            <p style="color: #666; margin-top: 15px;">Loading gallery...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gallery Upload Modal -->
+                <div id="galleryUploadModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;">
+                    <div class="glass-card" style="background: white; border-radius: 20px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; position: relative; animation: slideUp 0.3s ease;">
+                        <!-- Close Button -->
+                        <button onclick="closeGalleryUploadModal()" 
+                                style="position: absolute; top: 20px; right: 25px; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #999; z-index: 10; transition: color 0.3s;" 
+                                onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'">
+                            &times;
+                        </button>
+
+                        <!-- Modal Header -->
+                        <div style="padding: 30px 30px 20px; border-bottom: 2px solid #f0f0f0;">
+                            <h3 style="margin: 0; color: #333; font-size: 1.6rem; display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-cloud-upload-alt" style="color: var(--color-golden);"></i>
+                                Upload Gallery Image
+                            </h3>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div style="padding: 30px;">
+                            <form id="galleryUploadForm">
+                                <!-- Drag & Drop Zone -->
+                                <div id="galleryDropZone" style="border: 3px dashed rgba(199, 151, 47, 0.3); border-radius: 15px; padding: 50px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(199, 151, 47, 0.05); margin-bottom: 25px;">
+                                    <i class="fas fa-image" style="font-size: 3rem; color: var(--color-golden); margin-bottom: 15px; display: block;"></i>
+                                    <p style="font-size: 1.1rem; color: #333; margin-bottom: 10px; font-weight: 500;">Drag & Drop your image here</p>
+                                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">or</p>
+                                    <button type="button" onclick="document.getElementById('galleryImageInput').click()" 
+                                            class="btn-secondary" style="padding: 10px 25px; border-radius: 8px;">
+                                        <i class="fas fa-folder-open"></i> Browse Files
+                                    </button>
+                                    <p style="font-size: 0.85rem; color: #999; margin-top: 15px;">Supported: JPEG, JPG, PNG | Size: 10KB - 500KB</p>
+                                    <input type="file" id="galleryImageInput" accept="image/jpeg,image/jpg,image/png" style="display: none;" />
+                                </div>
+
+                                <!-- Image Preview -->
+                                <div id="galleryImagePreview" style="display: none; position: relative; margin-bottom: 25px;">
+                                    <div style="position: relative; border-radius: 15px; overflow: hidden; background: #f5f5f5;">
+                                        <img id="galleryPreviewImg" src="" alt="Preview" style="max-width: 100%; max-height: 350px; display: block; margin: 0 auto; object-fit: contain;" />
+                                        <button type="button" onclick="removeGalleryPreview()" 
+                                                style="position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; transition: background 0.3s;" 
+                                                onmouseover="this.style.background='rgba(231,76,60,0.9)'" onmouseout="this.style.background='rgba(0,0,0,0.7)'">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div id="galleryFileSizeInfo" style="text-align: center; margin-top: 12px; font-size: 0.9rem; color: #666; font-weight: 500;"></div>
+                                </div>
+
+                                <!-- Description Input -->
+                                <div class="form-group" style="margin-bottom: 25px;">
+                                    <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333; font-size: 0.95rem;">
+                                        Description <span style="color: #e74c3c;">*</span>
+                                    </label>
+                                    <input type="text" id="galleryDescription" class="form-control" 
+                                           placeholder="Enter a brief description (10-100 characters)..." 
+                                           minlength="10" maxlength="100" required 
+                                           style="padding: 14px; border-radius: 10px; width: 100%; border: 2px solid #e0e0e0; font-size: 0.95rem;" />
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                        <small id="galleryCharCount" style="color: #666; font-size: 0.85rem;">0 / 100 characters</small>
+                                        <small style="color: #999; font-size: 0.85rem;">Minimum 10 characters</small>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                                    <button type="button" onclick="closeGalleryUploadModal()" class="btn-secondary" 
+                                            style="padding: 12px 25px; border-radius: 10px;">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="btn-primary" id="galleryUploadBtn" 
+                                            style="padding: 12px 30px; border-radius: 10px;" disabled>
+                                        <i class="fas fa-upload"></i> Upload Image
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

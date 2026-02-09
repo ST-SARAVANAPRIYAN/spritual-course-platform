@@ -28,6 +28,7 @@ app.use((req, res, next) => {
 app.use('/uploads/content', express.static(path.join(__dirname, 'backend/uploads/content')));
 app.use('/uploads/profiles', express.static(path.join(__dirname, 'backend/uploads/profiles')));
 app.use('/uploads/thumbnails', express.static(path.join(__dirname, 'backend/uploads/thumbnails')));
+app.use('/uploads/gallery', express.static(path.join(__dirname, 'backend/uploads/gallery')));
 app.use(express.static(path.join(__dirname, 'frontend/html')));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -94,6 +95,7 @@ app.use('/api/uploads', require('./backend/routes/upload'));
 app.use('/api/tickets', require('./backend/routes/tickets'));
 app.use('/api/contact', require('./backend/routes/contact'));
 app.use('/api/subscribers', require('./backend/routes/subscribers'));
+app.use('/api/gallery', require('./backend/routes/gallery'));
 
 // New modular content system routes
 app.use('/api', require('./backend/routes/modules'));
