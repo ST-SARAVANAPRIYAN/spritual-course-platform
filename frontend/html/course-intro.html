@@ -184,8 +184,9 @@
         }
 
         .intro-container {
-            max-width: 1200px;
+            max-width: 100%;
             margin: 0 auto;
+            padding: 0 40px;
         }
 
         .hero-grid {
@@ -526,7 +527,7 @@
             <!-- Course Content -->
             <section style="background: white; padding: 80px 20px;">
                 <div class="intro-container">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px;">
+                    <div class="content-grid" style="display: grid; grid-template-columns: 1fr; gap: 40px;">
                         <!-- Left Column -->
                         <div>
                             <!-- What You'll Learn -->
@@ -598,13 +599,41 @@
                 return;
             }
 
+            // Check for Embed Mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const isEmbed = urlParams.get('mode') === 'embed';
+
+            if (isEmbed) {
+                document.body.classList.add('embed-mode');
+                // Hide Nav and Footer
+                const nav = document.getElementById('mainNav');
+                if (nav) nav.style.display = 'none';
+
+                // We'll hide footer via CSS or JS later if it exists, but for now specific elements
+                // Add specific styles for embed mode
+                const style = document.createElement('style');
+                style.textContent = `
+                    .embed-mode { background: white; }
+                    .embed-mode .nav { display: none !important; }
+                    .embed-mode .footer { display: none !important; }
+                    .embed-mode .intro-hero { padding-top: 20px; }
+                    .embed-mode .cta-card { position: static; box-shadow: none; border: 1px solid #eee; }
+                    .embed-mode .enroll-btn { display: none !important; }
+                    .embed-mode .content-grid { grid-template-columns: 1fr !important; }
+                    .embed-mode .intro-container { max-width: 100% !important; }
+                `;
+                document.head.appendChild(style);
+            }
+
             // Check Login for Nav (passive check - don't redirect)
             const auth = Auth.checkAuth([], true);
-            if (auth && auth.user) {
+            if (auth && auth.user && !isEmbed) {
                 const btn = document.getElementById('navAuthBtn');
-                btn.textContent = 'Dashboard';
-                btn.href = auth.user.role === 'Student' ? 'student-dashboard.html' :
-                    auth.user.role === 'Staff' ? 'staff-dashboard.html' : 'admin-dashboard.html';
+                if (btn) {
+                    btn.textContent = 'Dashboard';
+                    btn.href = auth.user.role === 'Student' ? 'student-dashboard.html' :
+                        auth.user.role === 'Staff' ? 'staff-dashboard.html' : 'admin-dashboard.html';
+                }
             }
 
             try {

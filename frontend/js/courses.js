@@ -581,7 +581,7 @@ function openExploreModal(courseId) {
                         <div style="background: linear-gradient(135deg, #FFF7ED 0%, #FFFBEB 100%); padding: 20px; border-radius: 12px; border-left: 4px solid var(--color-saffron); margin-bottom: 30px;">
                             <p style="margin: 0; color: #92400E; font-size: 0.95rem; line-height: 1.6;">
                                 <i class="fas fa-lightbulb" style="color: var(--color-saffron); margin-right: 8px;"></i>
-                                <strong>Ready to start your journey?</strong> Create an account to enroll in this course and unlock your path to self-discovery.
+                                <strong>Ready to start your course?</strong> Create an account to enroll in this course and unlock your path to self-discovery.
                             </p>
                         </div>
                         

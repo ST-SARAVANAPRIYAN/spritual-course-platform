@@ -17,4 +17,4 @@ timeout /t 3 /nobreak > nul
 echo Opening Silicon Sanctuary...
 start http://localhost:5000
 
-echo All systems initialized. Enjoy your journey.
+echo All systems initialized. Enjoy your course.

@@ -244,7 +244,7 @@ exports.sendCoursePublishedNotification = async ({
                                 Great news! The course you subscribed to is now available on <span class="brand">InnerSpark</span>.
                             </p>
                             <p class="message">
-                                We're excited to invite you to begin your transformative journey with this newly published course.
+                                We're excited to invite you to begin your transformative course with this newly published course.
                             </p>
                             
                             <div class="course-box">
@@ -317,12 +317,12 @@ exports.sendCoursePublishedNotification = async ({
 exports.sendMail = async ({ to, subject, html }) => {
     try {
         console.log(`📤 Attempting to send email to ${to}...`);
-        
+
         // Check if SMTP credentials are configured
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
             throw new Error('SMTP credentials not configured. Set SMTP_USER and SMTP_PASS in .env file');
         }
-        
+
         await transporter.sendMail({
             from: `"InnerSpark Security" <${process.env.SMTP_USER}>`,
             to,

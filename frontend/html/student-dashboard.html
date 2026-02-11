@@ -6,22 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - AWARENESS ACADEMY</title>
     <link rel="stylesheet" href="../css/variables.css">
+
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+    <!-- Critical CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap"
-        rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Defer non-critical CSS -->
+    <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap">
+    <noscript>
+        <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap">
+    </noscript>
+
+    <!-- PDF generation - only used occasionally -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Chart.js - lazy load when needed -->
+    <script>
+        // Load Chart.js only when analytics section is viewed
+        window.loadChartJS = function () {
+            if (window.Chart) return Promise.resolve();
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        };
+    </script>
     <style>
         :root {
             --sidebar-width: 80px;
             --sidebar-expanded: 260px;
         }
+
         .dashboard-container {
             display: flex;
             min-height: 100vh;
             width: 100%;
         }
+
         .sidebar {
             width: var(--sidebar-width);
             background: white;
@@ -36,11 +64,13 @@
             height: 100vh;
             overflow-y: hidden;
         }
+
         .sidebar:hover {
             width: var(--sidebar-expanded);
             align-items: flex-start;
             padding-left: 20px;
         }
+
         .brand-text {
             font-family: var(--font-heading);
             color: var(--color-golden);
@@ -50,15 +80,18 @@
             display: none;
             transition: opacity 0.3s;
         }
+
         .sidebar:hover .brand-text {
             display: inline-block;
             opacity: 1;
         }
+
         .link-text {
             margin-left: 15px;
             opacity: 0;
             display: none;
         }
+
         .sidebar:hover .link-text {
             display: inline;
             opacity: 1;
@@ -70,17 +103,18 @@
         }
 
         .avatar {
-            width: 80px;
-            height: 80px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--color-warm-white);
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.3rem;
             color: var(--color-saffron);
-            border: 3px solid var(--color-golden);
+            border: 2px solid var(--color-golden);
+            flex-shrink: 0;
         }
 
         .nav-menu {
@@ -126,7 +160,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .top-header-brand {
@@ -184,7 +218,7 @@
         }
 
         .user-profile-header:hover {
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
 
         .user-avatar-header {
@@ -206,6 +240,172 @@
             font-size: 0.9rem;
         }
 
+        /* Notification Dropdown */
+        .notification-wrapper {
+            position: relative;
+        }
+
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 45px;
+            right: 0;
+            width: 360px;
+            max-height: 420px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            border: 1px solid #eee;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #fafafa;
+        }
+
+        .notification-item.unread {
+            background: #fff8f0;
+        }
+
+        .notification-item .notif-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .notification-item .notif-content {
+            flex: 1;
+        }
+
+        .notification-item .notif-content p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.4;
+        }
+
+        .notification-item .notif-content .notif-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        /* Student ID Tooltip */
+        .user-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 25px;
+            transition: background 0.3s;
+            position: relative;
+        }
+
+        .student-id-tooltip {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 200;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+            transform: translateY(-5px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .student-id-tooltip .tooltip-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .student-id-tooltip .tooltip-value {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--color-golden);
+            letter-spacing: 0.5px;
+        }
+
+        .student-id-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 22px;
+            width: 12px;
+            height: 12px;
+            background: #1a1a2e;
+            transform: rotate(45deg);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .user-profile-header:hover .student-id-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
         /* Main Content */
         .main-content {
             flex: 1;
@@ -220,7 +420,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
+            margin-bottom: 15px;
         }
 
         .stats-grid {
@@ -316,7 +516,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             transition: all 0.3s;
         }
-        
+
         .ticket-card:hover {
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
@@ -366,6 +566,147 @@
                 display: none;
             }
         }
+
+        /* Skeleton Loaders */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-card {
+            height: 180px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 10px;
+        }
+
+        .skeleton-text:last-child {
+            width: 60%;
+        }
+
+        .skeleton-stat {
+            height: 100px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 153, 51, 0.4);
+        }
+
+        .quick-action-btn i {
+            font-size: 1.2rem;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .activity-feed h3 {
+            margin: 0 0 20px 0;
+            color: var(--color-primary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-content p {
+            margin: 0 0 4px 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: #999;
+        }
     </style>
 </head>
 
@@ -377,15 +718,22 @@
                 <span class="brand-text">Student</span>
             </div>
             <ul class="nav-menu">
-                <li class="nav-item"><a href="#" class="nav-link active" onclick="switchSection('journey')"><i class="fas fa-home"></i><span class="link-text">My Journey</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('profile')"><i class="fas fa-user-circle"></i><span class="link-text">My Profile</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('marketplace')"><i class="fas fa-book-open"></i><span class="link-text">Marketplace</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('timetable')"><i class="fas fa-calendar-alt"></i><span class="link-text">Timetable</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('payments')"><i class="fas fa-receipt"></i><span class="link-text">Payments</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('tickets')"><i class="fas fa-ticket-alt"></i><span class="link-text">Support Tickets</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('support')"><i class="fas fa-headset"></i><span class="link-text">Support</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link active" onclick="switchSection('course')"><i
+                            class="fas fa-graduation-cap"></i><span class="link-text">My Courses</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('profile')"><i
+                            class="fas fa-user-circle"></i><span class="link-text">My Profile</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('marketplace')"><i
+                            class="fas fa-book-open"></i><span class="link-text">Marketplace</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('timetable')"><i
+                            class="fas fa-calendar-alt"></i><span class="link-text">Timetable</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('payments')"><i
+                            class="fas fa-receipt"></i><span class="link-text">Payments</span></a></li>
+                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('tickets')"><i
+                            class="fas fa-ticket-alt"></i><span class="link-text">Support Tickets</span></a></li>
+
             </ul>
-            <a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: auto;"><i class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
+            <a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: auto;"><i
+                    class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
         </aside>
 
         <!-- Main Content -->
@@ -397,389 +745,411 @@
                     <span>AWARENESS ACADEMY</span>
                 </div>
                 <div class="top-header-right">
-                    <div class="notification-icon" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">5</span>
+                    <div class="notification-wrapper">
+                        <div class="notification-icon" id="notificationBell" title="Notifications"
+                            onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+                        </div>
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <span>Notifications</span>
+                                <span id="notifCount" style="font-size: 0.8rem; color: #999;">0 new</span>
+                            </div>
+                            <div id="notificationList">
+                                <div class="notification-empty">
+                                    <i class="fas fa-bell-slash"
+                                        style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
+                                    No notifications yet
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="user-profile-header">
                         <div class="user-avatar-header" id="studentAvatar">S</div>
                         <span class="user-name-header" id="studentName">Seeker</span>
+                        <div class="student-id-tooltip" id="studentIdTooltip">
+                            <span class="tooltip-label">Student ID</span>
+                            <span class="tooltip-value" id="studentIdValue">—</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div style="padding: 40px;">
-            <header class="welcome-header">
-                <div>
-                    <h1>Peace be with you, <span id="welcomeName">Seeker</span></h1>
-                    <p>Continue your spiritual growth today.</p>
-                </div>
-            </header>
+                <header class="welcome-header">
+                    <div>
+                        <h1>Peace be with you, <span id="welcomeName">Seeker</span></h1>
+                    </div>
+                </header>
 
-            <!-- Profile Completion Alert -->
-            <div id="profileAlertContainer"
-                style="display: none; background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 10px; margin-bottom: 30px; align-items: center; justify-content: space-between;">
-                <div>
-                    <strong style="display: block; margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i>
-                        Complete Your Profile</strong>
-                    <span style="font-size: 0.9rem;">You must complete your profile to enroll in courses.</span>
-                </div>
-                <div style="width: 200px; margin-left: 20px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                        <span>Progress</span>
-                        <span id="profileAlertPercent">0%</span>
+                <!-- Profile Completion Alert -->
+                <div id="profileAlertContainer"
+                    style="display: none; background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 10px; margin-bottom: 30px; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong style="display: block; margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i>
+                            Complete Your Profile</strong>
+                        <span style="font-size: 0.9rem;">You must complete your profile to enroll in courses.</span>
                     </div>
-                    <div style="height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden;">
-                        <div id="profileAlertBar"
-                            style="height: 100%; width: 0%; background: var(--color-saffron); transition: width 0.3s ease;">
+                    <div style="width: 200px; margin-left: 20px;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                            <span>Progress</span>
+                            <span id="profileAlertPercent">0%</span>
                         </div>
-                    </div>
-                </div>
-                <button onclick="switchSection('profile')" class="btn-primary"
-                    style="padding: 8px 15px; font-size: 0.85rem; margin-left: 20px;">Complete Now</button>
-            </div>
-
-            <!-- Charts & Analytics Section -->
-            <div id="analyticsSection" style="display: none; margin-bottom: 40px;">
-                <h2 style="margin-bottom: 20px;">Your Spiritual Growth</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-                    <div class="glass-card" style="padding: 20px;">
-                        <h4 style="margin-bottom: 15px; color: var(--color-primary);">Activity Overview</h4>
-                        <canvas id="activityChart"></canvas>
-                    </div>
-                    <div class="glass-card" style="padding: 20px;">
-                        <h4 style="margin-bottom: 15px; color: var(--color-primary);">Focus Areas</h4>
-                        <canvas id="focusChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div id="journeySection" style="display: block;">
-                <div class="stats-grid">
-                    <div class="stat-card glass-card">
-                        <div class="stat-icon"
-                            style="background: rgba(255, 153, 51, 0.1); color: var(--color-saffron);">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <div>
-                            <h4 id="enrolledCount">0</h4>
-                            <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Enrolled Courses</p>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-card">
-                        <div class="stat-icon" style="background: rgba(255, 195, 0, 0.1); color: var(--color-golden);">
-                            <i class="fas fa-spinner"></i>
-                        </div>
-                        <div>
-                            <h4 id="avgProgress">0%</h4>
-                            <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Overall Progress</p>
-                        </div>
-                    </div>
-                    <div class="stat-card glass-card">
-                        <div class="stat-icon" style="background: rgba(40, 167, 69, 0.1); color: var(--color-success);">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div>
-                            <h4 id="attendanceRate">0</h4>
-                            <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Live Sessions Joined</p>
-                        </div>
-                    </div>
-                </div>
-
-                <section style="margin-bottom: 40px;">
-                    <div class="section-title">
-                        <h3><i class="fas fa-play-circle" style="color: var(--color-saffron);"></i> In Progress</h3>
-                    </div>
-                    <div class="course-grid">
-                        <!-- Courses load here -->
-                    </div>
-                </section>
-
-                <section>
-                    <div class="section-title">
-                        <h3><i class="fas fa-spa" style="color: var(--color-golden);"></i> Mindfulness Toolkit</h3>
-                    </div>
-                    <div class="toolkit-item glass-card">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <i class="fas fa-video" style="font-size: 1.2rem; color: var(--color-saffron);"></i>
-                            <div>
-                                <strong>Live Classroom</strong>
-                                <p style="font-size: 0.8rem; color: var(--color-text-secondary);">Join your mentor for a
-                                    live flow.</p>
+                        <div style="height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden;">
+                            <div id="profileAlertBar"
+                                style="height: 100%; width: 0%; background: var(--color-saffron); transition: width 0.3s ease;">
                             </div>
                         </div>
-                        <button class="btn-primary" style="padding: 8px 20px;">Join Now</button>
                     </div>
-                </section>
-            </div>
+                    <button onclick="switchSection('profile')" class="btn-primary"
+                        style="padding: 8px 15px; font-size: 0.85rem; margin-left: 20px;">Complete Now</button>
+                </div>
 
+                <!-- Charts & Analytics Section -->
+                <div id="analyticsSection" style="display: none; margin-bottom: 30px;">
+                    <h2 style="margin-bottom: 20px;">Your Spiritual Growth</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                        <div class="glass-card" style="padding: 15px;">
+                            <h4 style="margin-bottom: 10px; color: var(--color-primary); font-size: 0.95rem;">Activity
+                                Overview</h4>
+                            <canvas id="activityChart" style="max-height: 200px;"></canvas>
+                        </div>
+                        <div class="glass-card" style="padding: 15px;">
+                            <h4 style="margin-bottom: 10px; color: var(--color-primary); font-size: 0.95rem;">Focus
+                                Areas</h4>
+                            <canvas id="focusChart" style="max-height: 200px;"></canvas>
+                        </div>
+                    </div>
+                </div>
 
+                <div id="courseSection" style="display: block;">
+                    <div class="stats-grid">
+                        <div class="stat-card glass-card">
+                            <div class="stat-icon"
+                                style="background: rgba(255, 153, 51, 0.1); color: var(--color-saffron);">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div>
+                                <h4 id="enrolledCount">0</h4>
+                                <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Enrolled Courses</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-card">
+                            <div class="stat-icon"
+                                style="background: rgba(255, 195, 0, 0.1); color: var(--color-golden);">
+                                <i class="fas fa-spinner"></i>
+                            </div>
+                            <div>
+                                <h4 id="avgProgress">0%</h4>
+                                <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Overall Progress</p>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-card">
+                            <div class="stat-icon"
+                                style="background: rgba(40, 167, 69, 0.1); color: var(--color-success);">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div>
+                                <h4 id="attendanceRate">0</h4>
+                                <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Live Sessions Joined
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Profile Section -->
-            <div id="profileSection" style="display: none;">
-                <div class="glass-card" style="padding: 30px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                        <h2 style="margin: 0; color: var(--color-primary);">Personal Details</h2>
-                        <button class="btn-primary" id="downloadIDBtn">
-                            <i class="fas fa-id-card"></i> Get ID Card
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" id="continuelearningBtn">
+                            <i class="fas fa-book-reader"></i>
+                            <span>Continue Learning</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchSection('tickets')">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Ask Question</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchSection('certificates')">
+                            <i class="fas fa-certificate"></i>
+                            <span>View Certificates</span>
                         </button>
                     </div>
-                    <form id="profileForm" onsubmit="event.preventDefault(); updateProfile();">
-                        <!-- Profile Photo Section -->
-                        <div style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border-radius: 10px;">
-                            <label style="display: block; margin-bottom: 15px; font-weight: 600; color: #333;">Profile Photo</label>
-                            <div style="display: flex; gap: 20px; align-items: center;">
-                                <div id="profilePhotoPreview" style="width: 120px; height: 120px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 3px solid var(--color-golden);">
-                                    <i class="fas fa-user" style="font-size: 3rem; color: #999;"></i>
+
+                    <!-- Activity Feed -->
+                    <div class="activity-feed" id="activityFeed">
+                        <h3>
+                            <i class="fas fa-history"></i>
+                            Recent Activity
+                        </h3>
+                        <div id="activityList">
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: #e3f2fd; color: #1976d2;">
+                                    <i class="fas fa-spinner fa-spin"></i>
                                 </div>
-                                <div style="flex: 1;">
-                                    <input type="file" id="profilePhotoInput" accept=".jpg,.jpeg,.png" style="display: none;" onchange="console.log('File input changed'); if(typeof handleProfileUpload === 'function') { handleProfileUpload(this); } else { console.error('handleProfileUpload is not defined!', typeof handleProfileUpload); }">
-                                    <button type="button" class="btn-primary" onclick="event.preventDefault(); event.stopPropagation(); console.log('Upload button clicked'); console.log('handleProfileUpload type:', typeof handleProfileUpload); document.getElementById('profilePhotoInput').click(); return false;" style="margin-bottom: 10px;">
-                                        <i class="fas fa-camera"></i> Upload Photo
-                                    </button>
-                                    <div style="font-size: 0.85rem; color: #666;">
-                                        <p style="margin: 5px 0;"><i class="fas fa-info-circle"></i> Upload a clear photo of yourself</p>
-                                        <p style="margin: 5px 0;"><strong>Requirements:</strong></p>
-                                        <ul style="margin: 5px 0; padding-left: 20px;">
-                                            <li>Format: JPG or PNG</li>
-                                            <li>Size: 5KB - 50KB</li>
-                                            <li>Recommended: Square photo with face clearly visible</li>
-                                        </ul>
+                                <div class="activity-content">
+                                    <p>Loading your activity...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section style="margin-bottom: 40px;">
+                        <div class="section-title">
+                            <h3><i class="fas fa-play-circle" style="color: var(--color-saffron);"></i> In Progress</h3>
+                        </div>
+                        <div class="course-grid">
+                            <!-- Courses load here -->
+                        </div>
+                    </section>
+
+                    <section>
+                        <div class="section-title">
+                            <h3><i class="fas fa-spa" style="color: var(--color-golden);"></i> Mindfulness Toolkit</h3>
+                        </div>
+                        <div class="toolkit-item glass-card">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <i class="fas fa-video" style="font-size: 1.2rem; color: var(--color-saffron);"></i>
+                                <div>
+                                    <strong>Live Classroom</strong>
+                                    <p style="font-size: 0.8rem; color: var(--color-text-secondary);">Join your mentor
+                                        for a
+                                        live flow.</p>
+                                </div>
+                            </div>
+                            <button class="btn-primary" style="padding: 8px 20px;">Join Now</button>
+                        </div>
+                    </section>
+                </div>
+
+
+
+                <!-- Profile Section -->
+                <div id="profileSection" style="display: none;">
+                    <div class="glass-card" style="padding: 30px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                            <h2 style="margin: 0; color: var(--color-primary);">Personal Details</h2>
+                            <button class="btn-primary" id="downloadIDBtn">
+                                <i class="fas fa-id-card"></i> Get ID Card
+                            </button>
+                        </div>
+                        <form id="profileForm" onsubmit="event.preventDefault(); updateProfile();">
+                            <!-- Profile Photo Section -->
+                            <div style="margin-bottom: 30px; padding: 20px; background: #f9f9f9; border-radius: 10px;">
+                                <label
+                                    style="display: block; margin-bottom: 15px; font-weight: 600; color: #333;">Profile
+                                    Photo</label>
+                                <div style="display: flex; gap: 20px; align-items: center;">
+                                    <div id="profilePhotoPreview"
+                                        style="width: 120px; height: 120px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 3px solid var(--color-golden);">
+                                        <i class="fas fa-user" style="font-size: 3rem; color: #999;"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <input type="file" id="profilePhotoInput" accept=".jpg,.jpeg,.png"
+                                            style="display: none;"
+                                            onchange="console.log('File input changed'); if(typeof handleProfileUpload === 'function') { handleProfileUpload(this); } else { console.error('handleProfileUpload is not defined!', typeof handleProfileUpload); }">
+                                        <button type="button" class="btn-primary"
+                                            onclick="event.preventDefault(); event.stopPropagation(); console.log('Upload button clicked'); console.log('handleProfileUpload type:', typeof handleProfileUpload); document.getElementById('profilePhotoInput').click(); return false;"
+                                            style="margin-bottom: 10px;">
+                                            <i class="fas fa-camera"></i> Upload Photo
+                                        </button>
+                                        <div style="font-size: 0.85rem; color: #666;">
+                                            <p style="margin: 5px 0;"><i class="fas fa-info-circle"></i> Upload a clear
+                                                photo of yourself</p>
+                                            <p style="margin: 5px 0;"><strong>Requirements:</strong></p>
+                                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                                <li>Format: JPG or PNG</li>
+                                                <li>Size: 5KB - 50KB</li>
+                                                <li>Recommended: Square photo with face clearly visible</li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-                            <div class="form-group">
-                                <label>Full Name (CAPS)</label>
-                                <input type="text" id="p_name" class="form-control" style="text-transform: uppercase;"
-                                    readonly>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                                <div class="form-group">
+                                    <label>Full Name (CAPS)</label>
+                                    <input type="text" id="p_name" class="form-control"
+                                        style="text-transform: uppercase;" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="p_email" class="form-control" readonly
+                                        style="background-color: #f5f5f5; cursor: not-allowed;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone Number</label>
+                                    <input type="tel" id="p_phone" class="form-control" placeholder="10 digit number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Initial</label>
+                                    <input type="text" id="p_initial" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Father's Name</label>
+                                    <input type="text" id="p_fatherName" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mother's Name</label>
+                                    <input type="text" id="p_motherName" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date of Birth</label>
+                                    <input type="date" id="p_dob" class="form-control" onchange="calculateAge()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Age</label>
+                                    <input type="text" id="p_age" class="form-control" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gender</label>
+                                    <select id="p_gender" class="form-control">
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Marital Status</label>
+                                    <select id="p_maritalStatus" class="form-control" onchange="toggleSpouseFields()">
+                                        <option value="Single">Single</option>
+                                        <option value="Married">Married</option>
+                                        <option value="Separated">Separated</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Initial</label>
-                                <input type="text" id="p_initial" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Father's Name</label>
-                                <input type="text" id="p_fatherName" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Mother's Name</label>
-                                <input type="text" id="p_motherName" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label>Date of Birth</label>
-                                <input type="date" id="p_dob" class="form-control" onchange="calculateAge()">
-                            </div>
-                            <div class="form-group">
-                                <label>Age</label>
-                                <input type="text" id="p_age" class="form-control" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label>Gender</label>
-                                <select id="p_gender" class="form-control">
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Marital Status</label>
-                                <select id="p_maritalStatus" class="form-control" onchange="toggleSpouseFields()">
-                                    <option value="Single">Single</option>
-                                    <option value="Married">Married</option>
-                                    <option value="Separated">Separated</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div id="spouseFields"
-                            style="display: none; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 10px;">
-                            <div class="form-group">
-                                <label>Spouse Name</label>
-                                <input type="text" id="p_spouseName" class="form-control">
+                            <div id="spouseFields"
+                                style="display: none; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f9f9f9; padding: 20px; border-radius: 10px;">
+                                <div class="form-group">
+                                    <label>Spouse Name</label>
+                                    <input type="text" id="p_spouseName" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Spouse Contact</label>
+                                    <input type="text" id="p_spouseContact" class="form-control">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Spouse Contact</label>
-                                <input type="text" id="p_spouseContact" class="form-control">
+
+                            <h2
+                                style="margin-bottom: 25px; color: var(--color-primary); border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                                Address Details</h2>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                                <div class="form-group"><label>Door No.</label><input type="text" id="p_doorNumber"
+                                        class="form-control"></div>
+                                <div class="form-group"><label>Street Name</label><input type="text" id="p_streetName"
+                                        class="form-control"></div>
+                                <div class="form-group"><label>Village / Town</label><input type="text" id="p_town"
+                                        class="form-control"></div>
+                                <div class="form-group"><label>District</label><input type="text" id="p_district"
+                                        class="form-control"></div>
+                                <div class="form-group"><label>Pincode</label><input type="text" id="p_pincode"
+                                        class="form-control"></div>
+                                <div class="form-group"><label>State</label><input type="text" id="p_state"
+                                        class="form-control" value="Tamil Nadu" readonly></div>
                             </div>
-                        </div>
 
-                        <h2
-                            style="margin-bottom: 25px; color: var(--color-primary); border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                            Address Details</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-                            <div class="form-group"><label>Door No.</label><input type="text" id="p_doorNumber"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>Street Name</label><input type="text" id="p_streetName"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>Village / Town</label><input type="text" id="p_town"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>District</label><input type="text" id="p_district"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>Pincode</label><input type="text" id="p_pincode"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>State</label><input type="text" id="p_state"
-                                    class="form-control" value="Tamil Nadu" readonly></div>
-                        </div>
-
-                        <h2
-                            style="margin-bottom: 25px; color: var(--color-primary); border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                            Work Details</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-                            <div class="form-group">
-                                <label>Designation Type</label>
-                                <select id="p_workType" class="form-control">
-                                    <option value="Student">Student</option>
-                                    <option value="Salaried">Salaried</option>
-                                    <option value="Business">Business</option>
-                                    <option value="Daily Wages">Daily Wages</option>
-                                    <option value="Unemployed">Unemployed</option>
-                                </select>
+                            <h2
+                                style="margin-bottom: 25px; color: var(--color-primary); border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                                Work Details</h2>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                                <div class="form-group">
+                                    <label>Designation Type</label>
+                                    <select id="p_workType" class="form-control">
+                                        <option value="Student">Student</option>
+                                        <option value="Salaried">Salaried</option>
+                                        <option value="Business">Business</option>
+                                        <option value="Daily Wages">Daily Wages</option>
+                                        <option value="Unemployed">Unemployed</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label>Work/Company Name</label><input type="text"
+                                        id="p_workName" class="form-control"></div>
+                                <div class="form-group"><label>WhatsApp Number</label><input type="text" id="p_whatsapp"
+                                        class="form-control"></div>
                             </div>
-                            <div class="form-group"><label>Work/Company Name</label><input type="text" id="p_workName"
-                                    class="form-control"></div>
-                            <div class="form-group"><label>WhatsApp Number</label><input type="text" id="p_whatsapp"
-                                    class="form-control"></div>
-                        </div>
 
-                        <div style="display: flex; gap: 15px;">
-                            <button type="submit" class="btn-primary" style="padding: 12px 30px;"><i
-                                    class="fas fa-save"></i>
-                                Save Profile</button>
-                            <button type="button" onclick="openChangePasswordModal()" class="btn-primary"
-                                style="background: #666;"><i class="fas fa-key"></i> Change Password</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Marketplace Section -->
-            <div id="marketplaceSection" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2 style="margin: 0;">Explore Courses</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="marketplaceCategory" onchange="loadMarketplace()" class="form-control"
-                            style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-                            <option value="All">All Wisdom</option>
-                            <option value="Meditation">Meditation</option>
-                            <option value="Yoga">Yoga</option>
-                            <option value="Philosophy">Philosophy</option>
-                            <option value="Wellbeing">Wellbeing</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="marketplaceGrid" class="course-grid">
-                    <!-- Marketplace courses load here -->
-                </div>
-            </div>
-
-            <!-- Timetable Section -->
-            <div id="timetableSection" style="display: none;">
-                <h2 style="margin-bottom: 30px;">Your Spiritual Timetable</h2>
-                <div id="timetableGrid" style="display: grid; gap: 15px;">
-                    <p>Fetching your cosmic schedule...</p>
-                </div>
-            </div>
-
-            <!-- Payments Section -->
-            <div id="paymentsSection" style="display: none;">
-                <h2 style="margin-bottom: 30px;">Offering History</h2>
-                <div id="paymentsList" class="glass-card" style="padding: 0;">
-                    <p style="padding: 20px;">No offerings recorded yet.</p>
-                </div>
-            </div>
-
-            <!-- Support Tickets Section -->
-            <div id="ticketsSection" style="display: none; height: calc(100vh - 100px); overflow: hidden;">
-                <!-- Create New Ticket Button -->
-                <div style="margin-bottom: 15px; text-align: right;">
-                    <button onclick="openCreateTicketModal()" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px 20px; border-radius: 8px; font-weight: 600;">
-                        <i class="fas fa-plus"></i> Create New Ticket
-                    </button>
-                </div>
-
-                <!-- My Tickets List -->
-                <div class="glass-card" style="border-left: 4px solid #667eea; height: calc(100% - 60px); display: flex; flex-direction: column; padding: 20px; overflow: hidden;">
-                    <h3 style="margin: 0 0 15px 0; color: #333; flex-shrink: 0;"><i class="fas fa-list"></i> My Tickets</h3>
-                    <div id="myTicketsContainer" style="overflow-y: auto; flex: 1; padding-right: 10px;">
-                        <p style="text-align: center; color: #999; padding: 40px;">Loading tickets...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Support Section -->
-            <!-- Certificates Section -->
-            <div id="certificatesSection" style="display: none;">
-                <h2 style="margin-bottom: 30px;">Issued Certifications</h2>
-                <div id="certificatesGrid"
-                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;">
-                    <p>Scanning your spiritual scroll...</p>
-                </div>
-            </div>
-
-            <div id="supportSection" style="display: none;">
-                <!-- Raise a Concern Section -->
-                <div style="margin-bottom: 50px;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
-                        <i class="fas fa-headset" style="font-size: 2rem; color: var(--color-saffron);"></i>
-                        <div>
-                            <h2 style="margin: 0; color: var(--color-primary);">Raise a Concern</h2>
-                            <p style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.9rem;">Need
-                                assistance? We're here to help you on your journey.</p>
-                        </div>
-                    </div>
-                    <div class="glass-card"
-                        style="padding: 40px; max-width: 700px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                        <form id="supportForm">
-                            <div class="form-group" style="margin-bottom: 25px;">
-                                <label
-                                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; color: var(--color-primary);">
-                                    <i class="fas fa-tag"></i> Subject
-                                </label>
-                                <input type="text" name="subject" class="form-control"
-                                    style="padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;"
-                                    placeholder="e.g., Payment issue, Course access problem"
-                                    onfocus="this.style.borderColor='var(--color-saffron)'"
-                                    onblur="this.style.borderColor='#e0e0e0'" required>
+                            <div style="display: flex; gap: 15px;">
+                                <button type="submit" class="btn-primary" style="padding: 12px 30px;"><i
+                                        class="fas fa-save"></i>
+                                    Save Profile</button>
+                                <button type="button" onclick="openChangePasswordModal()" class="btn-primary"
+                                    style="background: #666;"><i class="fas fa-key"></i> Change Password</button>
                             </div>
-                            <div class="form-group" style="margin-bottom: 25px;">
-                                <label
-                                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; color: var(--color-primary);">
-                                    <i class="fas fa-align-left"></i> Description
-                                </label>
-                                <textarea name="message" class="form-control" rows="6"
-                                    style="padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; resize: vertical; transition: all 0.3s ease;"
-                                    placeholder="Please describe your concern in detail. Our support team will respond within 24 hours."
-                                    onfocus="this.style.borderColor='var(--color-saffron)'"
-                                    onblur="this.style.borderColor='#e0e0e0'" required></textarea>
-                            </div>
-                            <button type="submit" class="btn-primary"
-                                style="width: 100%; padding: 15px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fas fa-paper-plane"></i> Submit to Support Team
-                            </button>
                         </form>
                     </div>
                 </div>
 
-                <!-- Recent Tickets Section -->
-                <div>
+                <!-- Marketplace Section -->
+                <div id="marketplaceSection" style="display: none;">
                     <div
-                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <i class="fas fa-ticket-alt" style="font-size: 1.8rem; color: var(--color-saffron);"></i>
-                            <div>
-                                <h3 style="margin: 0; color: var(--color-primary);">Recent Support Tickets</h3>
-                                <p style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.85rem;">
-                                    Track the
-                                    status of your submitted concerns</p>
-                            </div>
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h2 style="margin: 0;">Explore Courses</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="marketplaceCategory" onchange="loadMarketplace()" class="form-control"
+                                style="padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                                <option value="All">All Wisdom</option>
+                                <option value="Meditation">Meditation</option>
+                                <option value="Yoga">Yoga</option>
+                                <option value="Philosophy">Philosophy</option>
+                                <option value="Wellbeing">Wellbeing</option>
+                            </select>
                         </div>
                     </div>
-                    <div id="ticketsList" style="display: grid; gap: 20px;"></div>
+                    <div id="marketplaceGrid" class="course-grid">
+                        <!-- Marketplace courses load here -->
+                    </div>
                 </div>
-            </div>
+
+                <!-- Timetable Section -->
+                <div id="timetableSection" style="display: none;">
+                    <h2 style="margin-bottom: 30px;">Your Spiritual Timetable</h2>
+                    <div id="timetableGrid" style="display: grid; gap: 15px;">
+                        <p>Fetching your cosmic schedule...</p>
+                    </div>
+                </div>
+
+                <!-- Payments Section -->
+                <div id="paymentsSection" style="display: none;">
+                    <h2 style="margin-bottom: 30px;">Offering History</h2>
+                    <div id="paymentsList" class="glass-card" style="padding: 0;">
+                        <p style="padding: 20px;">No offerings recorded yet.</p>
+                    </div>
+                </div>
+
+                <!-- Support Tickets Section -->
+                <div id="ticketsSection" style="display: none; height: calc(100vh - 100px); overflow: hidden;">
+                    <!-- Create New Ticket Button -->
+                    <div style="margin-bottom: 15px; text-align: right;">
+                        <button onclick="openCreateTicketModal()" class="btn-primary"
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px 20px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-plus"></i> Create New Ticket
+                        </button>
+                    </div>
+
+                    <!-- My Tickets List -->
+                    <div class="glass-card"
+                        style="border-left: 4px solid #667eea; height: calc(100% - 60px); display: flex; flex-direction: column; padding: 20px; overflow: hidden;">
+                        <h3 style="margin: 0 0 15px 0; color: #333; flex-shrink: 0;"><i class="fas fa-list"></i> My
+                            Tickets</h3>
+                        <div id="myTicketsContainer" style="overflow-y: auto; flex: 1; padding-right: 10px;">
+                            <p style="text-align: center; color: #999; padding: 40px;">Loading tickets...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Section -->
+                <!-- Certificates Section -->
+                <div id="certificatesSection" style="display: none;">
+                    <h2 style="margin-bottom: 30px;">Issued Certifications</h2>
+                    <div id="certificatesGrid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;">
+                        <p>Scanning your spiritual scroll...</p>
+                    </div>
+                </div>
+
+
         </main>
     </div>
 
@@ -853,9 +1223,12 @@
     </div>
 
     <!-- Create Ticket Modal -->
-    <div id="createTicketModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
-        <div style="background: white; border-radius: 15px; max-width: 600px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px 15px 0 0; color: white;">
+    <div id="createTicketModal" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+        <div
+            style="background: white; border-radius: 15px; max-width: 600px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px 15px 0 0; color: white;">
                 <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-ticket-alt"></i>
                     Create New Support Ticket
@@ -864,8 +1237,10 @@
             <div style="padding: 30px;">
                 <form id="createTicketForm">
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Subject <span style="color: red;">*</span></label>
-                        <select id="ticketSubject" class="form-control" required style="padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Subject <span
+                                style="color: red;">*</span></label>
+                        <select id="ticketSubject" class="form-control" required
+                            style="padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0;">
                             <option value="">Select a subject...</option>
                             <option value="Technical Issue">🔧 Technical Issue</option>
                             <option value="Course Access Problem">📚 Course Access Problem</option>
@@ -880,14 +1255,19 @@
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Description <span style="color: red;">*</span></label>
-                        <textarea id="ticketDescription" class="form-control" rows="6" required placeholder="Please describe your issue in detail..." style="padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; resize: vertical;"></textarea>
+                        <label style="font-weight: 600; color: #555; margin-bottom: 8px; display: block;">Description
+                            <span style="color: red;">*</span></label>
+                        <textarea id="ticketDescription" class="form-control" rows="6" required
+                            placeholder="Please describe your issue in detail..."
+                            style="padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0; resize: vertical;"></textarea>
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" onclick="closeCreateTicketModal()" class="btn-primary" style="background: #999; padding: 12px 25px; border-radius: 8px;">
+                        <button type="button" onclick="closeCreateTicketModal()" class="btn-primary"
+                            style="background: #999; padding: 12px 25px; border-radius: 8px;">
                             Cancel
                         </button>
-                        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 25px; border-radius: 8px; font-weight: 600;">
+                        <button type="submit" class="btn-primary"
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 25px; border-radius: 8px; font-weight: 600;">
                             <i class="fas fa-paper-plane"></i> Submit Ticket
                         </button>
                     </div>
@@ -897,14 +1277,18 @@
     </div>
 
     <!-- View Ticket Modal -->
-    <div id="viewTicketModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; overflow-y: auto; padding: 20px;">
-        <div style="background: white; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
-            <div style="position: sticky; top: 0; background: white; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 25px 30px; border-bottom: 2px solid #f0f0f0; border-radius: 15px 15px 0 0;">
+    <div id="viewTicketModal" class="modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; overflow-y: auto; padding: 20px;">
+        <div
+            style="background: white; border-radius: 15px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+            <div
+                style="position: sticky; top: 0; background: white; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 25px 30px; border-bottom: 2px solid #f0f0f0; border-radius: 15px 15px 0 0;">
                 <h3 style="margin: 0; color: #333; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
                     <i class="fas fa-ticket-alt" style="color: var(--color-primary);"></i>
                     Ticket Details
                 </h3>
-                <button onclick="closeViewTicketModal()" class="btn-primary" style="background: #e74c3c; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;">
+                <button onclick="closeViewTicketModal()" class="btn-primary"
+                    style="background: #e74c3c; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer;">
                     <i class="fas fa-times"></i> Close
                 </button>
             </div>

@@ -16,7 +16,7 @@ const Auth = {
             if (passive) {
                 return null; // Just return null, don't redirect
             }
-            window.location.href = 'login.html';
+            window.location.replace('login.html'); // Use replace to not create history entry
             return;
         }
 
@@ -36,7 +36,7 @@ const Auth = {
                     if (passive) {
                         return null;
                     }
-                    window.location.href = 'login.html';
+                    window.location.replace('login.html');
                     return;
                 }
             }
@@ -49,7 +49,7 @@ const Auth = {
             if (passive) {
                 return null;
             }
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
             return;
         }
 
@@ -69,7 +69,7 @@ const Auth = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = 'login.html';
+        window.location.replace('login.html'); // Use replace to prevent back button to logged-in state
     },
 
     // Get auth headers
@@ -109,17 +109,17 @@ const Auth = {
                 confirmText: 'Go to Login',
                 persistent: true,
                 onConfirm: () => {
-                    window.location.href = 'login.html';
+                    window.location.replace('login.html');
                 }
             });
 
             // Also auto-redirect after 3 seconds in case user doesn't click
             setTimeout(() => {
-                window.location.href = 'login.html';
+                window.location.replace('login.html');
             }, 3000);
         } else {
             alert(message);
-            window.location.href = 'login.html';
+            window.location.replace('login.html');
         }
     },
 
@@ -239,20 +239,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// SECURITY: Re-validate session on browser back/forward navigation
-// This prevents cached pages from being shown after logout
-window.addEventListener('pageshow', async (event) => {
-    // If page is loaded from cache (back/forward navigation)
+// SECURITY: Light validation on back/forward navigation
+// Only check if we're on a page that requires auth and no token exists
+window.addEventListener('pageshow', (event) => {
+    // If page is loaded from cache AND on a protected page
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
         const token = localStorage.getItem('token');
+        const isProtectedPage = !window.location.pathname.includes('login') &&
+            !window.location.pathname.includes('register') &&
+            !window.location.pathname.includes('index');
 
-        // If token exists, validate it
-        if (token) {
-            const isValid = await Auth.validateSession();
-            if (!isValid && !isLoggingOut) {
-                // Session invalid, redirect to login
-                window.location.href = 'login.html';
-            }
+        // Only redirect if on protected page with no token
+        if (isProtectedPage && !token && !isLoggingOut) {
+            window.location.replace('login.html');
         }
     }
 });

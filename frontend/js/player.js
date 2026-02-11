@@ -86,25 +86,29 @@ async function loadPlayer() {
 
         // Render Curriculum (Modules)
         if (data.modules && data.modules.length > 0) {
-            renderCurriculum(data.modules);
 
-            // If no specific module selected, default to first
+            // If no specific module selected, default to first module
             if (!currentModuleID) {
                 currentModuleID = data.modules[0]._id;
-                // Update URL without reload
                 const newUrl = new URL(window.location);
                 newUrl.searchParams.set('content', currentModuleID);
                 window.history.pushState({}, '', newUrl);
             }
 
-            // Load specific module
-            const activeModule = data.modules.find(m => m._id === currentModuleID);
-            if (activeModule) {
-                loadModuleContent(activeModule);
+            renderCurriculum(data.modules);
+
+            if (currentModuleID === 'intro') {
+                loadIntroIframe();
             } else {
-                // If ID invalid, load first
-                currentModuleID = data.modules[0]._id;
-                loadModuleContent(data.modules[0]);
+                // Load specific module
+                const activeModule = data.modules.find(m => m._id === currentModuleID);
+                if (activeModule) {
+                    loadModuleContent(activeModule);
+                } else {
+                    // Fallback if ID invalid
+                    currentModuleID = data.modules[0]._id;
+                    loadModuleContent(data.modules[0]);
+                }
             }
         } else {
             document.getElementById('curriculumList').innerHTML = '<p style="padding:20px; color:#ccc;">No modules available yet.</p>';
@@ -123,7 +127,22 @@ async function loadPlayer() {
 
 function renderCurriculum(modules) {
     const list = document.getElementById('curriculumList');
-    list.innerHTML = modules.map((item, index) => {
+
+    // Create Course Intro Item
+    const introItem = `
+        <li class="content-item ${currentModuleID === 'intro' ? 'active' : ''}" 
+             onclick="switchModule('intro')">
+            <div class="module-number" style="background: var(--color-golden); color: white;">
+                <i class="fas fa-info"></i>
+            </div>
+            <div class="module-info">
+                <p style="font-size: 0.95rem; font-weight:500; margin-bottom:2px;">Course Intro</p>
+                <small style="color: #888;">Overview & Details</small>
+            </div>
+        </li>
+    `;
+
+    const modulesHtml = modules.map((item, index) => {
         const isLocked = !hasFullAccess;
 
         // Determine icon based on content type
@@ -135,21 +154,23 @@ function renderCurriculum(modules) {
         }
 
         return `
-            <div class="content-item ${item._id === currentModuleID ? 'active' : ''} ${isLocked ? 'locked' : ''}" 
+            <li class="content-item ${item._id === currentModuleID ? 'active' : ''} ${isLocked ? 'locked' : ''}" 
                  onclick="${isLocked ? `UI.info('Enroll to unlock this module.')` : `switchModule('${item._id}')`}"
                  style="${isLocked ? 'opacity: 0.6; cursor: not-allowed;' : ''}">
-                <div style="width:24px; height:24px; background:#eee; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:bold; color:#666;">
+                <div class="module-number">
                     ${index + 1}
                 </div>
-                <div>
+                <div class="module-info">
                     <p style="font-size: 0.95rem; font-weight:500; margin-bottom:2px;">${item.title}</p>
                     <small style="color: ${isLocked ? '#666' : '#888'};">
                         ${isLocked ? '<i class="fas fa-lock"></i> Locked' : icon}
                     </small>
                 </div>
-            </div>
+            </li>
         `;
     }).join('');
+
+    list.innerHTML = introItem + modulesHtml;
 }
 
 function loadModuleContent(module) {
@@ -264,7 +285,15 @@ async function checkCompletionStatus(moduleId) {
 }
 
 function switchModule(id) {
-    window.location.href = `player.html?course=${currentCourseID}&content=${id}`;
+    if (id === 'intro') {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('content', 'intro');
+        window.history.pushState({}, '', newUrl);
+        currentModuleID = 'intro';
+        loadIntroIframe();
+    } else {
+        window.location.href = `player.html?course=${currentCourseID}&content=${id}`;
+    }
 }
 
 async function loadForum() {
@@ -314,5 +343,61 @@ async function markAsComplete() {
         UI.success('Module completed!');
     } catch (err) {
         UI.error('Could not update progress.');
+    }
+}
+
+function loadIntroIframe() {
+    console.log('Loading Course Intro Iframe');
+
+    // Hide Video & Content
+    const video = document.getElementById('mainVideo');
+    if (video) {
+        video.style.display = 'none';
+        video.pause();
+    }
+    document.getElementById('previewOverlay').style.display = 'none';
+    document.getElementById('downloadNotesBtn').style.display = 'none';
+    document.getElementById('markCompleteBtn').style.display = 'none';
+
+    // Set Title
+    document.getElementById('contentTitle').textContent = 'Course Introduction';
+
+    // Content Display Area for Iframe
+    let contentDisplay = document.getElementById('htmlContentDisplay');
+    if (!contentDisplay) {
+        contentDisplay = document.createElement('div');
+        contentDisplay.id = 'htmlContentDisplay';
+        contentDisplay.className = 'content-body';
+        contentDisplay.style.padding = '0'; // Remove padding for iframe
+        contentDisplay.style.lineHeight = '1.8';
+        contentDisplay.style.color = '#333';
+        contentDisplay.style.background = '#fff';
+        contentDisplay.style.borderRadius = '8px';
+        contentDisplay.style.marginTop = '20px';
+        video.parentNode.insertBefore(contentDisplay, video.nextSibling);
+    }
+
+    // Clear previous content and set styles
+    contentDisplay.innerHTML = '';
+    contentDisplay.style.display = 'block';
+    contentDisplay.style.padding = '0';
+    contentDisplay.style.overflow = 'hidden';
+    contentDisplay.style.height = '800px'; // Fixed height or calc(100vh - 200px)
+
+    // Create Iframe
+    const iframe = document.createElement('iframe');
+    iframe.src = `course-intro.html?id=${currentCourseID}&mode=embed`;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    iframe.style.borderRadius = '8px';
+
+    contentDisplay.appendChild(iframe);
+
+    // Update Active State
+    document.querySelectorAll('.content-item').forEach(el => el.classList.remove('active'));
+    const list = document.getElementById('curriculumList');
+    if (list && list.firstElementChild) {
+        list.firstElementChild.classList.add('active');
     }
 }

@@ -17,7 +17,7 @@
                 <i class="fas fa-times" id="close-chatbot" style="cursor: pointer;"></i>
             </div>
             <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fdfaf7;">
-                <div style="background: white; padding: 12px; border-radius: 12px 12px 12px 0; max-width: 80%; font-size: 0.9rem; align-self: flex-start; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">Greetings, seeker. How can I assist your journey?</div>
+                <div style="background: white; padding: 12px; border-radius: 12px 12px 12px 0; max-width: 80%; font-size: 0.9rem; align-self: flex-start; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">Greetings, seeker. How can I assist with your course?</div>
             </div>
             <div style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
                 <input type="text" id="chat-input" placeholder="Ask anything..." style="flex: 1; border: none; outline: none; font-size: 0.9rem; padding: 10px;">

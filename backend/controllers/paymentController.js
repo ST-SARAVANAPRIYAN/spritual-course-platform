@@ -53,7 +53,7 @@ exports.processPayment = async (req, res) => {
         await enrollment.save();
 
         res.status(200).json({
-            message: 'Enrollment successful! Your journey is unlocked for 1 year.',
+            message: 'Enrollment successful! Your course is unlocked for 1 year.',
             transactionID: payment.transactionID
         });
 
