@@ -72,35 +72,18 @@ exports.createExam = async (req, res) => {
             return res.status(400).json({ message: 'At least one question is required' });
         }
 
-        // Check if an assessment with same title and course already exists
-        const existingExam = await Exam.findOne({ 
-            courseID: courseID, 
-            title: title.trim(),
-            createdBy: req.user.id 
-        }).sort({ createdAt: -1 }); // Get the most recent one
+        // Check if an assessment for this course already exists (Limit: 1 per course)
+        const existingExam = await Exam.findOne({
+            courseID: courseID,
+            status: { $ne: 'Archived' } // Ignore archived/deleted ones if soft delete is used
+        });
 
         if (existingExam) {
-            console.log('[DUPLICATE CHECK] Found existing exam:', existingExam._id, 'Status:', existingExam.approvalStatus);
-            
-            // If there's a pending or approved exam with same name, prevent creation
-            if (existingExam.approvalStatus === 'Pending') {
-                return res.status(400).json({ 
-                    message: 'An assessment with this title is already pending approval for this course. Please edit the existing assessment instead of creating a new one.',
-                    existingExamId: existingExam._id
-                });
-            } else if (existingExam.approvalStatus === 'Approved') {
-                return res.status(400).json({ 
-                    message: 'An assessment with this title has already been approved for this course. Please use a different title.',
-                    existingExamId: existingExam._id
-                });
-            }
-            // If it's rejected, prevent creation and suggest editing the rejected one
-            else if (existingExam.approvalStatus === 'Rejected') {
-                return res.status(400).json({ 
-                    message: 'A rejected assessment with this title already exists. Please edit the existing assessment instead of creating a new one.',
-                    existingExamId: existingExam._id
-                });
-            }
+            console.log('[CONSTRAINT CHECK] Found existing exam for course:', existingExam._id);
+            return res.status(400).json({
+                message: 'This course already has an assessment. A course can only have one assessment. Please edit the existing one.',
+                existingExamId: existingExam._id
+            });
         }
 
         // Transform questions to match schema
@@ -108,7 +91,7 @@ exports.createExam = async (req, res) => {
             if (!q.question || !q.options || !Array.isArray(q.options)) {
                 throw new Error(`Question ${index + 1} is missing required fields`);
             }
-            
+
             // Support both single and multiple correct answers
             let correctIndices = [];
             if (Array.isArray(q.correctAnswerIndices)) {
@@ -116,11 +99,11 @@ exports.createExam = async (req, res) => {
             } else if (q.correctAnswerIndex !== undefined) {
                 correctIndices = [parseInt(q.correctAnswerIndex)];
             }
-            
+
             if (correctIndices.length === 0) {
                 throw new Error(`Question ${index + 1} must have at least one correct answer`);
             }
-            
+
             return {
                 questionText: q.question,
                 options: q.options,
@@ -164,16 +147,16 @@ exports.submitExam = async (req, res) => {
         exam.questions.forEach((q, idx) => {
             const studentAnswer = answers[idx];
             const correctIndices = q.correctOptionIndices || [q.correctOptionIndex]; // Backward compatibility
-            
+
             // Convert student answer to array if not already
             const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [studentAnswer];
-            
+
             // Check if student selected all correct answers and no incorrect ones
             const correctSet = new Set(correctIndices.map(i => parseInt(i)));
             const studentSet = new Set(studentAnswers.map(i => parseInt(i)));
-            
+
             // Perfect match: same size and all elements match
-            if (correctSet.size === studentSet.size && 
+            if (correctSet.size === studentSet.size &&
                 [...correctSet].every(val => studentSet.has(val))) {
                 score++;
             }
@@ -251,7 +234,7 @@ exports.getEnrolledStudents = async (req, res) => {
         // 1. Find all courses by this mentor
         const myCourses = await Course.find({ mentors: { $in: [req.user.id] } }).select('_id title');
         console.log('Found courses:', myCourses.length);
-        
+
         if (myCourses.length === 0) {
             console.log('No courses found for mentor');
             return res.status(200).json([]);
@@ -287,19 +270,19 @@ exports.getEnrolledStudents = async (req, res) => {
 
         const insights = await Promise.all(validEnrollments.map(async (e) => {
             try {
-                const progress = await Progress.findOne({ 
-                    studentID: e.studentID._id, 
-                    courseID: e.courseID._id 
+                const progress = await Progress.findOne({
+                    studentID: e.studentID._id,
+                    courseID: e.courseID._id
                 });
-                
+
                 const result = {
                     ...e,
                     percentComplete: progress ? progress.percentComplete : 0
                 };
-                
+
                 console.log(`Progress for student ${e.studentID.name}: ${result.percentComplete}%`);
                 return result;
-                
+
             } catch (progressErr) {
                 console.error('Error fetching progress for enrollment:', e._id, progressErr);
                 return {
@@ -311,11 +294,11 @@ exports.getEnrolledStudents = async (req, res) => {
 
         console.log('Returning insights:', insights.length);
         res.status(200).json(insights);
-        
+
     } catch (err) {
         console.error('Error in getEnrolledStudents:', err);
-        res.status(500).json({ 
-            message: 'Failed to fetch student insights', 
+        res.status(500).json({
+            message: 'Failed to fetch student insights',
             error: err.message,
             details: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });

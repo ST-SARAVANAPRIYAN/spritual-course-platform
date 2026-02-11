@@ -53,11 +53,11 @@ const totalExamSteps = 4;
 function updateExamStepUI() {
     // Hide all steps
     document.querySelectorAll('.exam-step').forEach(step => step.style.display = 'none');
-    
+
     // Show current step
     const stepEl = document.getElementById(`examStep${currentExamStep}`);
     if (stepEl) stepEl.style.display = 'block';
-    
+
     // Update step indicators
     document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
         const stepNum = index + 1;
@@ -68,16 +68,16 @@ function updateExamStepUI() {
             indicator.classList.add('active');
         }
     });
-    
+
     // Update navigation buttons
     const prevBtn = document.getElementById('examPrevBtn');
     const nextBtn = document.getElementById('examNextBtn');
     const submitBtn = document.getElementById('examSubmitBtn');
-    
+
     if (prevBtn) prevBtn.style.display = currentExamStep > 1 ? 'block' : 'none';
     if (nextBtn) nextBtn.style.display = currentExamStep < totalExamSteps ? 'block' : 'none';
     if (submitBtn) submitBtn.style.display = currentExamStep === totalExamSteps ? 'block' : 'none';
-    
+
     // Generate review if on step 4
     if (currentExamStep === 4) {
         generateExamReview();
@@ -85,7 +85,7 @@ function updateExamStepUI() {
 }
 
 function validateExamStep(step) {
-    switch(step) {
+    switch (step) {
         case 1:
             const courseID = document.getElementById('examCourseSelect')?.value;
             const title = document.getElementById('examTitle')?.value?.trim();
@@ -98,7 +98,7 @@ function validateExamStep(step) {
                 return false;
             }
             return true;
-        
+
         case 2:
             const duration = document.getElementById('examDuration')?.value;
             const passingScore = document.getElementById('examPassingScore')?.value;
@@ -111,43 +111,43 @@ function validateExamStep(step) {
                 return false;
             }
             return true;
-        
+
         case 3:
             const questions = document.querySelectorAll('.q-block');
             if (questions.length === 0) {
                 UI.error('Please add at least one question');
                 return false;
             }
-            
+
             // Validate each question
             for (let i = 0; i < questions.length; i++) {
                 const block = questions[i];
                 const qText = block.querySelector('.q-text')?.value?.trim();
                 const opts = Array.from(block.querySelectorAll('.opt-text'));
-                
+
                 if (!qText) {
                     UI.error(`Question ${i + 1}: Please enter the question text`);
                     return false;
                 }
-                
+
                 for (let j = 0; j < opts.length; j++) {
                     if (!opts[j].value.trim()) {
                         UI.error(`Question ${i + 1}: Please fill in all options`);
                         return false;
                     }
                 }
-                
+
                 // Validate that at least one correct answer is selected
                 const correctOptions = Array.from(block.querySelectorAll('.option-label'))
                     .filter(label => label.dataset.correct === 'true');
-                
+
                 if (correctOptions.length === 0) {
                     UI.error(`Question ${i + 1}: Please select at least one correct answer by clicking the option label (A/B/C/D)`);
                     return false;
                 }
             }
             return true;
-        
+
         default:
             return true;
     }
@@ -161,7 +161,7 @@ function generateExamReview() {
     const passingScore = document.getElementById('examPassingScore')?.value || '70';
     const threshold = document.getElementById('examThreshold')?.value || '85';
     const questions = document.querySelectorAll('.q-block');
-    
+
     let reviewHTML = `
         <div style="margin-bottom: 25px;">
             <h4 style="color: var(--color-saffron); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -201,11 +201,11 @@ function generateExamReview() {
             </h4>
             <div style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
     `;
-    
+
     questions.forEach((block, index) => {
         const qText = block.querySelector('.q-text')?.value || '';
         const opts = Array.from(block.querySelectorAll('.opt-text')).map(input => input.value);
-        
+
         // Get all correct answer indices from option labels
         const correctIndices = [];
         const optionLabels = block.querySelectorAll('.option-label');
@@ -214,7 +214,7 @@ function generateExamReview() {
                 correctIndices.push(idx);
             }
         });
-        
+
         reviewHTML += `
             <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--color-golden);">
                 <div style="font-weight: 600; margin-bottom: 10px; color: #333;">
@@ -223,8 +223,8 @@ function generateExamReview() {
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-left: 20px;">
                     ${opts.map((opt, i) => {
-                        const isCorrect = correctIndices.includes(i);
-                        return `
+            const isCorrect = correctIndices.includes(i);
+            return `
                         <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: ${isCorrect ? '#d4edda' : '#f8f9fa'}; border-radius: 5px; font-size: 0.9rem; border: ${isCorrect ? '2px solid #28a745' : '1px solid #e0e0e0'};">
                             <span style="background: ${isCorrect ? '#28a745' : '#6c757d'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
                                 ${String.fromCharCode(65 + i)}
@@ -237,12 +237,12 @@ function generateExamReview() {
             </div>
         `;
     });
-    
+
     reviewHTML += `
             </div>
         </div>
     `;
-    
+
     const reviewEl = document.getElementById('examReview');
     if (reviewEl) reviewEl.innerHTML = reviewHTML;
 }
@@ -251,7 +251,16 @@ function resetExamForm() {
     currentExamStep = 1;
     updateExamStepUI();
     const form = document.getElementById('examForm');
-    if (form) form.reset();
+    if (form) {
+        form.reset();
+        // Restore creation handler
+        if (window.handleCreateExam) {
+            form.onsubmit = window.handleCreateExam;
+        }
+        // Restore button text
+        const btn = document.getElementById('examSubmitBtn');
+        if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Create Assessment';
+    }
     const container = document.getElementById('questionContainer');
     if (container) {
         container.innerHTML = `
@@ -264,6 +273,9 @@ function resetExamForm() {
     if (typeof qCount !== 'undefined') {
         qCount = 0;
         updateQuestionCount();
+    }
+    if (typeof currentEditingExamId !== 'undefined') {
+        currentEditingExamId = null;
     }
 }
 
@@ -489,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 6. Create Exam - Multi-Step Wizard Event Listeners
-    
+
     // Navigation buttons
     document.getElementById('examNextBtn').addEventListener('click', () => {
         if (validateExamStep(currentExamStep)) {
@@ -503,12 +515,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateExamStepUI();
     });
 
-    // Form submission
-    document.getElementById('examForm').addEventListener('submit', async (e) => {
+    // Form submission - assign to global var to allow overwrite/restore
+    window.handleCreateExam = async function (e) {
         e.preventDefault();
-        
+
         if (!validateExamStep(3)) return;
-        
+
         const formData = new FormData(e.target);
         const data = {
             courseID: formData.get('courseID'),
@@ -523,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         qBlocks.forEach(block => {
             const q = block.querySelector('.q-text').value;
             const opts = Array.from(block.querySelectorAll('.opt-text')).map(input => input.value);
-            
+
             // Collect all correct answer indices from option labels
             const correctIndices = [];
             const optionLabels = block.querySelectorAll('.option-label');
@@ -532,11 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     correctIndices.push(index);
                 }
             });
-            
-            data.questions.push({ 
-                question: q, 
-                options: opts, 
-                correctAnswerIndices: correctIndices 
+
+            data.questions.push({
+                question: q,
+                options: opts,
+                correctAnswerIndices: correctIndices
             });
         });
 
@@ -547,22 +559,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
             });
-            
+
             const result = await res.json();
-            
+
             if (res.ok) {
                 UI.success('Assessment created successfully!');
-                examModal.style.display = 'none';
+                document.getElementById('examModal').style.display = 'none';
                 resetExamForm();
+                if (window.loadMyAssessments) loadMyAssessments();
             } else {
                 UI.error(result.message || 'Assessment creation failed');
             }
-        } catch (err) { 
+        } catch (err) {
             console.error('Exam creation error:', err);
-            UI.error('Assessment creation failed. Please try again.'); 
+            UI.error('Assessment creation failed. Please try again.');
         }
         finally { UI.hideLoader(); }
-    });
+    };
+
+    // Initialize form handler
+    const examForm = document.getElementById('examForm');
+    if (examForm) {
+        examForm.onsubmit = window.handleCreateExam;
+    }
 
     // Initialize wizard UI on page load
     setTimeout(() => {
@@ -708,11 +727,11 @@ async function loadEnrolledStudents() {
     try {
         console.log('Loading enrolled students...');
         const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
-        
+
         if (!res.ok) {
             throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
-        
+
         const enrollments = await res.json();
         console.log('Received enrollments:', enrollments);
 
@@ -776,7 +795,7 @@ async function loadEnrolledStudents() {
         }).join('');
 
         console.log('Student insights loaded successfully');
-        
+
     } catch (err) {
         console.error('Error loading student insights:', err);
         list.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center; color: var(--color-error);">Error loading student insights. Please try again.</td></tr>';
@@ -838,16 +857,16 @@ function updateQuestionCount() {
 function addQuestionField() {
     qCount++;
     const container = document.getElementById('questionContainer');
-    
+
     // Remove empty state message if exists
     if (container.querySelector('div[style*="text-align: center"]')) {
         container.innerHTML = '';
     }
-    
+
     const div = document.createElement('div');
     div.className = 'q-block';
     div.dataset.questionId = qCount;
-    
+
     div.innerHTML = `
         <div class="q-block-header">
             <div class="q-block-number">
@@ -895,20 +914,20 @@ function addQuestionField() {
             Multiple selections allowed for questions with more than one correct answer.
         </div>
     `;
-    
+
     container.appendChild(div);
-    
+
     // Scroll to the new question  
     setTimeout(() => {
         div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 100);
-    
+
     updateQuestionCount();
 }
 
 function toggleCorrectAnswer(labelElement) {
     const isCorrect = labelElement.dataset.correct === 'true';
-    
+
     if (isCorrect) {
         // Deselect
         labelElement.dataset.correct = 'false';
@@ -920,7 +939,7 @@ function toggleCorrectAnswer(labelElement) {
         labelElement.style.background = '#28a745'; // Green
         labelElement.style.borderColor = '#28a745';
     }
-    
+
     // Add a subtle animation
     labelElement.style.transform = 'scale(1.1)';
     setTimeout(() => {
@@ -934,12 +953,12 @@ function deleteQuestion(btn) {
         block.style.transition = 'all 0.3s ease';
         block.style.opacity = '0';
         block.style.transform = 'translateX(-20px)';
-        
+
         setTimeout(() => {
             block.remove();
             renumberQuestions();
             updateQuestionCount();
-            
+
             // Show empty state if no questions left
             const container = document.getElementById('questionContainer');
             if (container.querySelectorAll('.q-block').length === 0) {
@@ -1026,7 +1045,7 @@ async function checkDeletedCourses() {
 document.getElementById('newExamBtn').addEventListener('click', () => {
     const select = document.getElementById('examCourseSelect');
     const courses = JSON.parse(localStorage.getItem('staffCourses') || '[]');
-    select.innerHTML = '<option value="">Choose a course...</option>' + 
+    select.innerHTML = '<option value="">Choose a course...</option>' +
         courses.map(c => `<option value="${c._id}">${c.title}</option>`).join('');
     resetExamForm();
     document.getElementById('examModal').style.display = 'flex';

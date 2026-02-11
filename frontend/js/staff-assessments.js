@@ -6,7 +6,7 @@ let currentEditingExamId = null;
 
 async function loadMyAssessments() {
     const list = document.getElementById('assessmentsList');
-    
+
     // Show loading state
     list.innerHTML = `
         <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -14,16 +14,16 @@ async function loadMyAssessments() {
             <h4 style="color: #666;">Loading Your Assessments...</h4>
         </div>
     `;
-    
+
     try {
         const res = await fetch(`${Auth.apiBase}/exams/my-assessments`, {
             headers: Auth.getHeaders()
         });
-        
+
         if (!res.ok) throw new Error('Failed to fetch assessments');
-        
+
         const assessments = await res.json();
-        
+
         if (assessments.length === 0) {
             list.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -38,16 +38,16 @@ async function loadMyAssessments() {
             `;
             return;
         }
-        
+
         list.innerHTML = assessments.map(exam => {
             const statusColors = {
                 'Pending': { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: 'hourglass-half' },
                 'Approved': { bg: '#d4edda', border: '#28a745', text: '#155724', icon: 'check-circle' },
                 'Rejected': { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: 'times-circle' }
             };
-            
+
             const status = statusColors[exam.approvalStatus] || statusColors['Pending'];
-            
+
             return `
                 <div class="assessment-card glass-card" style="padding: 0; overflow: hidden; border-left: 4px solid ${status.border}; transition: all 0.3s ease;">
                     <div style="padding: 20px;">
@@ -112,19 +112,31 @@ async function loadMyAssessments() {
                                 style="flex: 1; background: #17a2b8; padding: 10px;">
                             <i class="fas fa-eye"></i> Preview
                         </button>
-                        <button onclick="editAssessment('${exam._id}')" class="btn-primary" 
-                                style="flex: 1; background: var(--color-golden); padding: 10px;">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button onclick="deleteAssessment('${exam._id}', '${exam.title}')" class="btn-primary" 
-                                style="flex: 1; background: #dc3545; padding: 10px;">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                        
+                        ${exam.approvalStatus === 'Approved' ? `
+                            <button onclick="UI.info('Approved assessments cannot be modified. Contact admin.')" class="btn-primary" 
+                                    style="flex: 1; background: #ccc; cursor: not-allowed; padding: 10px;">
+                                <i class="fas fa-lock"></i> Edit
+                            </button>
+                            <button onclick="UI.info('Approved assessments cannot be deleted. Contact admin.')" class="btn-primary" 
+                                    style="flex: 1; background: #ccc; cursor: not-allowed; padding: 10px;">
+                                <i class="fas fa-lock"></i> Delete
+                            </button>
+                        ` : `
+                            <button onclick="editAssessment('${exam._id}')" class="btn-primary" 
+                                    style="flex: 1; background: var(--color-golden); padding: 10px;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button onclick="deleteAssessment('${exam._id}', '${exam.title}')" class="btn-primary" 
+                                    style="flex: 1; background: #dc3545; padding: 10px;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        `}
                     </div>
                 </div>
             `;
         }).join('');
-        
+
     } catch (err) {
         console.error('Error loading assessments:', err);
         list.innerHTML = '<p style="color: var(--color-error); text-align: center;">Failed to load assessments.</p>';
@@ -138,7 +150,7 @@ async function viewAssessment(examId) {
             headers: Auth.getHeaders()
         });
         const exam = await res.json();
-        
+
         // Create preview modal
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -186,8 +198,8 @@ async function viewAssessment(examId) {
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-left: 35px;">
                                 ${q.options.map((opt, i) => {
-                                    const isCorrect = q.correctOptionIndices.includes(i);
-                                    return `
+            const isCorrect = q.correctOptionIndices.includes(i);
+            return `
                                         <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: ${isCorrect ? '#d4edda' : '#f8f9fa'}; border-radius: 6px; ${isCorrect ? 'border: 2px solid #28a745;' : 'border: 1px solid #e0e0e0;'}">
                                             <span style="background: ${isCorrect ? '#28a745' : '#6c757d'}; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">
                                                 ${String.fromCharCode(65 + i)}
@@ -196,7 +208,7 @@ async function viewAssessment(examId) {
                                             ${isCorrect ? '<i class="fas fa-check-circle" style="color: #28a745; font-size: 1.2rem;"></i>' : ''}
                                         </div>
                                     `;
-                                }).join('')}
+        }).join('')}
                             </div>
                         </div>
                     `).join('')}
@@ -208,9 +220,9 @@ async function viewAssessment(examId) {
                 </button>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
-        
+
     } catch (err) {
         console.error('Error viewing assessment:', err);
         UI.error('Failed to load assessment details');
@@ -222,53 +234,53 @@ async function viewAssessment(examId) {
 async function editAssessment(examId) {
     try {
         UI.showLoader();
-        
+
         // Fetch both exam data and courses in parallel
         const [examRes, coursesRes] = await Promise.all([
             fetch(`${Auth.apiBase}/exams/${examId}`, { headers: Auth.getHeaders() }),
             fetch(`${Auth.apiBase}/staff/courses`, { headers: Auth.getHeaders() })
         ]);
-        
+
         if (!examRes.ok || !coursesRes.ok) {
             throw new Error('Failed to fetch data');
         }
-        
+
         const exam = await examRes.json();
         const courses = await coursesRes.json();
-        
+
         // Ensure courses is an array
         const coursesArray = Array.isArray(courses) ? courses : [];
-        
+
         currentEditingExamId = examId;
-        
+
         // Populate course dropdown first
         const courseSelect = document.getElementById('examCourseSelect');
-        courseSelect.innerHTML = '<option value="">Choose a course...</option>' + 
+        courseSelect.innerHTML = '<option value="">Choose a course...</option>' +
             coursesArray.map(c => `<option value="${c._id}">${c.title}</option>`).join('');
-        
+
         // Populate form with existing data
         document.getElementById('examCourseSelect').value = exam.courseID._id;
         document.getElementById('examTitle').value = exam.title;
         document.getElementById('examDuration').value = exam.duration;
         document.getElementById('examPassingScore').value = exam.passingScore;
         document.getElementById('examThreshold').value = exam.activationThreshold;
-        
+
         // Clear and populate questions
         const container = document.getElementById('questionContainer');
         container.innerHTML = '';
         qCount = 0;
-        
+
         exam.questions.forEach(q => {
             addQuestionField();
             const blocks = document.querySelectorAll('.q-block');
             const currentBlock = blocks[blocks.length - 1];
-            
+
             currentBlock.querySelector('.q-text').value = q.questionText;
             const optInputs = currentBlock.querySelectorAll('.opt-text');
             q.options.forEach((opt, i) => {
                 if (optInputs[i]) optInputs[i].value = opt;
             });
-            
+
             // Set correct answers
             const optionLabels = currentBlock.querySelectorAll('.option-label');
             q.correctOptionIndices.forEach(idx => {
@@ -279,19 +291,19 @@ async function editAssessment(examId) {
                 }
             });
         });
-        
+
         // Change form submit to update mode
         const form = document.getElementById('examForm');
         form.onsubmit = handleUpdateExam;
-        
+
         // Change submit button text
         document.getElementById('examSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Update Assessment';
-        
+
         // Open modal
         document.getElementById('examModal').style.display = 'flex';
         currentExamStep = 1;
         updateExamStepUI();
-        
+
     } catch (err) {
         console.error('Error loading assessment for edit:', err);
         UI.error('Failed to load assessment');
@@ -302,9 +314,9 @@ async function editAssessment(examId) {
 
 async function handleUpdateExam(e) {
     e.preventDefault();
-    
+
     if (!validateExamStep(3)) return;
-    
+
     const formData = new FormData(e.target);
     const data = {
         courseID: formData.get('courseID'),
@@ -319,7 +331,7 @@ async function handleUpdateExam(e) {
     qBlocks.forEach(block => {
         const q = block.querySelector('.q-text').value;
         const opts = Array.from(block.querySelectorAll('.opt-text')).map(input => input.value);
-        
+
         const correctIndices = [];
         const optionLabels = block.querySelectorAll('.option-label');
         optionLabels.forEach((label, index) => {
@@ -327,46 +339,44 @@ async function handleUpdateExam(e) {
                 correctIndices.push(index);
             }
         });
-        
-        data.questions.push({ 
-            question: q, 
-            options: opts, 
-            correctAnswerIndices: correctIndices 
+
+        data.questions.push({
+            question: q,
+            options: opts,
+            correctAnswerIndices: correctIndices
         });
     });
 
     try {
         UI.showLoader();
-        
+
         console.log(`[UPDATE] Updating assessment ${currentEditingExamId} with data:`, data);
-        
+
         const res = await fetch(`${Auth.apiBase}/exams/${currentEditingExamId}`, {
             method: 'PUT',
             headers: Auth.getHeaders(),
             body: JSON.stringify(data)
         });
-        
+
         const result = await res.json();
-        
+
         if (res.ok) {
             UI.success('Assessment updated successfully! Your changes have been submitted for admin review.');
             document.getElementById('examModal').style.display = 'none';
-            resetExamForm();
-            
-            // Reset form submit handler
-            document.getElementById('examForm').onsubmit = null;
-            document.getElementById('examSubmitBtn').innerHTML = '<i class="fas fa-check"></i> Create Assessment';
-            currentEditingExamId = null;
-            
+            // Use the centralized reset function which now handles everything
+            if (window.resetExamForm) window.resetExamForm();
+
+            // Reload the assessments list to see updated status
+
             // Reload the assessments list to see updated status
             loadMyAssessments();
         } else {
             console.error('Update failed:', result);
             UI.error(result.message || 'Update failed');
         }
-    } catch (err) { 
+    } catch (err) {
         console.error('Exam update error:', err);
-        UI.error('Assessment update failed. Please try again.'); 
+        UI.error('Assessment update failed. Please try again.');
     }
     finally { UI.hideLoader(); }
 }
@@ -375,14 +385,14 @@ async function deleteAssessment(examId, title) {
     if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
         return;
     }
-    
+
     try {
         UI.showLoader();
         const res = await fetch(`${Auth.apiBase}/exams/${examId}`, {
             method: 'DELETE',
             headers: Auth.getHeaders()
         });
-        
+
         if (res.ok) {
             UI.success('Assessment deleted successfully');
             loadMyAssessments();
