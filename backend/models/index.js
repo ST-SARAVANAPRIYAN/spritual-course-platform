@@ -154,14 +154,22 @@ const faqSchema = new Schema({
 // 8. Exams Collection
 const examSchema = new Schema({
     courseID: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+    title: { type: String, required: true },
+    duration: { type: Number, default: 30 }, // Duration in minutes
     questions: [{
         questionText: { type: String, required: true },
         options: [{ type: String, required: true }],
-        correctOptionIndex: { type: Number, required: true }
+        correctOptionIndices: [{ type: Number, required: true }] // Support multiple correct answers
     }],
     passingScore: { type: Number, default: 70 },
     activationThreshold: { type: Number, default: 85 }, // % progress required
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Draft' }
+    status: { type: String, enum: ['Draft', 'Published'], default: 'Draft' },
+    approvalStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    approvedAt: { type: Date },
+    rejectionReason: { type: String }
 });
 
 // 9. Certificates/Results Collection
@@ -206,6 +214,8 @@ module.exports = {
     Payment: mongoose.model('Payment', paymentSchema),
     Impression: mongoose.model('Impression', impressionSchema),
     Progress: mongoose.model('Progress', progressSchema),
+    Exam: mongoose.model('Exam', examSchema), // Add Exam model
+    Certificate: mongoose.model('Certificate', certificateSchema), // Add Certificate model
     Module, // New modular content system
     Result: mongoose.model('Result', new Schema({
         studentID: { type: Schema.Types.ObjectId, ref: 'User', required: true },

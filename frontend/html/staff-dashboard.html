@@ -441,14 +441,6 @@
                     SUITE</p>
             </div>
             <ul style="list-style: none;">
-                <li style="margin-bottom: 10px;">
-                    <a href="#" class="btn-primary sidebar-new-btn" id="newCourseBtn"
-                        style="display: flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; padding: 8px;">
-                        <i class="fas fa-plus" style="margin: 0;"></i>
-                        <span class="sidebar-text" style="display: none; margin-left: 8px;">New Course</span>
-                    </a>
-                </li>
-                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
                 <li><a href="#" class="nav-link active" onclick="switchSection('overview')" title="Overview"><i
                             class="fas fa-home"></i> <span class="sidebar-text">Overview</span></a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('courses')" title="My Courses"><i
@@ -469,6 +461,8 @@
                 </li>
                 <li><a href="#" class="nav-link" onclick="switchSection('live')" title="Live Classroom"><i
                             class="fas fa-video"></i> <span class="sidebar-text">Live Classroom</span></a></li>
+                <li><a href="#" class="nav-link" onclick="switchSection('assessments')" title="Assessments"><i
+                            class="fas fa-clipboard-check"></i> <span class="sidebar-text">Assessments</span></a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('tickets')" title="Support Tickets"><i
                             class="fas fa-ticket-alt"></i> <span class="sidebar-text">Support Tickets</span></a></li>
                 <li><a href="#" class="nav-link" onclick="switchSection('profile')" title="My Profile"><i
@@ -520,8 +514,9 @@
                     <h3 style="margin-bottom: 20px;">Manage Your Courses</h3>
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <button class="btn-primary" id="newExamBtn" style="background: var(--color-golden);">+ Create
-                            Assessment</button>
+                        <button class="btn-primary" id="newCourseBtn" style="background: var(--color-saffron);">
+                            <i class="fas fa-plus"></i> Create New Course
+                        </button>
                     </div>
                     <div class="search-filter-bar">
                         <input type="text" id="courseSearchInput" class="search-input"
@@ -610,6 +605,29 @@
                     </div>
                     <div id="scheduleList">
                         <!-- Schedules load here -->
+                    </div>
+                </section>
+
+                <!-- Assessments Section -->
+                <section id="assessmentsSection" style="display: none;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; margin-bottom: 30px; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                        <h2 style="margin: 0 0 10px 0; font-size: 2rem;"><i class="fas fa-clipboard-check"></i> My Assessments</h2>
+                        <p style="margin: 0; opacity: 0.9;">Create, manage, and track your course assessments</p>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <div>
+                            <h3 style="margin: 0; color: #333;">All Assessments</h3>
+                            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">Manage your course assessments and their approval status</p>
+                        </div>
+                        <button class="btn-primary" id="newExamBtn"
+                                style="background: var(--color-golden); padding: 12px 24px;">
+                            <i class="fas fa-plus"></i> Create Assessment
+                        </button>
+                    </div>
+
+                    <div id="assessmentsList" style="display: grid; gap: 20px;">
+                        <p style="text-align: center; color: #999; padding: 40px;">Loading assessments...</p>
                     </div>
                 </section>
 
@@ -1214,46 +1232,334 @@
         </div>
     </div>
 
-    <!-- Exam Modal [NEW] -->
+    <!-- Exam Modal [NEW - WIZARD STYLE] -->
     <div class="modal" id="examModal">
-        <div class="modal-content glass-card">
-            <h2 style="font-family: var(--font-heading); color: var(--color-saffron);">Create Assessment</h2>
-            <form id="examForm">
-                <div class="form-group">
-                    <label>Select Course</label>
-                    <select name="courseID" id="examCourseSelect" class="form-control" required></select>
+        <div class="modal-content glass-card" style="max-width: 900px; max-height: 90vh; overflow-y: auto; padding: 0;">
+            <!-- Step Progress Bar -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 20px 20px 0 0; color: white;">
+                <h2 style="font-family: var(--font-heading); margin: 0 0 20px 0; font-size: 1.5rem;">
+                    <i class="fas fa-graduation-cap"></i> Create Assessment
+                </h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div class="step-indicator" data-step="1" style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="step-circle">1</div>
+                            <span class="step-label">Basic Info</span>
+                        </div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step-indicator" data-step="2" style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="step-circle">2</div>
+                            <span class="step-label">Settings</span>
+                        </div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step-indicator" data-step="3" style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="step-circle">3</div>
+                            <span class="step-label">Questions</span>
+                        </div>
+                        <div class="step-line"></div>
+                    </div>
+                    <div class="step-indicator" data-step="4" style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="step-circle">4</div>
+                            <span class="step-label">Review</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Exam Title</label>
-                    <input type="text" name="title" class="form-control" placeholder="e.g. Mindfulness Mastery Test"
-                        required>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            </div>
+
+            <!-- Form Content -->
+            <form id="examForm" style="padding: 30px;">
+                <!-- Step 1: Basic Information -->
+                <div class="exam-step" id="examStep1">
+                    <h3 style="font-family: var(--font-heading); color: var(--color-saffron); margin-bottom: 20px;">
+                        Basic Information
+                    </h3>
                     <div class="form-group">
-                        <label>Duration (mins)</label>
-                        <input type="number" name="duration" class="form-control" value="30">
+                        <label><i class="fas fa-book"></i> Select Course *</label>
+                        <select name="courseID" id="examCourseSelect" class="form-control" required>
+                            <option value="">Choose a course...</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Passing Score (%)</label>
-                        <input type="number" name="passingScore" class="form-control" value="70">
+                        <label><i class="fas fa-heading"></i> Assessment Title *</label>
+                        <input type="text" name="title" id="examTitle" class="form-control" 
+                               placeholder="e.g., Mindfulness Mastery Final Assessment" required>
+                        <small style="color: var(--color-text-secondary);">Give your assessment a clear, descriptive title</small>
                     </div>
                 </div>
 
-                <div id="questionContainer">
-                    <h4 style="margin: 20px 0 10px;">Questions</h4>
-                    <!-- Questions will be added here -->
+                <!-- Step 2: Assessment Settings -->
+                <div class="exam-step" id="examStep2" style="display: none;">
+                    <h3 style="font-family: var(--font-heading); color: var(--color-saffron); margin-bottom: 20px;">
+                        Assessment Settings
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-clock"></i> Duration (minutes) *</label>
+                            <input type="number" name="duration" id="examDuration" class="form-control" 
+                                   value="30" min="5" max="180" required>
+                            <small style="color: var(--color-text-secondary);">Recommended: 1-2 minutes per question</small>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-trophy"></i> Passing Score (%) *</label>
+                            <input type="number" name="passingScore" id="examPassingScore" class="form-control" 
+                                   value="70" min="0" max="100" required>
+                            <small style="color: var(--color-text-secondary);">Minimum score to pass</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-chart-line"></i> Activation Threshold (% Progress) *</label>
+                        <input type="number" name="activationThreshold" id="examThreshold" class="form-control" 
+                               value="85" min="0" max="100">
+                        <small style="color: var(--color-text-secondary);">Students must complete this percentage of the course to unlock the assessment</small>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid var(--color-saffron);">
+                        <strong><i class="fas fa-info-circle"></i> Quick Tips:</strong>
+                        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                            <li>Typical assessments: 10-20 questions, 30-45 minutes</li>
+                            <li>Quick quizzes: 5-10 questions, 10-15 minutes</li>
+                            <li>Comprehensive exams: 30+ questions, 60-90 minutes</li>
+                        </ul>
+                    </div>
                 </div>
-                <button type="button" onclick="addQuestionField()" class="btn-primary"
-                    style="background: var(--color-golden); margin-bottom: 20px;">+ Add Question</button>
 
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn-primary">Create Assessment</button>
+                <!-- Step 3: Add Questions -->
+                <div class="exam-step" id="examStep3" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-family: var(--font-heading); color: var(--color-saffron); margin: 0;">
+                            Questions <span id="questionCount" style="font-size: 0.9rem; color: #666;">(0)</span>
+                        </h3>
+                        <button type="button" onclick="addQuestionField()" class="btn-primary" 
+                                style="background: var(--color-golden); padding: 8px 15px; font-size: 0.85rem;">
+                            <i class="fas fa-plus"></i> Add Question
+                        </button>
+                    </div>
+                    
+                    <div id="questionContainer" style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                        <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                            <i class="fas fa-question-circle" style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;"></i>
+                            <p>No questions added yet. Click "Add Question" to get started.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Review & Submit -->
+                <div class="exam-step" id="examStep4" style="display: none;">
+                    <h3 style="font-family: var(--font-heading); color: var(--color-saffron); margin-bottom: 20px;">
+                        <i class="fas fa-check-circle"></i> Review Assessment
+                    </h3>
+                    <div id="examReview" style="background: #f8f9fa; padding: 20px; border-radius: 12px;">
+                        <!-- Review content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <button type="button" id="examPrevBtn" class="btn-primary" 
+                            style="background: #6c757d; display: none; padding: 10px 25px;">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button type="button" id="examNextBtn" class="btn-primary" 
+                            style="padding: 10px 25px;">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" id="examSubmitBtn" class="btn-primary" 
+                            style="display: none; background: var(--color-success); padding: 10px 25px;">
+                        <i class="fas fa-check"></i> Create Assessment
+                    </button>
                     <button type="button" id="closeExamModal" class="btn-primary"
-                        style="background: var(--color-text-secondary);">Cancel</button>
+                            style="background: var(--color-text-secondary); padding: 10px 25px; margin-left: 10px;">
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <style>
+        /* Step Wizard Styles */
+        .step-indicator {
+            position: relative;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .step-indicator.active {
+            opacity: 1;
+        }
+
+        .step-indicator.completed {
+            opacity: 1;
+        }
+
+        .step-circle {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .step-indicator.active .step-circle {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            transform: scale(1.1);
+        }
+
+        .step-indicator.completed .step-circle {
+            background: var(--color-success);
+            border-color: var(--color-success);
+        }
+
+        .step-indicator.completed .step-circle::before {
+            content: "✓";
+            position: absolute;
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .step-line {
+            position: absolute;
+            top: 17px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: -1;
+        }
+
+        .step-indicator:last-child .step-line {
+            display: none;
+        }
+
+        /* Question Block Styles */
+        .q-block {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .q-block:hover {
+            border-color: var(--color-saffron);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .q-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .q-block-number {
+            font-weight: bold;
+            color: var(--color-saffron);
+            font-size: 1.1rem;
+        }
+
+        .q-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .q-delete-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .option-input-group {
+            position: relative;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-label {
+            width: 40px;
+            height: 40px;
+            background: #ff9800;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid #ff9800;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .option-label:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-label:active {
+            transform: scale(0.95);
+        }
+
+        .option-label[data-correct="true"] {
+            background: #28a745;
+            border-color: #28a745;
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .option-input-group input {
+            flex: 1;
+            padding: 12px 15px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .modal-content {
+                max-width: 95% !important;
+                margin: 20px auto;
+            }
+
+            .step-label {
+                display: none;
+            }
+
+            .step-indicator {
+                flex-direction: column;
+            }
+        }
+    </style>
 
     <!-- Schedule Modal [NEW] -->
     <div class="modal" id="scheduleModal">
@@ -1396,6 +1702,7 @@
     <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/staff.js"></script>
+    <script src="../js/staff-assessments.js"></script>
     <script src="../js/chatbot.js"></script>
 
 </body>

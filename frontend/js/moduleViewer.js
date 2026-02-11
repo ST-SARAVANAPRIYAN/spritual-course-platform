@@ -104,7 +104,7 @@ async function renderContent(module, authData) {
 
     if (module.contentType === 'rich-content') {
         // Display rich content HTML
-        container.innerHTML = `<div class="rich-content">${module.content}</div>`;
+        container.innerHTML = `<div class="rich-content">${UI.fixContentUrls(module.content)}</div>`;
 
         // Apply basic DRM protection (no right-click, no text selection)
         DRMProtection.disableRightClick(container);

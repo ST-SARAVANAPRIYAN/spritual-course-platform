@@ -5,7 +5,7 @@
 // Navigation function to switch between sections
 function switchSection(sectionName) {
     // Hide all sections
-    const sections = ['overviewSection', 'coursesSection', 'materialsSection', 'studentsSection', 'notificationsSection', 'liveSection', 'ticketsSection', 'profileSection'];
+    const sections = ['overviewSection', 'coursesSection', 'materialsSection', 'studentsSection', 'notificationsSection', 'liveSection', 'assessmentsSection', 'ticketsSection', 'profileSection'];
     sections.forEach(id => {
         const section = document.getElementById(id);
         if (section) section.style.display = 'none';
@@ -34,6 +34,8 @@ function switchSection(sectionName) {
         loadNotifications();
     } else if (sectionName === 'live') {
         loadSchedules();
+    } else if (sectionName === 'assessments') {
+        loadMyAssessments();
     } else if (sectionName === 'tickets') {
         loadMyTickets();
     } else if (sectionName === 'profile') {
@@ -43,6 +45,248 @@ function switchSection(sectionName) {
 
 // Make switchSection available globally for onclick attributes IMMEDIATELY
 window.switchSection = switchSection;
+
+// Exam Wizard Global Variables and Functions
+let currentExamStep = 1;
+const totalExamSteps = 4;
+
+function updateExamStepUI() {
+    // Hide all steps
+    document.querySelectorAll('.exam-step').forEach(step => step.style.display = 'none');
+    
+    // Show current step
+    const stepEl = document.getElementById(`examStep${currentExamStep}`);
+    if (stepEl) stepEl.style.display = 'block';
+    
+    // Update step indicators
+    document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+        const stepNum = index + 1;
+        indicator.classList.remove('active', 'completed');
+        if (stepNum < currentExamStep) {
+            indicator.classList.add('completed');
+        } else if (stepNum === currentExamStep) {
+            indicator.classList.add('active');
+        }
+    });
+    
+    // Update navigation buttons
+    const prevBtn = document.getElementById('examPrevBtn');
+    const nextBtn = document.getElementById('examNextBtn');
+    const submitBtn = document.getElementById('examSubmitBtn');
+    
+    if (prevBtn) prevBtn.style.display = currentExamStep > 1 ? 'block' : 'none';
+    if (nextBtn) nextBtn.style.display = currentExamStep < totalExamSteps ? 'block' : 'none';
+    if (submitBtn) submitBtn.style.display = currentExamStep === totalExamSteps ? 'block' : 'none';
+    
+    // Generate review if on step 4
+    if (currentExamStep === 4) {
+        generateExamReview();
+    }
+}
+
+function validateExamStep(step) {
+    switch(step) {
+        case 1:
+            const courseID = document.getElementById('examCourseSelect')?.value;
+            const title = document.getElementById('examTitle')?.value?.trim();
+            if (!courseID) {
+                UI.error('Please select a course');
+                return false;
+            }
+            if (!title) {
+                UI.error('Please enter an assessment title');
+                return false;
+            }
+            return true;
+        
+        case 2:
+            const duration = document.getElementById('examDuration')?.value;
+            const passingScore = document.getElementById('examPassingScore')?.value;
+            if (!duration || duration < 5) {
+                UI.error('Duration must be at least 5 minutes');
+                return false;
+            }
+            if (!passingScore || passingScore < 0 || passingScore > 100) {
+                UI.error('Passing score must be between 0 and 100');
+                return false;
+            }
+            return true;
+        
+        case 3:
+            const questions = document.querySelectorAll('.q-block');
+            if (questions.length === 0) {
+                UI.error('Please add at least one question');
+                return false;
+            }
+            
+            // Validate each question
+            for (let i = 0; i < questions.length; i++) {
+                const block = questions[i];
+                const qText = block.querySelector('.q-text')?.value?.trim();
+                const opts = Array.from(block.querySelectorAll('.opt-text'));
+                
+                if (!qText) {
+                    UI.error(`Question ${i + 1}: Please enter the question text`);
+                    return false;
+                }
+                
+                for (let j = 0; j < opts.length; j++) {
+                    if (!opts[j].value.trim()) {
+                        UI.error(`Question ${i + 1}: Please fill in all options`);
+                        return false;
+                    }
+                }
+                
+                // Validate that at least one correct answer is selected
+                const correctOptions = Array.from(block.querySelectorAll('.option-label'))
+                    .filter(label => label.dataset.correct === 'true');
+                
+                if (correctOptions.length === 0) {
+                    UI.error(`Question ${i + 1}: Please select at least one correct answer by clicking the option label (A/B/C/D)`);
+                    return false;
+                }
+            }
+            return true;
+        
+        default:
+            return true;
+    }
+}
+
+function generateExamReview() {
+    const courseSelect = document.getElementById('examCourseSelect');
+    const courseName = courseSelect?.options[courseSelect.selectedIndex]?.text || 'N/A';
+    const title = document.getElementById('examTitle')?.value || 'N/A';
+    const duration = document.getElementById('examDuration')?.value || '30';
+    const passingScore = document.getElementById('examPassingScore')?.value || '70';
+    const threshold = document.getElementById('examThreshold')?.value || '85';
+    const questions = document.querySelectorAll('.q-block');
+    
+    let reviewHTML = `
+        <div style="margin-bottom: 25px;">
+            <h4 style="color: var(--color-saffron); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-info-circle"></i> Assessment Details
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Course</div>
+                    <div style="font-weight: 600;">${courseName}</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Title</div>
+                    <div style="font-weight: 600;">${title}</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Duration</div>
+                    <div style="font-weight: 600;">${duration} minutes</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Passing Score</div>
+                    <div style="font-weight: 600;">${passingScore}%</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Activation Threshold</div>
+                    <div style="font-weight: 600;">${threshold}% progress required</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">Total Questions</div>
+                    <div style="font-weight: 600;">${questions.length}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <h4 style="color: var(--color-saffron); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-list"></i> Questions Preview
+            </h4>
+            <div style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
+    `;
+    
+    questions.forEach((block, index) => {
+        const qText = block.querySelector('.q-text')?.value || '';
+        const opts = Array.from(block.querySelectorAll('.opt-text')).map(input => input.value);
+        
+        // Get all correct answer indices from option labels
+        const correctIndices = [];
+        const optionLabels = block.querySelectorAll('.option-label');
+        optionLabels.forEach((label, idx) => {
+            if (label.dataset.correct === 'true') {
+                correctIndices.push(idx);
+            }
+        });
+        
+        reviewHTML += `
+            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--color-golden);">
+                <div style="font-weight: 600; margin-bottom: 10px; color: #333;">
+                    ${index + 1}. ${qText}
+                    ${correctIndices.length > 1 ? '<span style="font-size: 0.8rem; color: #666; font-weight: 400;">(Multiple correct answers)</span>' : ''}
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-left: 20px;">
+                    ${opts.map((opt, i) => {
+                        const isCorrect = correctIndices.includes(i);
+                        return `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: ${isCorrect ? '#d4edda' : '#f8f9fa'}; border-radius: 5px; font-size: 0.9rem; border: ${isCorrect ? '2px solid #28a745' : '1px solid #e0e0e0'};">
+                            <span style="background: ${isCorrect ? '#28a745' : '#6c757d'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
+                                ${String.fromCharCode(65 + i)}
+                            </span>
+                            <span style="flex: 1;">${opt}</span>
+                            ${isCorrect ? '<i class="fas fa-check-circle" style="color: #28a745; font-size: 1.1rem;"></i>' : ''}
+                        </div>
+                    `}).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    reviewHTML += `
+            </div>
+        </div>
+    `;
+    
+    const reviewEl = document.getElementById('examReview');
+    if (reviewEl) reviewEl.innerHTML = reviewHTML;
+}
+
+function resetExamForm() {
+    currentExamStep = 1;
+    updateExamStepUI();
+    const form = document.getElementById('examForm');
+    if (form) form.reset();
+    const container = document.getElementById('questionContainer');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                <i class="fas fa-question-circle" style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;"></i>
+                <p>No questions added yet. Click "Add Question" to get started.</p>
+            </div>
+        `;
+    }
+    if (typeof qCount !== 'undefined') {
+        qCount = 0;
+        updateQuestionCount();
+    }
+}
+
+/* --- STAFF STEPPER WIZARD FUNCTIONS (Moved before DOMContentLoaded) --- */
+let currentStaffStep = 1;
+
+window.staffResetWizard = function () {
+    currentStaffStep = 1;
+    const courseForm = document.getElementById('courseForm');
+    if (courseForm) courseForm.reset();
+    // Reset video upload UI
+    const vidUrl = document.getElementById('introVideoUrl');
+    if (vidUrl) vidUrl.value = '';
+    const vidPrev = document.getElementById('videoPreviewContainer');
+    if (vidPrev) vidPrev.style.display = 'none';
+    const dropCont = document.getElementById('dropzoneContent');
+    if (dropCont) dropCont.style.display = 'block';
+
+    // Only call updateStaffStepUI if it exists (defined later)
+    if (typeof updateStaffStepUI === 'function') {
+        updateStaffStepUI();
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Verify Auth
@@ -244,15 +488,34 @@ document.addEventListener('DOMContentLoaded', () => {
         group.style.display = e.target.value === 'Video' ? 'block' : 'none';
     });
 
-    // 6. Create Exam
+    // 6. Create Exam - Multi-Step Wizard Event Listeners
+    
+    // Navigation buttons
+    document.getElementById('examNextBtn').addEventListener('click', () => {
+        if (validateExamStep(currentExamStep)) {
+            currentExamStep++;
+            updateExamStepUI();
+        }
+    });
+
+    document.getElementById('examPrevBtn').addEventListener('click', () => {
+        currentExamStep--;
+        updateExamStepUI();
+    });
+
+    // Form submission
     document.getElementById('examForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        if (!validateExamStep(3)) return;
+        
         const formData = new FormData(e.target);
         const data = {
             courseID: formData.get('courseID'),
             title: formData.get('title'),
-            duration: formData.get('duration'),
-            passingScore: formData.get('passingScore'),
+            duration: parseInt(formData.get('duration')),
+            passingScore: parseInt(formData.get('passingScore')),
+            activationThreshold: parseInt(formData.get('activationThreshold')),
             questions: []
         };
 
@@ -260,8 +523,21 @@ document.addEventListener('DOMContentLoaded', () => {
         qBlocks.forEach(block => {
             const q = block.querySelector('.q-text').value;
             const opts = Array.from(block.querySelectorAll('.opt-text')).map(input => input.value);
-            const correct = block.querySelector('.correct-idx').value;
-            data.questions.push({ question: q, options: opts, correctAnswerIndex: correct });
+            
+            // Collect all correct answer indices from option labels
+            const correctIndices = [];
+            const optionLabels = block.querySelectorAll('.option-label');
+            optionLabels.forEach((label, index) => {
+                if (label.dataset.correct === 'true') {
+                    correctIndices.push(index);
+                }
+            });
+            
+            data.questions.push({ 
+                question: q, 
+                options: opts, 
+                correctAnswerIndices: correctIndices 
+            });
         });
 
         try {
@@ -271,13 +547,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: Auth.getHeaders(),
                 body: JSON.stringify(data)
             });
+            
+            const result = await res.json();
+            
             if (res.ok) {
-                UI.success('Assessment established successfully!');
+                UI.success('Assessment created successfully!');
                 examModal.style.display = 'none';
+                resetExamForm();
+            } else {
+                UI.error(result.message || 'Assessment creation failed');
             }
-        } catch (err) { UI.error('Assessment creation failed.'); }
+        } catch (err) { 
+            console.error('Exam creation error:', err);
+            UI.error('Assessment creation failed. Please try again.'); 
+        }
         finally { UI.hideLoader(); }
     });
+
+    // Initialize wizard UI on page load
+    setTimeout(() => {
+        updateExamStepUI();
+    }, 100);
 
     // 7. Schedule Flow
     document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
@@ -412,11 +702,21 @@ async function loadEnrolledStudents() {
     const list = document.getElementById('studentInsightList');
     const filterDropdown = document.getElementById('studentCourseFilter');
 
-    try {
-        const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
-        const enrollments = await res.json();
+    // Show loading message
+    list.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center; color: var(--color-text-secondary);">Loading student insights...</td></tr>';
 
-        if (enrollments.length === 0) {
+    try {
+        console.log('Loading enrolled students...');
+        const res = await fetch(`${Auth.apiBase}/staff/students`, { headers: Auth.getHeaders() });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const enrollments = await res.json();
+        console.log('Received enrollments:', enrollments);
+
+        if (!enrollments || enrollments.length === 0) {
             list.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center;">No seekers have joined your paths yet.</td></tr>';
             if (filterDropdown) {
                 filterDropdown.innerHTML = '<option value="">All Courses</option>';
@@ -431,6 +731,8 @@ async function loadEnrolledStudents() {
                 .map(e => [e.courseID._id, e.courseID])
         ).values()];
 
+        console.log('Unique courses found:', uniqueCourses.length);
+
         // Populate filter dropdown with courses
         if (filterDropdown) {
             filterDropdown.innerHTML = '<option value="">All Courses</option>' +
@@ -439,31 +741,45 @@ async function loadEnrolledStudents() {
                 ).join('');
         }
 
-        list.innerHTML = enrollments.map((e, index) => `
-            <tr style="border-bottom: 1px solid #eee; background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};" data-course-id="${e.courseID?._id || ''}">
-                <td style="padding: 15px; text-align: center; color: #666;">${index + 1}</td>
-                <td style="padding: 15px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${e.studentID?.profilePic || '../assets/default-avatar.png'}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
-                        <div>
-                            <div style="font-weight: 600;">${e.studentID?.name}</div>
-                            <div style="font-size: 0.75rem; color: #999;">${e.studentID?.email}</div>
+        list.innerHTML = enrollments.map((e, index) => {
+            // Handle missing data gracefully
+            const studentName = e.studentID?.name || 'Unknown Student';
+            const studentEmail = e.studentID?.email || 'No email';
+            const studentId = e.studentID?.studentID || 'N/A';
+            const courseTitle = e.courseID?.title || 'Unknown Course';
+            const enrolledDate = e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString() : 'Unknown';
+            const progress = e.percentComplete || 0;
+
+            return `
+                <tr style="border-bottom: 1px solid #eee; background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};" data-course-id="${e.courseID?._id || ''}">
+                    <td style="padding: 15px; text-align: center; color: #666;">${index + 1}</td>
+                    <td style="padding: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="${e.studentID?.profilePic || '../assets/default-avatar.png'}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                            <div>
+                                <div style="font-weight: 600;">${studentName}</div>
+                                <div style="font-size: 0.75rem; color: #999;">${studentEmail}</div>
+                            </div>
                         </div>
-                    </div>
-                </td>
-                <td style="padding: 15px; color: #666; font-family: monospace; font-weight: 600;">${e.studentID?.studentID || 'N/A'}</td>
-                <td style="padding: 15px;">${e.courseID?.title}</td>
-                <td style="padding: 15px;">${new Date(e.enrolledAt).toLocaleDateString()}</td>
-                <td style="padding: 15px;">
-                    <div style="width: 100px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden;">
-                        <div style="width: ${e.percentComplete || 0}%; height: 100%; background: var(--color-saffron);"></div>
-                    </div>
-                    <small style="color: var(--color-text-secondary);">${e.percentComplete || 0}%</small>
-                </td>
-            </tr>
-        `).join('');
+                    </td>
+                    <td style="padding: 15px; color: #666; font-family: monospace; font-weight: 600;">${studentId}</td>
+                    <td style="padding: 15px;">${courseTitle}</td>
+                    <td style="padding: 15px;">${enrolledDate}</td>
+                    <td style="padding: 15px;">
+                        <div style="width: 100px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${progress}%; height: 100%; background: var(--color-saffron);"></div>
+                        </div>
+                        <small style="color: var(--color-text-secondary);">${progress}%</small>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        console.log('Student insights loaded successfully');
+        
     } catch (err) {
-        list.innerHTML = '<tr><td colspan="4">Error loading insights.</td></tr>';
+        console.error('Error loading student insights:', err);
+        list.innerHTML = '<tr><td colspan="6" style="padding:20px; text-align:center; color: var(--color-error);">Error loading student insights. Please try again.</td></tr>';
         if (filterDropdown) {
             filterDropdown.innerHTML = '<option value="">All Courses</option>';
         }
@@ -513,29 +829,137 @@ function openUploadModal(id, title) {
 }
 
 let qCount = 0;
+
+function updateQuestionCount() {
+    const count = document.querySelectorAll('.q-block').length;
+    document.getElementById('questionCount').textContent = `(${count})`;
+}
+
 function addQuestionField() {
     qCount++;
     const container = document.getElementById('questionContainer');
+    
+    // Remove empty state message if exists
+    if (container.querySelector('div[style*="text-align: center"]')) {
+        container.innerHTML = '';
+    }
+    
     const div = document.createElement('div');
     div.className = 'q-block';
-    div.style.padding = '15px';
-    div.style.background = '#f9f9f9';
-    div.style.borderRadius = '8px';
-    div.style.marginBottom = '15px';
-
+    div.dataset.questionId = qCount;
+    
     div.innerHTML = `
-        <label>Question ${qCount}</label>
-        <input type="text" class="form-control q-text" placeholder="The question..." required style="margin-bottom:10px;">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-            <input type="text" class="opt-text form-control" placeholder="Option 1" required>
-            <input type="text" class="opt-text form-control" placeholder="Option 2" required>
-            <input type="text" class="opt-text form-control" placeholder="Option 3" required>
-            <input type="text" class="opt-text form-control" placeholder="Option 4" required>
+        <div class="q-block-header">
+            <div class="q-block-number">
+                <i class="fas fa-question-circle"></i> Question ${qCount}
+            </div>
+            <button type="button" class="q-delete-btn" onclick="deleteQuestion(this)">
+                <i class="fas fa-trash"></i> Delete
+            </button>
         </div>
-        <label>Correct Option Index (0-3)</label>
-        <input type="number" class="correct-idx form-control" min="0" max="3" value="0" required>
+        
+        <div class="form-group">
+            <label style="font-weight: 600; color: #333;">Question Text *</label>
+            <textarea class="form-control q-text" placeholder="Enter your question here..." 
+                      required style="min-height: 80px; resize: vertical;"></textarea>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight: 600; color: #333; margin-bottom: 10px; display: block;">
+                Answer Options * 
+                <small style="font-weight: 400; color: #666; font-size: 0.85rem;">
+                    (Click option label to mark as correct)
+                </small>
+            </label>
+            <div class="option-input-group" data-option="A" data-index="0">
+                <div class="option-label" onclick="toggleCorrectAnswer(this)" data-correct="false">A</div>
+                <input type="text" class="opt-text form-control" placeholder="Enter option A" required>
+            </div>
+            <div class="option-input-group" data-option="B" data-index="1">
+                <div class="option-label" onclick="toggleCorrectAnswer(this)" data-correct="false">B</div>
+                <input type="text" class="opt-text form-control" placeholder="Enter option B" required>
+            </div>
+            <div class="option-input-group" data-option="C" data-index="2">
+                <div class="option-label" onclick="toggleCorrectAnswer(this)" data-correct="false">C</div>
+                <input type="text" class="opt-text form-control" placeholder="Enter option C" required>
+            </div>
+            <div class="option-input-group" data-option="D" data-index="3">
+                <div class="option-label" onclick="toggleCorrectAnswer(this)" data-correct="false">D</div>
+                <input type="text" class="opt-text form-control" placeholder="Enter option D" required>
+            </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 10px 15px; border-radius: 8px; font-size: 0.85rem; color: #666; border-left: 3px solid var(--color-golden);">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Note:</strong> Click option labels (A/B/C/D) to mark correct answers. 
+            Multiple selections allowed for questions with more than one correct answer.
+        </div>
     `;
+    
     container.appendChild(div);
+    
+    // Scroll to the new question  
+    setTimeout(() => {
+        div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+    
+    updateQuestionCount();
+}
+
+function toggleCorrectAnswer(labelElement) {
+    const isCorrect = labelElement.dataset.correct === 'true';
+    
+    if (isCorrect) {
+        // Deselect
+        labelElement.dataset.correct = 'false';
+        labelElement.style.background = '#ff9800'; // Orange
+        labelElement.style.borderColor = '#ff9800';
+    } else {
+        // Select
+        labelElement.dataset.correct = 'true';
+        labelElement.style.background = '#28a745'; // Green
+        labelElement.style.borderColor = '#28a745';
+    }
+    
+    // Add a subtle animation
+    labelElement.style.transform = 'scale(1.1)';
+    setTimeout(() => {
+        labelElement.style.transform = 'scale(1)';
+    }, 150);
+}
+
+function deleteQuestion(btn) {
+    if (confirm('Are you sure you want to delete this question?')) {
+        const block = btn.closest('.q-block');
+        block.style.transition = 'all 0.3s ease';
+        block.style.opacity = '0';
+        block.style.transform = 'translateX(-20px)';
+        
+        setTimeout(() => {
+            block.remove();
+            renumberQuestions();
+            updateQuestionCount();
+            
+            // Show empty state if no questions left
+            const container = document.getElementById('questionContainer');
+            if (container.querySelectorAll('.q-block').length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                        <i class="fas fa-question-circle" style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;"></i>
+                        <p>No questions added yet. Click "Add Question" to get started.</p>
+                    </div>
+                `;
+            }
+        }, 300);
+    }
+}
+
+function renumberQuestions() {
+    const questions = document.querySelectorAll('.q-block');
+    questions.forEach((block, index) => {
+        const numberEl = block.querySelector('.q-block-number');
+        numberEl.innerHTML = `<i class="fas fa-question-circle"></i> Question ${index + 1}`;
+    });
 }
 
 async function loadCourses() {
@@ -602,12 +1026,15 @@ async function checkDeletedCourses() {
 document.getElementById('newExamBtn').addEventListener('click', () => {
     const select = document.getElementById('examCourseSelect');
     const courses = JSON.parse(localStorage.getItem('staffCourses') || '[]');
-    select.innerHTML = courses.map(c => `<option value="${c._id}">${c.title}</option>`).join('');
+    select.innerHTML = '<option value="">Choose a course...</option>' + 
+        courses.map(c => `<option value="${c._id}">${c.title}</option>`).join('');
+    resetExamForm();
     document.getElementById('examModal').style.display = 'flex';
 });
 
 document.getElementById('closeExamModal').addEventListener('click', () => {
     document.getElementById('examModal').style.display = 'none';
+    resetExamForm();
 });
 
 function openScheduleModal() {
@@ -1697,23 +2124,9 @@ async function sendStaffReply(ticketId) {
 
 window.sendStaffReply = sendStaffReply;
 
-/* --- STAFF STEPPER WIZARD --- */
-let currentStaffStep = 1;
-
-window.staffResetWizard = function () {
-    currentStaffStep = 1;
-    document.getElementById('courseForm').reset();
-    // Reset video upload UI
-    // Reset video upload UI
-    const vidUrl = document.getElementById('introVideoUrl');
-    if (vidUrl) vidUrl.value = '';
-    const vidPrev = document.getElementById('videoPreviewContainer');
-    if (vidPrev) vidPrev.style.display = 'none';
-    const dropCont = document.getElementById('dropzoneContent');
-    if (dropCont) dropCont.style.display = 'block';
-
-    updateStaffStepUI();
-}
+/* --- STAFF STEPPER WIZARD CONTINUED --- */
+// Note: staffResetWizard is now defined earlier (before DOMContentLoaded)
+// to avoid reference errors
 
 window.staffStepNext = function () {
     if (!validateStaffStep(currentStaffStep)) return;

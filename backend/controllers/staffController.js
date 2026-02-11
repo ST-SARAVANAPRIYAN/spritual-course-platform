@@ -60,20 +60,59 @@ exports.uploadContent = async (req, res) => {
 // Create Exam (Staff)
 exports.createExam = async (req, res) => {
     try {
-        const { courseID, title, duration, passingScore, questions } = req.body;
+        const { courseID, title, duration, passingScore, activationThreshold, questions } = req.body;
+
+        // Validation
+        if (!courseID || !title) {
+            return res.status(400).json({ message: 'Course and title are required' });
+        }
+
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ message: 'At least one question is required' });
+        }
+
+        // Transform questions to match schema
+        const transformedQuestions = questions.map((q, index) => {
+            if (!q.question || !q.options || !Array.isArray(q.options)) {
+                throw new Error(`Question ${index + 1} is missing required fields`);
+            }
+            
+            // Support both single and multiple correct answers
+            let correctIndices = [];
+            if (Array.isArray(q.correctAnswerIndices)) {
+                correctIndices = q.correctAnswerIndices.map(i => parseInt(i));
+            } else if (q.correctAnswerIndex !== undefined) {
+                correctIndices = [parseInt(q.correctAnswerIndex)];
+            }
+            
+            if (correctIndices.length === 0) {
+                throw new Error(`Question ${index + 1} must have at least one correct answer`);
+            }
+            
+            return {
+                questionText: q.question,
+                options: q.options,
+                correctOptionIndices: correctIndices
+            };
+        });
 
         const newExam = new Exam({
             courseID,
             title,
             duration: duration || 30,
             passingScore: passingScore || 70,
-            questions, // Array of { question, options, correctAnswerIndex }
-            createdBy: req.user.id
+            activationThreshold: activationThreshold || 85,
+            questions: transformedQuestions,
+            createdBy: req.user.id,
+            status: 'Draft',
+            approvalStatus: 'Pending' // Explicitly set to Pending for admin approval
         });
 
         await newExam.save();
+        console.log('[EXAM CREATED] ID:', newExam._id, 'Title:', newExam.title, 'ApprovalStatus:', newExam.approvalStatus);
         res.status(201).json({ message: 'Assessment created successfully', exam: newExam });
     } catch (err) {
+        console.error('Exam creation error:', err);
         res.status(500).json({ message: 'Exam creation failed', error: err.message });
     }
 };
@@ -87,10 +126,24 @@ exports.submitExam = async (req, res) => {
         const exam = await Exam.findById(examID);
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-        // Grade Exam
+        // Grade Exam - Support multiple correct answers
         let score = 0;
         exam.questions.forEach((q, idx) => {
-            if (answers[idx] == q.correctAnswerIndex) score++;
+            const studentAnswer = answers[idx];
+            const correctIndices = q.correctOptionIndices || [q.correctOptionIndex]; // Backward compatibility
+            
+            // Convert student answer to array if not already
+            const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [studentAnswer];
+            
+            // Check if student selected all correct answers and no incorrect ones
+            const correctSet = new Set(correctIndices.map(i => parseInt(i)));
+            const studentSet = new Set(studentAnswers.map(i => parseInt(i)));
+            
+            // Perfect match: same size and all elements match
+            if (correctSet.size === studentSet.size && 
+                [...correctSet].every(val => studentSet.has(val))) {
+                score++;
+            }
         });
 
         const finalScore = (score / exam.questions.length) * 100;
@@ -165,11 +218,14 @@ exports.getEnrolledStudents = async (req, res) => {
         // 1. Find all courses by this mentor
         const myCourses = await Course.find({ mentors: { $in: [req.user.id] } }).select('_id title');
         console.log('Found courses:', myCourses.length);
-        const courseIDs = myCourses.map(c => c._id);
-
-        if (courseIDs.length === 0) {
+        
+        if (myCourses.length === 0) {
+            console.log('No courses found for mentor');
             return res.status(200).json([]);
         }
+
+        const courseIDs = myCourses.map(c => c._id);
+        console.log('Course IDs:', courseIDs);
 
         // 2. Find all enrollments for these courses
         const enrollments = await Enrollment.find({ courseID: { $in: courseIDs } })
@@ -180,23 +236,56 @@ exports.getEnrolledStudents = async (req, res) => {
 
         console.log('Found enrollments:', enrollments.length);
 
+        if (enrollments.length === 0) {
+            console.log('No enrollments found for mentor courses');
+            return res.status(200).json([]);
+        }
+
         // 3. Attach Progress - filter out enrollments with missing references
-        const validEnrollments = enrollments.filter(e => e.studentID && e.courseID);
-        console.log('Valid enrollments:', validEnrollments.length);
+        const validEnrollments = enrollments.filter(e => {
+            const isValid = e.studentID && e.courseID;
+            if (!isValid) {
+                console.log('Filtering out invalid enrollment:', e._id, 'Missing:', !e.studentID ? 'studentID' : 'courseID');
+            }
+            return isValid;
+        });
+
+        console.log('Valid enrollments after filtering:', validEnrollments.length);
 
         const insights = await Promise.all(validEnrollments.map(async (e) => {
-            const progress = await Progress.findOne({ studentID: e.studentID._id, courseID: e.courseID._id });
-            return {
-                ...e,
-                percentComplete: progress ? progress.percentComplete : 0
-            };
+            try {
+                const progress = await Progress.findOne({ 
+                    studentID: e.studentID._id, 
+                    courseID: e.courseID._id 
+                });
+                
+                const result = {
+                    ...e,
+                    percentComplete: progress ? progress.percentComplete : 0
+                };
+                
+                console.log(`Progress for student ${e.studentID.name}: ${result.percentComplete}%`);
+                return result;
+                
+            } catch (progressErr) {
+                console.error('Error fetching progress for enrollment:', e._id, progressErr);
+                return {
+                    ...e,
+                    percentComplete: 0
+                };
+            }
         }));
 
         console.log('Returning insights:', insights.length);
         res.status(200).json(insights);
+        
     } catch (err) {
         console.error('Error in getEnrolledStudents:', err);
-        res.status(500).json({ message: 'Failed to fetch student insights', error: err.message, stack: err.stack });
+        res.status(500).json({ 
+            message: 'Failed to fetch student insights', 
+            error: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 };
 

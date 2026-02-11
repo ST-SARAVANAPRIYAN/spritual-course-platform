@@ -162,6 +162,26 @@ const UI = {
         }
 
         return { close: closePopup };
+    },
+
+    /**
+     * Fix relative upload URLs in rich content to point to backend server
+     * This prevents 404 errors when frontend is served from a different port (e.g., Live Server)
+     */
+    fixContentUrls(htmlContent) {
+        if (!htmlContent) return htmlContent;
+        
+        // Get the backend base URL (without /api)
+        // Handle case when CONFIG might not be loaded
+        const backendUrl = (typeof CONFIG !== 'undefined' && CONFIG.CLIENT_URL) ? CONFIG.CLIENT_URL : 'http://localhost:5001';
+        
+        // Replace relative /uploads/ paths with absolute backend URLs
+        // This handles: <img src="/uploads/..."> and <video src="/uploads/...">
+        const fixedContent = htmlContent
+            .replace(/src=["']\/uploads\//g, `src="${backendUrl}/uploads/`)
+            .replace(/href=["']\/uploads\//g, `href="${backendUrl}/uploads/`);
+        
+        return fixedContent;
     }
 };
 

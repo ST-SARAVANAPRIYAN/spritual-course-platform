@@ -391,14 +391,39 @@ async function loadStats() {
 
 async function loadQueue() {
     try {
+        console.log('[LOAD] Loading pending queue...');
         const res = await fetch(`${Auth.apiBase}/admin/pending`, { headers: Auth.getHeaders() });
+        
+        console.log('[FETCH] Response status:', res.status);
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error('[ERROR] Failed to fetch:', errorText);
+            throw new Error('Failed to fetch pending items');
+        }
+        
         const data = await res.json();
+        
+        console.log('[DATA] Raw pending queue data:', data);
+        console.log('[DATA] Content items:', data.content?.length || 0);
+        console.log('[DATA] Exam items:', data.exams?.length || 0);
+        
+        // Ensure data has the expected structure
+        const queueData = {
+            content: Array.isArray(data.content) ? data.content : [],
+            exams: Array.isArray(data.exams) ? data.exams : []
+        };
+        
+        console.log('[SUCCESS] Processed queue data:', queueData);
 
-        // Render for Overview (limited) and Course Queue (full)
-        renderQueueList(data, 'pendingQueueOverview', true);
-        renderQueueList(data, 'pendingQueue', false);
+        // Render for Overview only (pendingQueue element doesn't exist)
+        renderQueueList(queueData, 'pendingQueueOverview', true);
     } catch (err) {
-        console.error('Queue error:', err);
+        console.error('[ERROR] Queue error:', err);
+        const overviewEl = document.getElementById('pendingQueueOverview');
+        if (overviewEl) {
+            overviewEl.innerHTML = '<p style="color: #dc3545; text-align: center; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load pending approvals. Check console for details.</p>';
+        }
     }
 }
 
@@ -406,15 +431,52 @@ function renderQueueList(data, containerId, isOverview) {
     const list = document.getElementById(containerId);
     if (!list) return;
 
-    if (data.content.length === 0 && data.exams.length === 0) {
-        list.innerHTML = '<p style="color: var(--color-text-secondary); padding: 20px;">The sanctuary is clean. No pending reviews.</p>';
+    // Filter out exams without valid courseID before counting
+    const validExams = (data.exams || []).filter(exam => {
+        const courseId = exam.courseID?._id || exam.courseID;
+        return !!courseId; // Only count exams with valid courseID
+    });
+    
+    // Calculate total pending items with valid data only
+    const totalPending = (data.content?.length || 0) + validExams.length;
+
+    console.log('[RENDER] Rendering to ' + containerId + ', isOverview: ' + isOverview);
+    console.log('[RENDER] Total valid pending items: ' + totalPending + ' (content: ' + (data.content?.length || 0) + ', exams: ' + validExams.length + ')');
+    console.log('[RENDER] Filtered out ' + ((data.exams?.length || 0) - validExams.length) + ' exams without courseID');
+    
+    // Update badge count if in overview
+    if (isOverview) {
+        const badge = document.getElementById('pendingCountBadge');
+        if (badge) {
+            if (totalPending > 0) {
+                badge.textContent = totalPending;
+                badge.style.display = 'inline-block';
+                console.log('[SUCCESS] Badge updated:', totalPending);
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    if (totalPending === 0) {
+        console.log('[INFO] No pending items to display');
+        list.innerHTML = `
+            <div style="text-align: center; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745; margin-bottom: 15px;"></i>
+                <h4 style="color: #333; margin-bottom: 8px;">All Clear!</h4>
+                <p style="color: #999; margin: 0;">No pending approvals at this time.</p>
+            </div>
+        `;
         return;
     }
 
+    console.log('[BUILD] Building HTML for pending items...');
     let html = '';
     // Limit for overview
     const contentLimit = isOverview ? data.content.slice(0, 3) : data.content;
-    const examLimit = isOverview ? data.exams.slice(0, 3) : data.exams;
+    const examLimit = isOverview ? validExams.slice(0, 3) : validExams;
+    
+    console.log(`📝 Rendering ${contentLimit.length} content items and ${examLimit.length} exam items`);
 
     contentLimit.forEach(item => {
         // Handle both legacy Content, Modules, and Courses
@@ -441,42 +503,90 @@ function renderQueueList(data, containerId, isOverview) {
             }
         }
 
-        // Visual distinction
-        const borderColors = {
-            'Module': 'var(--color-saffron)',
-            'Course': 'var(--color-primary)'
+        // Type badge styling
+        const typeBadges = {
+            'Module': { color: 'var(--color-saffron)', bg: 'rgba(255, 152, 0, 0.1)', icon: 'book-open', label: 'Module' },
+            'Course': { color: 'var(--color-primary)', bg: 'rgba(52, 152, 219, 0.1)', icon: 'graduation-cap', label: 'Course' }
         };
-        const borderColor = borderColors[itemType] || borderColors['Module'];
+        const badge = typeBadges[itemType] || typeBadges['Module'];
 
         html += `
-            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid ${borderColor}; cursor:pointer; transition:transform 0.2s;" 
+            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid ${badge.color}; cursor:pointer; transition:transform 0.2s; position: relative;" 
                  onmouseover="this.style.transform='translateX(5px)'"
                  onmouseout="this.style.transform='translateX(0)'"
                  onclick="window.location.href='${redirectUrl}'">
-                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <strong>${courseTitle}</strong>
-                        <p style="font-size: 0.8rem; color: #666;">${item.title} (${itemType}) by ${mentorName}</p>
-                    </div>
-                    <i class="fas fa-chevron-right" style="color:#ccc;"></i>
+                <div style="position: absolute; top: 15px; right: 15px;">
+                    <span style="background: ${badge.bg}; color: ${badge.color}; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-${badge.icon}"></i> ${badge.label}
+                    </span>
+                </div>
+                <div style="padding-right: 100px;">
+                    <strong style="font-size: 1.05rem; color: #333; display: block; margin-bottom: 6px;">${courseTitle}</strong>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">
+                        <i class="fas fa-user" style="color: #999;"></i> ${item.title} by ${mentorName}
+                    </p>
+                    <p style="font-size: 0.75rem; color: #999; margin: 5px 0 0 0;">
+                        <i class="fas fa-clock"></i> Created ${new Date(item.createdAt).toLocaleDateString()}
+                    </p>
                 </div>
             </div>
         `;
     });
 
-    examLimit.forEach(exam => {
-        // Exams might still use the modal for now, or we can redirect to an exam previewer if it exists.
-        // Keeping modal for exams to avoid breaking that flow unless asked.
+    examLimit.forEach((exam, index) => {
+        console.log('[EXAM] Processing exam ' + (index + 1) + ':', { 
+            id: exam._id, 
+            title: exam.title, 
+            courseID: exam.courseID,
+            createdBy: exam.createdBy
+        });
+        
+        // Handle missing/undefined exam title and get better creator names
+        const examTitle = exam.title && exam.title !== 'undefined' ? exam.title : `Assessment #${index + 1}`;
+        const creatorName = exam.createdBy?.name || 'Course Staff';
+        const courseName = exam.courseID?.title || 'Course Not Specified';
+        
+        const courseId = exam.courseID?._id || exam.courseID;
+        const reviewUrl = `course-preview.html?id=${courseId}&examId=${exam._id}`;
+        console.log('[URL] Review URL for "' + examTitle + '":', reviewUrl);
+        
         html += `
-            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid var(--color-golden);">
-                <div>
-                    <strong>${exam.courseID?.title || 'Unknown Path'}</strong>
-                    <p style="font-size: 0.8rem; color: #666;">Exam by ${exam.mentorID?.name || 'Mentor'}</p>
+            <div class="review-card glass-premium" style="background: white; border-radius: 12px; margin-bottom: 10px; padding: 15px; border-left: 4px solid var(--color-golden); cursor:pointer; transition:transform 0.2s; position: relative;"
+                 onmouseover="this.style.transform='translateX(5px)'"
+                 onmouseout="this.style.transform='translateX(0)'"
+                 onclick="window.location.href='${reviewUrl}'">
+                <div style="position: absolute; top: 15px; right: 15px;">
+                    <span style="background: rgba(255, 193, 7, 0.1); color: var(--color-golden); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-clipboard-check"></i> ASSESSMENT
+                    </span>
                 </div>
-                <button class="btn-primary" onclick="event.stopPropagation(); openReviewModal('${exam._id}', '#', 'Assessment', 'Exam')" style="padding: 5px 15px; font-size: 0.75rem;">Review</button>
+                <div style="padding-right: 120px;">
+                    <strong style="font-size: 1.05rem; color: #333; display: block; margin-bottom: 6px;">${courseName}</strong>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">
+                        <i class="fas fa-user" style="color: #999;"></i> ${examTitle} by ${creatorName}
+                    </p>
+                    <p style="font-size: 0.75rem; color: #999; margin: 5px 0 0 0;">
+                        <i class="fas fa-question-circle"></i> ${exam.questions?.length || 0} Questions • 
+                        <i class="fas fa-clock"></i> Created ${new Date(exam.createdAt).toLocaleDateString()}
+                    </p>
+                </div>
             </div>
         `;
     });
+    
+    console.log('[SUCCESS] Generated HTML for ' + examLimit.length + ' exams');
+
+    // Add "View All" button if overview has more items
+    console.log('✨ Rendered pending items successfully to', containerId);
+    if (isOverview && totalPending > 6) {
+        html += `
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="switchDashboardSection('coursesSection')" class="btn-primary" style="background: var(--color-saffron); padding: 10px 30px;">
+                    <i class="fas fa-list"></i> View All Pending (${totalPending})
+                </button>
+            </div>
+        `;
+    }
 
     list.innerHTML = html;
 }

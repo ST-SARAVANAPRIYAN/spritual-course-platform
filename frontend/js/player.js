@@ -204,13 +204,13 @@ function loadModuleContent(module) {
 
         // Show description if available
         if (module.content) {
-            contentDisplay.innerHTML = module.content;
+            contentDisplay.innerHTML = UI.fixContentUrls(module.content);
             contentDisplay.style.display = 'block';
         }
 
         // Show description if available
         if (module.content) {
-            contentDisplay.innerHTML = module.content;
+            contentDisplay.innerHTML = UI.fixContentUrls(module.content);
             contentDisplay.style.display = 'block';
         }
     } else if (contentType === 'pdf' && fileUrl) {
@@ -233,7 +233,7 @@ function loadModuleContent(module) {
         downloadBtn.style.display = 'inline-block';
     } else {
         // RICH CONTENT (default)
-        contentDisplay.innerHTML = module.content || '<p style="color:#666; font-style:italic;">No content available for this module.</p>';
+        contentDisplay.innerHTML = UI.fixContentUrls(module.content) || '<p style="color:#666; font-style:italic;">No content available for this module.</p>';
         contentDisplay.style.display = 'block';
     }
 

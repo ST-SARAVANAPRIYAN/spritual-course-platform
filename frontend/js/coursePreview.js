@@ -7,16 +7,32 @@ let courseId = null;
 let currentModuleId = null;
 let courseData = null;
 let modulesData = [];
+let assessmentsData = [];
 let currentUser = null;
+let currentExamId = null;
+let currentExamData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const authData = Auth.checkAuth(['Admin', 'Staff']);
     if (!authData) return;
     currentUser = authData.user;
 
+    // Initialize user profile in header
+    if (currentUser) {
+        const userNameEl = document.getElementById('userName');
+        const userAvatarEl = document.getElementById('userAvatar');
+        
+        if (userNameEl && userAvatarEl) {
+            userNameEl.textContent = currentUser.firstName || currentUser.name || currentUser.email || 'User';
+            const initials = (currentUser.firstName || currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase();
+            userAvatarEl.textContent = initials;
+        }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     courseId = urlParams.get('id');
     const requestedModuleId = urlParams.get('moduleId'); // Deep link
+    const requestedExamId = urlParams.get('examId'); // Exam review
 
     if (!courseId) {
         UI.error('No course specified');
@@ -26,8 +42,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupNavigation();
     await loadCourseData();
 
+    // Handle exam review if examId is provided
+    if (requestedExamId) {
+        currentExamId = requestedExamId;
+        await loadAndDisplayExam(requestedExamId);
+    }
     // Auto-select module if requested, otherwise first one
-    if (requestedModuleId) {
+    else if (requestedModuleId) {
         selectModule(requestedModuleId);
     } else if (modulesData.length > 0) {
         selectModule(modulesData[0]._id);
@@ -51,19 +72,24 @@ function setupNavigation() {
 async function loadCourseData() {
     try {
         UI.showLoader();
-        const [courseRes, modulesRes] = await Promise.all([
+        const [courseRes, modulesRes, assessmentsRes] = await Promise.all([
             fetch(`${Auth.apiBase}/courses/${courseId}`, { headers: Auth.getHeaders() }),
-            fetch(`${Auth.apiBase}/courses/${courseId}/modules?includeUnpublished=true`, { headers: Auth.getHeaders() })
+            fetch(`${Auth.apiBase}/courses/${courseId}/modules?includeUnpublished=true`, { headers: Auth.getHeaders() }),
+            fetch(`${Auth.apiBase}/exams/course/${courseId}`, { headers: Auth.getHeaders() })
         ]);
 
         if (!courseRes.ok) throw new Error('Failed to load course');
 
         const cData = await courseRes.json();
         const mData = await modulesRes.json();
+        const aData = await assessmentsRes.json();
 
         courseData = cData.course;
         // Ensure modules logic works even if modules are empty or undefined
         modulesData = mData.modules || [];
+        assessmentsData = aData || [];
+
+        console.log('[ASSESSMENTS] Loaded', assessmentsData.length, 'assessments for course');
 
         renderSidebar();
         renderHeader();
@@ -94,8 +120,8 @@ function renderHeader() {
         let btnHtml = '';
 
         if (displayStatus === 'Published') {
-            // Already Published - No Unpublish button as requested
-            btnHtml = `<span style="color:#28a745; font-weight:bold;"><i class="fas fa-check-double"></i> Live in Course Catalog</span>`;
+            // Already Published - No action button needed, status badge shows it
+            btnHtml = '';
         } else if (displayStatus === 'Approved') {
             // Approved -> Publish
             btnHtml = `
@@ -107,7 +133,7 @@ function renderHeader() {
             // Draft/Pending -> Approve
             btnHtml = `
                  <button onclick="toggleCourseStatus('Approved')" class="btn btn-approve" style="font-size:0.8rem;">
-                    <i class="fas fa-check"></i> Approve (Set as Upcoming)
+                    <i class="fas fa-check"></i> Approve Course
                  </button>
             `;
         }
@@ -117,9 +143,11 @@ function renderHeader() {
 
 function renderSidebar() {
     const list = document.getElementById('moduleList');
-    document.getElementById('progressText').textContent = `${modulesData.length} items`;
+    const totalItems = modulesData.length + assessmentsData.length;
+    document.getElementById('progressText').textContent = `${modulesData.length} module${modulesData.length !== 1 ? 's' : ''} • ${assessmentsData.length} assessment${assessmentsData.length !== 1 ? 's' : ''}`;
 
-    list.innerHTML = modulesData.map((m, index) => {
+    // Render modules
+    let modulesHtml = modulesData.map((m, index) => {
         let statusColor = '#ccc';
         if (m.status === 'Pending') statusColor = '#ffc107';
         if (m.status === 'Approved') statusColor = '#17a2b8'; // Upcoming
@@ -128,6 +156,42 @@ function renderSidebar() {
 
         // Use m.status properly
         const displayStatus = m.status || 'Draft';
+        const role = (currentUser.role || '').toLowerCase();
+        
+        // Build action menu for admin
+        let actionMenu = '';
+        if (role === 'admin') {
+            let menuItems = '';
+            if (displayStatus === 'Approved') {
+                // Already approved - only show delete
+                menuItems = `
+                    <div class="assessment-dropdown-item reject" onclick="event.stopPropagation(); deleteModuleFromMenu('${m._id}'); closeAssessmentMenu();">
+                        <i class="fas fa-trash"></i> Delete Module
+                    </div>
+                `;
+            } else {
+                // Pending/Draft - show approve and delete
+                menuItems = `
+                    <div class="assessment-dropdown-item approve" onclick="event.stopPropagation(); approveModuleFromMenu('${m._id}'); closeAssessmentMenu();">
+                        <i class="fas fa-check"></i> Approve Module
+                    </div>
+                    <div class="assessment-dropdown-item reject" onclick="event.stopPropagation(); deleteModuleFromMenu('${m._id}'); closeAssessmentMenu();">
+                        <i class="fas fa-trash"></i> Delete Module
+                    </div>
+                `;
+            }
+            
+            actionMenu = `
+                <div style="position: relative;">
+                    <button class="assessment-menu-btn" onclick="event.stopPropagation(); toggleAssessmentMenu(event, 'mod-${m._id}');" title="Actions">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="assessment-dropdown" id="menu-mod-${m._id}">
+                        ${menuItems}
+                    </div>
+                </div>
+            `;
+        }
 
         return `
             <li class="module-item" id="nav-${m._id}" onclick="selectModule('${m._id}')">
@@ -139,10 +203,93 @@ function renderSidebar() {
                         ${displayStatus}
                     </div>
                 </div>
-                 ${displayStatus === 'Approved' ? '<i class="fas fa-check" style="color:#17a2b8; font-size:0.8rem;"></i>' : '<i class="fas fa-eye-slash" style="color:#ccc; font-size:0.8rem;"></i>'}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${displayStatus === 'Approved' ? '<i class="fas fa-check" style="color:#17a2b8; font-size:0.8rem;"></i>' : '<i class="fas fa-eye-slash" style="color:#ccc; font-size:0.8rem;"></i>'}
+                    ${actionMenu}
+                </div>
             </li>
         `;
     }).join('');
+
+    // Render assessments section
+    let assessmentsHtml = '';
+    if (assessmentsData.length > 0) {
+        assessmentsHtml = `
+            <li style="padding: 15px 10px 8px; border-top: 1px solid #e9ecef; margin-top: 15px; background: #f8f9fa;">
+                <div style="font-weight: 600; font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-clipboard-check" style="margin-right: 8px; color: var(--color-golden);"></i>Assessments
+                </div>
+            </li>
+        ` + assessmentsData.map((exam, index) => {
+            let statusColor = '#ccc';
+            if (exam.approvalStatus === 'Pending') statusColor = '#ffc107';
+            if (exam.approvalStatus === 'Approved') statusColor = '#28a745';
+            if (exam.approvalStatus === 'Rejected') statusColor = '#dc3545';
+
+            const displayStatus = exam.approvalStatus || 'Draft';
+            const role = (currentUser.role || '').toLowerCase();
+            
+            // Build action menu for admin
+            let actionMenu = '';
+            if (role === 'admin') {
+                let menuItems = '';
+                if (displayStatus === 'Pending') {
+                    menuItems = `
+                        <div class="assessment-dropdown-item approve" onclick="event.stopPropagation(); approveAssessment('${exam._id}'); closeAssessmentMenu();">
+                            <i class="fas fa-check"></i> Approve
+                        </div>
+                        <div class="assessment-dropdown-item reject" onclick="event.stopPropagation(); rejectAssessment('${exam._id}'); closeAssessmentMenu();">
+                            <i class="fas fa-times"></i> Reject
+                        </div>
+                    `;
+                } else if (displayStatus === 'Approved') {
+                    menuItems = `
+                        <div class="assessment-dropdown-item reject" onclick="event.stopPropagation(); rejectAssessment('${exam._id}'); closeAssessmentMenu();">
+                            <i class="fas fa-ban"></i> Revoke Approval
+                        </div>
+                    `;
+                } else if (displayStatus === 'Rejected') {
+                    menuItems = `
+                        <div class="assessment-dropdown-item approve" onclick="event.stopPropagation(); approveAssessment('${exam._id}'); closeAssessmentMenu();">
+                            <i class="fas fa-check"></i> Approve
+                        </div>
+                    `;
+                }
+                
+                actionMenu = `
+                    <div style="position: relative;">
+                        <button class="assessment-menu-btn" onclick="event.stopPropagation(); toggleAssessmentMenu(event, '${exam._id}');" title="Actions">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="assessment-dropdown" id="menu-${exam._id}">
+                            ${menuItems}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <li class="module-item assessment-item" id="nav-exam-${exam._id}" onclick="selectAssessment('${exam._id}')" style="border-left: 3px solid var(--color-golden);">
+                    <div class="module-icon" style="background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));">
+                        <i class="fas fa-clipboard-check" style="font-size: 0.9rem;"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:500; font-size:0.95rem; color:#333;">${exam.title}</div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:#888; margin-top:2px;">
+                            <span style="width:8px; height:8px; border-radius:50%; background:${statusColor}; display:inline-block;"></span>
+                            ${displayStatus} • ${exam.questions?.length || 0} Questions
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        ${displayStatus === 'Approved' ? '<i class="fas fa-check-circle" style="color:#28a745; font-size:0.9rem;"></i>' : displayStatus === 'Rejected' ? '<i class="fas fa-times-circle" style="color:#dc3545; font-size:0.9rem;"></i>' : '<i class="fas fa-clock" style="color:#ffc107; font-size:0.9rem;"></i>'}
+                        ${actionMenu}
+                    </div>
+                </li>
+            `;
+        }).join('');
+    }
+
+    list.innerHTML = modulesHtml + assessmentsHtml;
 }
 
 function selectModule(id) {
@@ -171,64 +318,29 @@ function selectModule(id) {
     // Render content based on content type
     renderModuleContent(module);
 
-    // Admin Action Panel
+    // Hide action panel for modules (actions are now in sidebar menu)
     const actionPanel = document.getElementById('moduleActionPanel');
     const rejectionAlert = document.getElementById('rejectionAlert');
     if (rejectionAlert) rejectionAlert.style.display = 'none';
     actionPanel.style.display = 'none';
+}
 
-    // ALWAYS SHOW Action Panel for Admins (Toggle Style)
-    const role = (currentUser.role || '').toLowerCase();
+/**
+ * Select and display an assessment
+ */
+function selectAssessment(examId) {
+    currentExamId = examId;
+    currentModuleId = null; // Clear module selection
+    const exam = assessmentsData.find(e => e._id === examId);
+    if (!exam) return;
 
-    if (role === 'admin') {
-        actionPanel.style.display = 'flex'; // Force Flex
-        actionPanel.innerHTML = ''; // Clear previous
+    // UI Updates
+    document.querySelectorAll('.module-item').forEach(el => el.classList.remove('active'));
+    const activeEl = document.getElementById(`nav-exam-${examId}`);
+    if (activeEl) activeEl.classList.add('active');
 
-        let mainAction = '';
-        let panelStyle = '';
-        let infoHtml = '';
-
-        if (module.status === 'Approved') {
-            // Context: Approved (Final State for Modules)
-            panelStyle = 'background:#e6f4ea; border-bottom:1px solid #c3e6cb;';
-            infoHtml = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <i class="fas fa-check-circle" style="color:#155724; font-size:1.2rem;"></i>
-                    <div>
-                        <strong style="color:#155724;">Approved</strong>
-                        <div style="font-size:0.8rem; color:#155724;">Module is ready. Visibility depends on Course status.</div>
-                    </div>
-                </div>`;
-            // No Publish button for modules
-            mainAction = '';
-        } else {
-            // Context: Not Live (Draft/Pending)
-            panelStyle = 'background:#fff3cd; border-bottom:1px solid #ffeeba;';
-            infoHtml = `
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <i class="fas fa-eye-slash" style="color:#856404; font-size:1.2rem;"></i>
-                    <div>
-                        <strong style="color:#856404;">Pending Review</strong>
-                        <div style="font-size:0.8rem; color:#856404;">Hidden from students.</div>
-                    </div>
-                </div>`;
-            mainAction = `
-                <button onclick="toggleModuleStatus('Approved')" class="btn btn-approve">
-                    <i class="fas fa-check"></i> Approve
-                </button>`;
-        }
-
-        actionPanel.style.cssText = `display:flex; align-items:center; justify-content:space-between; padding:15px; ${panelStyle}`;
-        actionPanel.innerHTML = `
-            ${infoHtml}
-            <div style="display:flex; gap:10px;">
-                ${mainAction}
-                <button onclick="deleteModule()" class="btn btn-reject" style="background:white; color:#dc3545; border:1px solid #dc3545;" title="Delete Module">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-    }
+    // Load and display the exam
+    loadAndDisplayExam(examId);
 }
 
 // Toggle Module Status (Replaces old currentModuleAction)
@@ -328,8 +440,9 @@ async function renderModuleContent(module) {
     const contentType = module.contentType || 'rich-content';
 
     if (contentType === 'rich-content') {
-        // Display rich HTML content
-        container.innerHTML = module.content || '<p>No content.</p>';
+        // Display rich HTML content with fixed URLs
+        const fixedContent = UI.fixContentUrls(module.content);
+        container.innerHTML = fixedContent || '<p>No content.</p>';
     } else if (contentType === 'video') {
         // Display actual video player for admin/staff preview
         if (module.fileUrl && module.fileMetadata) {
@@ -437,3 +550,325 @@ function formatFileSize(bytes) {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
+/**
+ * Assessment Review Functions
+ */
+async function loadAndDisplayExam(examId) {
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/exams/${examId}`, {
+            headers: Auth.getHeaders()
+        });
+        
+        if (!res.ok) throw new Error('Failed to load assessment');
+        
+        const exam = await res.json();
+        currentExamData = exam;
+        
+        // Only hide sidebar if coming from external link (no assessments loaded yet)
+        if (assessmentsData.length === 0) {
+            document.querySelector('.sidebar').style.display = 'none';
+            document.querySelector('.content-area').style.width = '100%';
+        }
+        
+        // Hide action panel for assessments (actions are now in sidebar menu)
+        const actionPanel = document.getElementById('moduleActionPanel');
+        actionPanel.style.display = 'none';
+        
+        // Display exam details
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('contentDisplay').style.display = 'block';
+        
+        document.getElementById('moduleTitle').textContent = exam.title;
+        document.getElementById('moduleAuthor').textContent = exam.createdBy?.name || 'Staff Member';
+        document.getElementById('moduleDate').textContent = new Date(exam.createdAt).toLocaleDateString();
+        
+        const statusBadge = document.getElementById('moduleStatusBadge');
+        statusBadge.textContent = exam.approvalStatus;
+        statusBadge.className = `status-badge status-${exam.approvalStatus}`;
+        
+        // Show rejection reason if rejected
+        if (exam.approvalStatus === 'Rejected' && exam.rejectionReason) {
+            document.getElementById('rejectionAlert').style.display = 'block';
+            document.getElementById('rejectionReasonText').textContent = exam.rejectionReason;
+        } else {
+            document.getElementById('rejectionAlert').style.display = 'none';
+        }
+        
+        // Render exam content
+        const moduleBody = document.getElementById('moduleBody');
+        moduleBody.innerHTML = `
+            <div style="margin-bottom: 30px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid var(--color-saffron);">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Total Questions</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--color-saffron);">${exam.questions.length}</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #17a2b8;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Duration</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #17a2b8;">${exam.duration} <span style="font-size: 1rem;">min</span></div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #28a745;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Passing Score</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #28a745;">${exam.passingScore}<span style="font-size: 1rem;">%</span></div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border: 2px solid #6c757d;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Activation Threshold</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #6c757d;">${exam.activationThreshold}<span style="font-size: 1rem;">%</span></div>
+                    </div>
+                </div>
+                
+                <h3 style="color: var(--color-saffron); margin: 30px 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid var(--color-saffron);">
+                    <i class="fas fa-list-ol"></i> Assessment Questions
+                </h3>
+                
+                ${exam.questions.map((q, index) => `
+                    <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <div style="font-weight: 600; margin-bottom: 15px; color: #333; font-size: 1.1rem; display: flex; align-items: start; gap: 12px;">
+                            <span style="background: linear-gradient(135deg, var(--color-saffron) 0%, var(--color-golden) 100%); color: white; padding: 8px 14px; border-radius: 8px; font-size: 1rem; font-weight: bold; flex-shrink: 0;">
+                                Q${index + 1}
+                            </span>
+                            <span style="flex: 1;">${q.questionText}</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-left: 45px;">
+                            ${q.options.map((opt, i) => {
+                                const isCorrect = q.correctOptionIndices.includes(i);
+                                return `
+                                    <div style="display: flex; align-items: center; gap: 12px; padding: 14px; background: ${isCorrect ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' : '#f8f9fa'}; border-radius: 8px; ${isCorrect ? 'border: 2px solid #28a745; box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);' : 'border: 1px solid #e0e0e0;'}">
+                                        <span style="background: ${isCorrect ? '#28a745' : '#6c757d'}; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 0.95rem;">
+                                            ${String.fromCharCode(65 + i)}
+                                        </span>
+                                        <span style="flex: 1; font-size: 0.95rem;">${opt}</span>
+                                        ${isCorrect ? '<i class="fas fa-check-circle" style="color: #28a745; font-size: 1.3rem;"></i>' : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+    } catch (err) {
+        console.error('Error loading assessment:', err);
+        UI.error('Failed to load assessment');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+async function currentModuleAction(action) {
+    // Check if we're reviewing an exam or a module
+    if (currentExamId && currentExamData) {
+        await handleExamAction(action);
+    } else if (currentModuleId) {
+        await handleModuleAction(action);
+    }
+}
+
+async function handleExamAction(action, rejectionReason = null) {
+    // If rejecting and no reason provided, show modal
+    if (action === 'Rejected' && !rejectionReason) {
+        showRejectionModal();
+        return;
+    }
+    
+    try {
+        UI.showLoader();
+        const endpoint = `${Auth.apiBase}/exams/${currentExamId}/approve`;
+        
+        console.log('[EXAM ACTION] Processing:', {
+            action,
+            examId: currentExamId,
+            endpoint,
+            rejectionReason
+        });
+        
+        // Backend expects { action: 'approve' } or { action: 'reject', rejectionReason: '...' }
+        const requestBody = {
+            action: action === 'Approved' ? 'approve' : 'reject'
+        };
+        
+        if (action === 'Rejected') {
+            requestBody.rejectionReason = rejectionReason;
+        }
+        
+        console.log('[EXAM ACTION] Request body:', requestBody);
+            
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { ...Auth.getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('[EXAM ACTION] Response status:', res.status);
+        
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+            console.error('[EXAM ACTION] Full error response:', errorData);
+            console.error('[EXAM ACTION] Error message:', errorData.message);
+            console.error('[EXAM ACTION] Error details:', errorData.error);
+            const errorMsg = errorData.error ? `${errorData.message}: ${errorData.error}` : errorData.message;
+            throw new Error(errorMsg || 'Action failed');
+        }
+        
+        const result = await res.json();
+        console.log('[EXAM ACTION] Success:', result);
+        
+        UI.success(`Assessment ${action === 'Approved' ? 'approved' : 'rejected'} successfully`);
+        
+        // Reload course data and refresh sidebar
+        await loadCourseData();
+        
+        // Refresh the assessment display if it's currently selected
+        if (currentExamId) {
+            await loadAndDisplayExam(currentExamId);
+        }
+        
+    } catch (err) {
+        console.error('[EXAM ACTION] Error processing assessment action:', err);
+        UI.error(err.message || 'Failed to process action');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+async function handleModuleAction(action) {
+    // Original module approval logic
+    let remarks = '';
+    if (action === 'Rejected') {
+        remarks = prompt('Enter reason for rejection:');
+        if (!remarks) return;
+    }
+
+    try {
+        UI.showLoader();
+        const res = await fetch(`${Auth.apiBase}/admin/review`, {
+            method: 'POST',
+            headers: { ...Auth.getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contentType: 'Module',
+                contentID: currentModuleId,
+                status: action,
+                remarks: remarks
+            })
+        });
+
+        if (res.ok) {
+            UI.success(`Module ${action}`);
+            await loadCourseData();
+            // Re-select the same module to see updated status
+            selectModule(currentModuleId);
+        } else {
+            UI.error('Action failed');
+        }
+    } catch (e) {
+        UI.error('Error processing request');
+    } finally {
+        UI.hideLoader();
+    }
+}
+
+/**
+ * Modal control functions for rejection reason
+ */
+function showRejectionModal() {
+    const modal = document.getElementById('rejectionModal');
+    const input = document.getElementById('rejectionReasonInput');
+    if (modal && input) {
+        input.value = '';
+        modal.style.display = 'flex';
+        input.focus();
+    }
+}
+
+function closeRejectionModal() {
+    const modal = document.getElementById('rejectionModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function confirmRejection() {
+    const input = document.getElementById('rejectionReasonInput');
+    const reason = input?.value?.trim();
+    
+    if (!reason) {
+        UI.error('Please provide a reason for rejection');
+        return;
+    }
+    
+    closeRejectionModal();
+    await handleExamAction('Rejected', reason);
+}
+
+/**
+ * Module action wrapper functions for sidebar menu
+ */
+async function approveModuleFromMenu(moduleId) {
+    currentModuleId = moduleId;
+    const module = modulesData.find(m => m._id === moduleId);
+    if (module) {
+        await toggleModuleStatus('Approved');
+    }
+}
+
+async function deleteModuleFromMenu(moduleId) {
+    currentModuleId = moduleId;
+    const module = modulesData.find(m => m._id === moduleId);
+    if (module) {
+        await deleteModule();
+    }
+}
+
+/**
+ * Assessment menu dropdown controls
+ */
+function toggleAssessmentMenu(event, examId) {
+    event.stopPropagation();
+    
+    // Close all other open menus
+    document.querySelectorAll('.assessment-dropdown').forEach(menu => {
+        if (menu.id !== `menu-${examId}`) {
+            menu.classList.remove('show');
+        }
+    });
+    
+    // Toggle current menu
+    const menu = document.getElementById(`menu-${examId}`);
+    if (menu) {
+        menu.classList.toggle('show');
+    }
+}
+
+function closeAssessmentMenu() {
+    document.querySelectorAll('.assessment-dropdown').forEach(menu => {
+        menu.classList.remove('show');
+    });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.assessment-menu-btn') && !event.target.closest('.assessment-dropdown')) {
+        closeAssessmentMenu();
+    }
+});
+
+/**
+ * Wrapper functions for assessment approval/rejection
+ */
+async function approveAssessment(examId) {
+    if (examId) {
+        currentExamId = examId;
+        currentExamData = assessmentsData.find(e => e._id === examId);
+    }
+    await handleExamAction('Approved');
+}
+
+async function rejectAssessment(examId) {
+    if (examId) {
+        currentExamId = examId;
+        currentExamData = assessmentsData.find(e => e._id === examId);
+    }
+    await handleExamAction('Rejected');
+}

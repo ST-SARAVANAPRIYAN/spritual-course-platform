@@ -37,7 +37,9 @@ exports.addStaff = async (req, res) => {
 // Get Pending Content Queue
 exports.getPendingContent = async (req, res) => {
     try {
-        const { Module, Course } = require('../models/index');
+        const { Module, Course, Exam, User } = require('../models/index');
+
+        console.log('[PENDING] Fetching pending content...');
 
         // Get pending modules
         const pendingModules = await Module.find({ status: 'Pending' })
@@ -49,6 +51,66 @@ exports.getPendingContent = async (req, res) => {
             .populate('createdBy', 'name')
             .populate('mentors', 'name');
 
+        // Debug: Check all exams first
+        const allExams = await Exam.find({});
+        console.log('[DEBUG] Total exams in database:', allExams.length);
+        if (allExams.length > 0) {
+            console.log('[DEBUG] Sample exam approvalStatus values:', allExams.map(e => ({ 
+                id: e._id, 
+                title: e.title, 
+                approvalStatus: e.approvalStatus,
+                hasApprovalStatus: e.hasOwnProperty('approvalStatus')
+            })));
+        }
+
+        // Get pending exams/assessments - also check for null/undefined approvalStatus
+        const pendingExams = await Exam.find({ 
+            $or: [
+                { approvalStatus: 'Pending' },
+                { approvalStatus: { $exists: false } },
+                { approvalStatus: null }
+            ]
+        })
+            .populate('courseID', 'title')
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+
+        // If createdBy population failed, try to get course creator as fallback
+
+        for (let exam of pendingExams) {
+            if (!exam.createdBy && exam.courseID) {
+                // If no exam creator, try to use the course creator as fallback
+                try {
+                    const course = await Course.findById(exam.courseID._id).populate('mentors', 'name');
+                    if (course && course.mentors && course.mentors.length > 0) {
+                        // Use the first mentor as the fallback creator
+                        exam.createdBy = {
+                            name: course.mentors[0].name,
+                            _id: course.mentors[0]._id
+                        };
+                        console.log(`[FALLBACK] Using course mentor '${course.mentors[0].name}' for exam ${exam._id}`);
+                    }
+                } catch (err) {
+                    console.error('[COURSE LOOKUP ERROR] for exam', exam._id, ':', err.message);
+                }
+            }
+        }
+
+        console.log('[STATS] Found:', pendingModules.length, 'modules,', pendingCourses.length, 'courses,', pendingExams.length, 'exams');
+        
+        if (pendingExams.length > 0) {
+            console.log('[EXAMS] Pending exams detailed info:');
+            pendingExams.forEach((e, index) => {
+                console.log(`[EXAM ${index + 1}]`, {
+                    id: e._id,
+                    title: e.title || 'NO_TITLE',
+                    course: e.courseID?.title || 'NO_COURSE',
+                    createdByName: e.createdBy?.name || 'NO_CREATOR_NAME',
+                    hasCreatedBy: !!e.createdBy
+                });
+            });
+        }
+
         // Mark courses with a type field for frontend distinction
         const coursesWithType = pendingCourses.map(course => ({
             ...course.toObject(),
@@ -58,8 +120,12 @@ exports.getPendingContent = async (req, res) => {
         // Combine modules and courses
         const allPendingContent = [...pendingModules, ...coursesWithType];
 
-        res.status(200).json({ content: allPendingContent, exams: [] });
+        const response = { content: allPendingContent, exams: pendingExams };
+        console.log('[SUCCESS] Sending response to frontend');
+        
+        res.status(200).json(response);
     } catch (err) {
+        console.error('[ERROR] getPendingContent error:', err);
         res.status(500).json({ message: 'Failed to fetch queue', error: err.message });
     }
 };
@@ -367,10 +433,32 @@ exports.getAdvancedAnalytics = async (req, res) => {
 
         // === 4. CONTENT & STAFF ANALYTICS ===
         
-        // Content Status Distribution
-        const pendingContent = await Module.countDocuments({ status: 'Pending' });
-        const approvedContent = await Module.countDocuments({ status: { $in: ['Approved', 'Published'] } });
-        const rejectedContent = await Module.countDocuments({ status: 'Rejected' });
+        // Content Status Distribution (Modules + Courses + Exams)
+        const { Exam } = require('../models/index');
+        
+        // Count pending content from all sources
+        const pendingModules = await Module.countDocuments({ status: 'Pending' });
+        const pendingCourses = await Course.countDocuments({ status: 'Pending' });
+        const pendingExams = await Exam.countDocuments({ 
+            $or: [
+                { approvalStatus: 'Pending' },
+                { approvalStatus: { $exists: false } },
+                { approvalStatus: null }
+            ]
+        });
+        const pendingContent = pendingModules + pendingCourses + pendingExams;
+        
+        // Count approved content from all sources
+        const approvedModules = await Module.countDocuments({ status: { $in: ['Approved', 'Published'] } });
+        const approvedCourses = await Course.countDocuments({ status: { $in: ['Approved', 'Published'] } });
+        const approvedExams = await Exam.countDocuments({ approvalStatus: 'Approved' });
+        const approvedContent = approvedModules + approvedCourses + approvedExams;
+        
+        // Count rejected content from all sources
+        const rejectedModules = await Module.countDocuments({ status: 'Rejected' });
+        const rejectedCourses = await Course.countDocuments({ status: 'Rejected' });
+        const rejectedExams = await Exam.countDocuments({ approvalStatus: 'Rejected' });
+        const rejectedContent = rejectedModules + rejectedCourses + rejectedExams;
 
         // Staff Content Contribution
         const staffContributions = await Module.aggregate([
