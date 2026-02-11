@@ -538,13 +538,24 @@ function renderQueueList(data, containerId, isOverview) {
             id: exam._id, 
             title: exam.title, 
             courseID: exam.courseID,
-            createdBy: exam.createdBy
+            createdBy: exam.createdBy,
+            approvalStatus: exam.approvalStatus,
+            updatedAt: exam.updatedAt
         });
         
         // Handle missing/undefined exam title and get better creator names
         const examTitle = exam.title && exam.title !== 'undefined' ? exam.title : `Assessment #${index + 1}`;
         const creatorName = exam.createdBy?.name || 'Course Staff';
         const courseName = exam.courseID?.title || 'Course Not Specified';
+        
+        // Determine if this is a resubmitted assessment
+        const createdDate = new Date(exam.createdAt);
+        const updatedDate = new Date(exam.updatedAt || exam.createdAt);
+        const isResubmitted = updatedDate.getTime() - createdDate.getTime() > 60000; // More than 1 minute apart
+        const displayDate = isResubmitted ? updatedDate : createdDate;
+        const statusText = isResubmitted ? 'Resubmitted' : 'Created';
+        const statusIcon = isResubmitted ? 'fas fa-redo' : 'fas fa-clock';
+        const statusColor = isResubmitted ? '#e67e22' : '#999';
         
         const courseId = exam.courseID?._id || exam.courseID;
         const reviewUrl = `course-preview.html?id=${courseId}&examId=${exam._id}`;
@@ -557,17 +568,17 @@ function renderQueueList(data, containerId, isOverview) {
                  onclick="window.location.href='${reviewUrl}'">
                 <div style="position: absolute; top: 15px; right: 15px;">
                     <span style="background: rgba(255, 193, 7, 0.1); color: var(--color-golden); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-clipboard-check"></i> ASSESSMENT
+                        <i class="fas fa-clipboard-check"></i> ASSESSMENT${isResubmitted ? ' (REVISED)' : ''}
                     </span>
                 </div>
-                <div style="padding-right: 120px;">
+                <div style="padding-right: 140px;">
                     <strong style="font-size: 1.05rem; color: #333; display: block; margin-bottom: 6px;">${courseName}</strong>
                     <p style="font-size: 0.85rem; color: #666; margin: 0;">
                         <i class="fas fa-user" style="color: #999;"></i> ${examTitle} by ${creatorName}
                     </p>
                     <p style="font-size: 0.75rem; color: #999; margin: 5px 0 0 0;">
                         <i class="fas fa-question-circle"></i> ${exam.questions?.length || 0} Questions • 
-                        <i class="fas fa-clock"></i> Created ${new Date(exam.createdAt).toLocaleDateString()}
+                        <i class="${statusIcon}" style="color: ${statusColor};"></i> ${statusText} ${displayDate.toLocaleDateString()}
                     </p>
                 </div>
             </div>
@@ -581,8 +592,11 @@ function renderQueueList(data, containerId, isOverview) {
     if (isOverview && totalPending > 6) {
         html += `
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="switchDashboardSection('coursesSection')" class="btn-primary" style="background: var(--color-saffron); padding: 10px 30px;">
+                <button onclick="switchDashboardSection('coursesSection')" class="btn-primary" style="background: var(--color-saffron); padding: 10px 30px; margin-right: 10px;">
                     <i class="fas fa-list"></i> View All Pending (${totalPending})
+                </button>
+                <button onclick="cleanupDuplicateAssessments()" class="btn-primary" style="background: #e74c3c; padding: 10px 20px;">  
+                    <i class="fas fa-broom"></i> Cleanup Duplicates
                 </button>
             </div>
         `;
@@ -590,6 +604,36 @@ function renderQueueList(data, containerId, isOverview) {
 
     list.innerHTML = html;
 }
+
+// Cleanup duplicate assessments
+async function cleanupDuplicateAssessments() {
+    if (!confirm('This will remove duplicate assessments from the database, keeping only the most recent version of each. Continue?')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${Auth.apiBase}/exams/cleanup-duplicates`, {
+            method: 'POST',
+            headers: Auth.getHeaders()
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+            alert(`✓ Cleanup completed successfully!\n\nFound: ${result.duplicatesFound} duplicates\nRemoved: ${result.duplicatesRemoved} duplicates\n\nThe pending assessments list will now refresh.`);
+            // Refresh the pending assessments
+            loadPendingContent();
+        } else {
+            alert('❌ Cleanup failed: ' + result.message);
+        }
+    } catch (err) {
+        console.error('Error during cleanup:', err);
+        alert('❌ Cleanup failed. Please try again.');
+    }
+}
+
+// Make cleanup function globally available
+window.cleanupDuplicateAssessments = cleanupDuplicateAssessments;
 
 /* --- USER MANAGEMENT --- */
 function switchUserTab(role) {
@@ -4635,3 +4679,5 @@ window.searchGalleryImages = searchGalleryImages;
 window.filterGalleryImages = filterGalleryImages;
 window.toggleGalleryMenu = toggleGalleryMenu;
 window.saveGalleryOrder = saveGalleryOrder;
+
+// End of admin.js - All functions properly defined

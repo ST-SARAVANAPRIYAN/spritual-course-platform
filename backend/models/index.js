@@ -167,6 +167,7 @@ const examSchema = new Schema({
     approvalStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
     approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     approvedAt: { type: Date },
     rejectionReason: { type: String }

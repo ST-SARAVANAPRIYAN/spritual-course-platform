@@ -556,13 +556,28 @@ function formatFileSize(bytes) {
 async function loadAndDisplayExam(examId) {
     try {
         UI.showLoader();
+        
+        console.log('[EXAM LOAD] Attempting to load exam:', examId);
+        console.log('[EXAM LOAD] API Base:', Auth.apiBase);
+        
         const res = await fetch(`${Auth.apiBase}/exams/${examId}`, {
             headers: Auth.getHeaders()
         });
         
-        if (!res.ok) throw new Error('Failed to load assessment');
+        console.log('[EXAM LOAD] Response status:', res.status);
+        
+        if (!res.ok) {
+            if (res.status === 404) {
+                throw new Error(`Assessment not found (ID: ${examId}). It may have been removed or doesn't exist.`);
+            } else if (res.status === 403) {
+                throw new Error('You do not have permission to view this assessment.');
+            } else {
+                throw new Error(`Failed to load assessment: ${res.statusText}`);
+            }
+        }
         
         const exam = await res.json();
+        console.log('[EXAM LOAD] Successfully loaded exam:', exam.title);
         currentExamData = exam;
         
         // Only hide sidebar if coming from external link (no assessments loaded yet)
@@ -651,7 +666,30 @@ async function loadAndDisplayExam(examId) {
         
     } catch (err) {
         console.error('Error loading assessment:', err);
-        UI.error('Failed to load assessment');
+        
+        // Show user-friendly error message
+        const errorContainer = document.getElementById('contentDisplay');
+        if (errorContainer) {
+            errorContainer.innerHTML = `
+                <div class="glass-card" style="text-align: center; padding: 40px; color: var(--color-error);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px; color: #e74c3c;"></i>
+                    <h3>Assessment Not Available</h3>
+                    <p style="margin: 20px 0; color: var(--color-text-secondary);">
+                        ${err.message || 'The requested assessment could not be loaded.'}
+                    </p>
+                    <p style="font-size: 0.9rem; color: #999;">
+                        This may happen if the assessment was removed, rejected, or you don't have permission to view it.
+                    </p>
+                    <button onclick="window.history.back()" class="btn-primary" style="margin-top: 20px;">
+                        <i class="fas fa-arrow-left"></i> Go Back
+                    </button>
+                </div>
+            `;
+            errorContainer.style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        } else {
+            UI.error('Failed to load assessment: ' + err.message);
+        }
     } finally {
         UI.hideLoader();
     }

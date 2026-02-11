@@ -61,6 +61,7 @@ exports.uploadContent = async (req, res) => {
 exports.createExam = async (req, res) => {
     try {
         const { courseID, title, duration, passingScore, activationThreshold, questions } = req.body;
+        const { Exam } = require('../models/index');
 
         // Validation
         if (!courseID || !title) {
@@ -69,6 +70,37 @@ exports.createExam = async (req, res) => {
 
         if (!questions || !Array.isArray(questions) || questions.length === 0) {
             return res.status(400).json({ message: 'At least one question is required' });
+        }
+
+        // Check if an assessment with same title and course already exists
+        const existingExam = await Exam.findOne({ 
+            courseID: courseID, 
+            title: title.trim(),
+            createdBy: req.user.id 
+        }).sort({ createdAt: -1 }); // Get the most recent one
+
+        if (existingExam) {
+            console.log('[DUPLICATE CHECK] Found existing exam:', existingExam._id, 'Status:', existingExam.approvalStatus);
+            
+            // If there's a pending or approved exam with same name, prevent creation
+            if (existingExam.approvalStatus === 'Pending') {
+                return res.status(400).json({ 
+                    message: 'An assessment with this title is already pending approval for this course. Please edit the existing assessment instead of creating a new one.',
+                    existingExamId: existingExam._id
+                });
+            } else if (existingExam.approvalStatus === 'Approved') {
+                return res.status(400).json({ 
+                    message: 'An assessment with this title has already been approved for this course. Please use a different title.',
+                    existingExamId: existingExam._id
+                });
+            }
+            // If it's rejected, prevent creation and suggest editing the rejected one
+            else if (existingExam.approvalStatus === 'Rejected') {
+                return res.status(400).json({ 
+                    message: 'A rejected assessment with this title already exists. Please edit the existing assessment instead of creating a new one.',
+                    existingExamId: existingExam._id
+                });
+            }
         }
 
         // Transform questions to match schema
@@ -98,14 +130,15 @@ exports.createExam = async (req, res) => {
 
         const newExam = new Exam({
             courseID,
-            title,
+            title: title.trim(),
             duration: duration || 30,
             passingScore: passingScore || 70,
             activationThreshold: activationThreshold || 85,
             questions: transformedQuestions,
             createdBy: req.user.id,
             status: 'Draft',
-            approvalStatus: 'Pending' // Explicitly set to Pending for admin approval
+            approvalStatus: 'Pending', // Explicitly set to Pending for admin approval
+            updatedAt: new Date()
         });
 
         await newExam.save();

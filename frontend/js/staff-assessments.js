@@ -308,7 +308,7 @@ async function handleUpdateExam(e) {
     const formData = new FormData(e.target);
     const data = {
         courseID: formData.get('courseID'),
-        title: formData.get('title'),
+        title: formData.get('title').trim(), // Ensure consistent title formatting
         duration: parseInt(formData.get('duration')),
         passingScore: parseInt(formData.get('passingScore')),
         activationThreshold: parseInt(formData.get('activationThreshold')),
@@ -337,6 +337,9 @@ async function handleUpdateExam(e) {
 
     try {
         UI.showLoader();
+        
+        console.log(`[UPDATE] Updating assessment ${currentEditingExamId} with data:`, data);
+        
         const res = await fetch(`${Auth.apiBase}/exams/${currentEditingExamId}`, {
             method: 'PUT',
             headers: Auth.getHeaders(),
@@ -346,7 +349,7 @@ async function handleUpdateExam(e) {
         const result = await res.json();
         
         if (res.ok) {
-            UI.success('Assessment updated successfully! It will be reviewed by admin.');
+            UI.success('Assessment updated successfully! Your changes have been submitted for admin review.');
             document.getElementById('examModal').style.display = 'none';
             resetExamForm();
             
@@ -355,8 +358,10 @@ async function handleUpdateExam(e) {
             document.getElementById('examSubmitBtn').innerHTML = '<i class="fas fa-check"></i> Create Assessment';
             currentEditingExamId = null;
             
+            // Reload the assessments list to see updated status
             loadMyAssessments();
         } else {
+            console.error('Update failed:', result);
             UI.error(result.message || 'Update failed');
         }
     } catch (err) { 

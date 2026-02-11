@@ -63,21 +63,58 @@ exports.getPendingContent = async (req, res) => {
             })));
         }
 
-        // Get pending exams/assessments - also check for null/undefined approvalStatus
+        // Get pending exams/assessments - only truly pending ones
         const pendingExams = await Exam.find({ 
-            $or: [
-                { approvalStatus: 'Pending' },
-                { approvalStatus: { $exists: false } },
-                { approvalStatus: null }
-            ]
+            approvalStatus: 'Pending'
         })
             .populate('courseID', 'title')
             .populate('createdBy', 'name email')
-            .sort({ createdAt: -1 });
+            .sort({ updatedAt: -1, createdAt: -1 }); // Sort by most recently updated first
+
+        console.log('[PENDING EXAMS] Raw pending exams found:', pendingExams.length);
+        
+        // Advanced deduplication: Remove true duplicates based on course, title, and creator
+        const examMap = new Map();
+        const uniquePendingExams = [];
+        
+        for (let exam of pendingExams) {
+            const courseId = exam.courseID?._id?.toString();
+            const examTitle = (exam.title || '').trim();
+            const creatorId = exam.createdBy?._id?.toString();
+            const dedupeKey = `${courseId}_${examTitle}_${creatorId}`;
+            
+            console.log(`[DEDUPE CHECK] Exam: ${exam.title} | Course: ${courseId} | Creator: ${creatorId} | Key: ${dedupeKey}`);
+            
+            // Check if we already have this exact assessment
+            if (examMap.has(dedupeKey)) {
+                const existing = examMap.get(dedupeKey);
+                const examUpdateDate = new Date(exam.updatedAt || exam.createdAt);
+                const existingUpdateDate = new Date(existing.updatedAt || existing.createdAt);
+                
+                console.log(`[DEDUPE] Found duplicate - Exam: ${examUpdateDate.toISOString()} vs Existing: ${existingUpdateDate.toISOString()}`);
+                
+                // Keep the more recently updated one
+                if (examUpdateDate > existingUpdateDate) {
+                    console.log(`[DEDUPE] Replacing older assessment '${existing.title}' (${existing._id}) with newer version (${exam._id})`);
+                    examMap.set(dedupeKey, exam);
+                } else {
+                    console.log(`[DEDUPE] Keeping existing newer assessment '${existing.title}' (${existing._id})`);
+                }
+            } else {
+                console.log(`[DEDUPE] Adding new unique assessment: ${exam.title}`);
+                examMap.set(dedupeKey, exam);
+            }
+        }
+        
+        // Convert map back to array
+        for (let exam of examMap.values()) {
+            uniquePendingExams.push(exam);
+        }
+        
+        console.log('[DEDUPLICATION] Reduced from', pendingExams.length, 'to', uniquePendingExams.length, 'unique assessments');
 
         // If createdBy population failed, try to get course creator as fallback
-
-        for (let exam of pendingExams) {
+        for (let exam of uniquePendingExams) {
             if (!exam.createdBy && exam.courseID) {
                 // If no exam creator, try to use the course creator as fallback
                 try {
@@ -96,17 +133,19 @@ exports.getPendingContent = async (req, res) => {
             }
         }
 
-        console.log('[STATS] Found:', pendingModules.length, 'modules,', pendingCourses.length, 'courses,', pendingExams.length, 'exams');
+        console.log('[STATS] Found:', pendingModules.length, 'modules,', pendingCourses.length, 'courses,', uniquePendingExams.length, 'unique exams');
         
-        if (pendingExams.length > 0) {
+        if (uniquePendingExams.length > 0) {
             console.log('[EXAMS] Pending exams detailed info:');
-            pendingExams.forEach((e, index) => {
+            uniquePendingExams.forEach((e, index) => {
                 console.log(`[EXAM ${index + 1}]`, {
                     id: e._id,
                     title: e.title || 'NO_TITLE',
                     course: e.courseID?.title || 'NO_COURSE',
                     createdByName: e.createdBy?.name || 'NO_CREATOR_NAME',
-                    hasCreatedBy: !!e.createdBy
+                    hasCreatedBy: !!e.createdBy,
+                    approvalStatus: e.approvalStatus,
+                    lastUpdated: e.updatedAt || e.createdAt
                 });
             });
         }
@@ -120,7 +159,7 @@ exports.getPendingContent = async (req, res) => {
         // Combine modules and courses
         const allPendingContent = [...pendingModules, ...coursesWithType];
 
-        const response = { content: allPendingContent, exams: pendingExams };
+        const response = { content: allPendingContent, exams: uniquePendingExams };
         console.log('[SUCCESS] Sending response to frontend');
         
         res.status(200).json(response);
