@@ -6,12 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - AWARENESS ACADEMY</title>
     <link rel="stylesheet" href="../css/variables.css">
+
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+    <!-- Critical CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap"
-        rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Defer non-critical CSS -->
+    <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap">
+    <noscript>
+        <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap">
+    </noscript>
+
+    <!-- PDF generation - only used occasionally -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Chart.js - lazy load when needed -->
+    <script>
+        // Load Chart.js only when analytics section is viewed
+        window.loadChartJS = function () {
+            if (window.Chart) return Promise.resolve();
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        };
+    </script>
     <style>
         :root {
             --sidebar-width: 80px;
@@ -77,17 +103,18 @@
         }
 
         .avatar {
-            width: 80px;
-            height: 80px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--color-warm-white);
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.3rem;
             color: var(--color-saffron);
-            border: 3px solid var(--color-golden);
+            border: 2px solid var(--color-golden);
+            flex-shrink: 0;
         }
 
         .nav-menu {
@@ -213,6 +240,172 @@
             font-size: 0.9rem;
         }
 
+        /* Notification Dropdown */
+        .notification-wrapper {
+            position: relative;
+        }
+
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 45px;
+            right: 0;
+            width: 360px;
+            max-height: 420px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            border: 1px solid #eee;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #fafafa;
+        }
+
+        .notification-item.unread {
+            background: #fff8f0;
+        }
+
+        .notification-item .notif-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .notification-item .notif-content {
+            flex: 1;
+        }
+
+        .notification-item .notif-content p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.4;
+        }
+
+        .notification-item .notif-content .notif-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        /* Student ID Tooltip */
+        .user-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 25px;
+            transition: background 0.3s;
+            position: relative;
+        }
+
+        .student-id-tooltip {
+            opacity: 0;
+            visibility: hidden;
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 200;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+            transform: translateY(-5px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .student-id-tooltip .tooltip-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .student-id-tooltip .tooltip-value {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--color-golden);
+            letter-spacing: 0.5px;
+        }
+
+        .student-id-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 22px;
+            width: 12px;
+            height: 12px;
+            background: #1a1a2e;
+            transform: rotate(45deg);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .user-profile-header:hover .student-id-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
         /* Main Content */
         .main-content {
             flex: 1;
@@ -227,7 +420,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
+            margin-bottom: 15px;
         }
 
         .stats-grid {
@@ -373,6 +566,147 @@
                 display: none;
             }
         }
+
+        /* Skeleton Loaders */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-card {
+            height: 180px;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 10px;
+        }
+
+        .skeleton-text:last-child {
+            width: 60%;
+        }
+
+        .skeleton-stat {
+            height: 100px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 153, 51, 0.4);
+        }
+
+        .quick-action-btn i {
+            font-size: 1.2rem;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .activity-feed h3 {
+            margin: 0 0 20px 0;
+            color: var(--color-primary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 15px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-content p {
+            margin: 0 0 4px 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: #999;
+        }
     </style>
 </head>
 
@@ -396,8 +730,7 @@
                             class="fas fa-receipt"></i><span class="link-text">Payments</span></a></li>
                 <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('tickets')"><i
                             class="fas fa-ticket-alt"></i><span class="link-text">Support Tickets</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" onclick="switchSection('support')"><i
-                            class="fas fa-headset"></i><span class="link-text">Support</span></a></li>
+
             </ul>
             <a href="#" id="logoutBtn" class="nav-link" style="color: var(--color-error); margin-top: auto;"><i
                     class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
@@ -412,13 +745,33 @@
                     <span>AWARENESS ACADEMY</span>
                 </div>
                 <div class="top-header-right">
-                    <div class="notification-icon" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">5</span>
+                    <div class="notification-wrapper">
+                        <div class="notification-icon" id="notificationBell" title="Notifications"
+                            onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+                        </div>
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <span>Notifications</span>
+                                <span id="notifCount" style="font-size: 0.8rem; color: #999;">0 new</span>
+                            </div>
+                            <div id="notificationList">
+                                <div class="notification-empty">
+                                    <i class="fas fa-bell-slash"
+                                        style="font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block;"></i>
+                                    No notifications yet
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="user-profile-header">
                         <div class="user-avatar-header" id="studentAvatar">S</div>
                         <span class="user-name-header" id="studentName">Seeker</span>
+                        <div class="student-id-tooltip" id="studentIdTooltip">
+                            <span class="tooltip-label">Student ID</span>
+                            <span class="tooltip-value" id="studentIdValue">—</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,7 +780,6 @@
                 <header class="welcome-header">
                     <div>
                         <h1>Peace be with you, <span id="welcomeName">Seeker</span></h1>
-                        <p>Continue your spiritual growth today.</p>
                     </div>
                 </header>
 
@@ -456,16 +808,18 @@
                 </div>
 
                 <!-- Charts & Analytics Section -->
-                <div id="analyticsSection" style="display: none; margin-bottom: 40px;">
+                <div id="analyticsSection" style="display: none; margin-bottom: 30px;">
                     <h2 style="margin-bottom: 20px;">Your Spiritual Growth</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-                        <div class="glass-card" style="padding: 20px;">
-                            <h4 style="margin-bottom: 15px; color: var(--color-primary);">Activity Overview</h4>
-                            <canvas id="activityChart"></canvas>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                        <div class="glass-card" style="padding: 15px;">
+                            <h4 style="margin-bottom: 10px; color: var(--color-primary); font-size: 0.95rem;">Activity
+                                Overview</h4>
+                            <canvas id="activityChart" style="max-height: 200px;"></canvas>
                         </div>
-                        <div class="glass-card" style="padding: 20px;">
-                            <h4 style="margin-bottom: 15px; color: var(--color-primary);">Focus Areas</h4>
-                            <canvas id="focusChart"></canvas>
+                        <div class="glass-card" style="padding: 15px;">
+                            <h4 style="margin-bottom: 10px; color: var(--color-primary); font-size: 0.95rem;">Focus
+                                Areas</h4>
+                            <canvas id="focusChart" style="max-height: 200px;"></canvas>
                         </div>
                     </div>
                 </div>
@@ -501,6 +855,40 @@
                                 <h4 id="attendanceRate">0</h4>
                                 <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Live Sessions Joined
                                 </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" id="continuelearningBtn">
+                            <i class="fas fa-book-reader"></i>
+                            <span>Continue Learning</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchSection('tickets')">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Ask Question</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchSection('certificates')">
+                            <i class="fas fa-certificate"></i>
+                            <span>View Certificates</span>
+                        </button>
+                    </div>
+
+                    <!-- Activity Feed -->
+                    <div class="activity-feed" id="activityFeed">
+                        <h3>
+                            <i class="fas fa-history"></i>
+                            Recent Activity
+                        </h3>
+                        <div id="activityList">
+                            <div class="activity-item">
+                                <div class="activity-icon" style="background: #e3f2fd; color: #1976d2;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Loading your activity...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -584,6 +972,15 @@
                                     <label>Full Name (CAPS)</label>
                                     <input type="text" id="p_name" class="form-control"
                                         style="text-transform: uppercase;" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="p_email" class="form-control" readonly
+                                        style="background-color: #f5f5f5; cursor: not-allowed;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone Number</label>
+                                    <input type="tel" id="p_phone" class="form-control" placeholder="10 digit number">
                                 </div>
                                 <div class="form-group">
                                     <label>Initial</label>
@@ -752,70 +1149,7 @@
                     </div>
                 </div>
 
-                <div id="supportSection" style="display: none;">
-                    <!-- Raise a Concern Section -->
-                    <div style="margin-bottom: 50px;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
-                            <i class="fas fa-headset" style="font-size: 2rem; color: var(--color-saffron);"></i>
-                            <div>
-                                <h2 style="margin: 0; color: var(--color-primary);">Raise a Concern</h2>
-                                <p style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.9rem;">
-                                    Need
-                                    assistance? We're here to help you on your course.</p>
-                            </div>
-                        </div>
-                        <div class="glass-card"
-                            style="padding: 40px; max-width: 700px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                            <form id="supportForm">
-                                <div class="form-group" style="margin-bottom: 25px;">
-                                    <label
-                                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; color: var(--color-primary);">
-                                        <i class="fas fa-tag"></i> Subject
-                                    </label>
-                                    <input type="text" name="subject" class="form-control"
-                                        style="padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; transition: all 0.3s ease;"
-                                        placeholder="e.g., Payment issue, Course access problem"
-                                        onfocus="this.style.borderColor='var(--color-saffron)'"
-                                        onblur="this.style.borderColor='#e0e0e0'" required>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 25px;">
-                                    <label
-                                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; color: var(--color-primary);">
-                                        <i class="fas fa-align-left"></i> Description
-                                    </label>
-                                    <textarea name="message" class="form-control" rows="6"
-                                        style="padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; resize: vertical; transition: all 0.3s ease;"
-                                        placeholder="Please describe your concern in detail. Our support team will respond within 24 hours."
-                                        onfocus="this.style.borderColor='var(--color-saffron)'"
-                                        onblur="this.style.borderColor='#e0e0e0'" required></textarea>
-                                </div>
-                                <button type="submit" class="btn-primary"
-                                    style="width: 100%; padding: 15px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                    <i class="fas fa-paper-plane"></i> Submit to Support Team
-                                </button>
-                            </form>
-                        </div>
-                    </div>
 
-                    <!-- Recent Tickets Section -->
-                    <div>
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <i class="fas fa-ticket-alt"
-                                    style="font-size: 1.8rem; color: var(--color-saffron);"></i>
-                                <div>
-                                    <h3 style="margin: 0; color: var(--color-primary);">Recent Support Tickets</h3>
-                                    <p
-                                        style="margin: 5px 0 0 0; color: var(--color-text-secondary); font-size: 0.85rem;">
-                                        Track the
-                                        status of your submitted concerns</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="ticketsList" style="display: grid; gap: 20px;"></div>
-                    </div>
-                </div>
         </main>
     </div>
 

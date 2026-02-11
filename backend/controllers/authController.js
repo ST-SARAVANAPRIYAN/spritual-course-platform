@@ -79,7 +79,7 @@ exports.sendRegistrationOTP = catchAsync(async (req, res, next) => {
 
     // Create temporary user record with OTP (or update if exists)
     let tempUser = await User.findOne({ email, isVerified: false });
-    
+
     if (tempUser) {
         // Update existing temp user
         tempUser.registrationOTP = otp;
@@ -105,7 +105,7 @@ exports.sendRegistrationOTP = catchAsync(async (req, res, next) => {
     // Send OTP via email using Resend
     try {
         await emailService.sendRegistrationOTP(email, otp, name);
-        
+
         res.status(200).json({
             status: 'success',
             message: 'OTP sent to your email. Valid for 10 minutes.',
@@ -147,7 +147,7 @@ exports.verifyRegistrationOTP = catchAsync(async (req, res, next) => {
     if (user.registrationOTP !== otp) {
         user.registrationOTPAttempts += 1;
         await user.save();
-        
+
         const remainingAttempts = 5 - user.registrationOTPAttempts;
         return next(new AppError(`Invalid OTP. ${remainingAttempts} attempts remaining.`, 400));
     }
@@ -220,7 +220,7 @@ exports.completeRegistration = catchAsync(async (req, res, next) => {
 // Cleanup incomplete registrations (can be called by a cron job or manually)
 exports.cleanupIncompleteRegistrations = catchAsync(async (req, res, next) => {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     const result = await User.deleteMany({
         isVerified: false,
         $or: [
@@ -230,7 +230,7 @@ exports.cleanupIncompleteRegistrations = catchAsync(async (req, res, next) => {
     });
 
     console.log(`🧹 Cleaned up ${result.deletedCount} incomplete registrations`);
-    
+
     res.status(200).json({
         status: 'success',
         message: `Cleaned up ${result.deletedCount} incomplete registrations`,
@@ -255,7 +255,7 @@ exports.register = catchAsync(async (req, res, next) => {
         const fs = require('fs');
         const imageBuffer = fs.readFileSync(req.file.path);
         profilePicBase64 = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-        
+
         // Delete the temporary file
         fs.unlinkSync(req.file.path);
     }
@@ -353,23 +353,12 @@ exports.login = catchAsync(async (req, res, next) => {
 
 // Get Profile
 exports.getProfile = catchAsync(async (req, res, next) => {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user.id).select('-password -verificationToken -resetPasswordToken -resetPasswordExpires -registrationOTP -registrationOTPExpires -registrationOTPAttempts');
     if (!user) return next(new AppError('User not found', 404));
 
     res.status(200).json({
         status: 'success',
-        data: {
-            id: user._id,
-            name: user.name,
-            role: user.role,
-            email: user.email,
-            studentID: user.studentID,
-            phone: user.phone,
-            profilePic: user.profilePic,
-            active: user.active,
-            isDefaultAdmin: user.isDefaultAdmin || false,
-            lastLogin: user.lastLogin
-        }
+        data: user // Return all user fields except sensitive ones
     });
 });
 
@@ -385,21 +374,44 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
             fs.unlinkSync(req.file.path);
             return next(new AppError('File too large or too small. Size must be between 5KB and 50KB.', 400));
         }
-        // Convert uploaded file to base64
+
+        // Save to uploads/profiles directory with better naming
         const fs = require('fs');
-        const imageBuffer = fs.readFileSync(req.file.path);
-        updates.profilePic = `data:${req.file.mimetype};base64,${imageBuffer.toString('base64')}`;
-        
-        // Delete the temporary file
-        fs.unlinkSync(req.file.path);
+        const path = require('path');
+
+        // Create profiles directory if it doesn't exist
+        const profilesDir = path.join(__dirname, '../uploads/profiles');
+        if (!fs.existsSync(profilesDir)) {
+            fs.mkdirSync(profilesDir, { recursive: true });
+        }
+
+        // Generate unique filename: userId_timestamp.ext
+        const ext = path.extname(req.file.originalname);
+        const filename = `${req.user.id}_${Date.now()}${ext}`;
+        const newPath = path.join(profilesDir, filename);
+
+        // Move file from temp to profiles directory
+        fs.renameSync(req.file.path, newPath);
+
+        // Delete old profile picture if exists
+        const user = await User.findById(req.user.id);
+        if (user.profilePic && user.profilePic.startsWith('/uploads/profiles/')) {
+            const oldPath = path.join(__dirname, '..', user.profilePic);
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            }
+        }
+
+        // Store relative path in database
+        updates.profilePic = `/uploads/profiles/${filename}`;
     }
 
-    const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true, runValidators: true }).select('-password');
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, updates, { new: true, runValidators: true }).select('-password');
 
     res.status(200).json({
         status: 'success',
         message: 'Profile updated successfully',
-        data: { user }
+        data: { user: updatedUser }
     });
 });
 
