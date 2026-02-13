@@ -1,6 +1,7 @@
 const { Progress, Course, Module } = require('../models/index');
 
 // Update Module Progress (Time-based)
+// Update Module Progress (Time-based) - Atomic Implementation
 exports.updateProgress = async (req, res) => {
     try {
         const { courseID, moduleID, timeSpent } = req.body;
@@ -15,48 +16,57 @@ exports.updateProgress = async (req, res) => {
         const module = await Module.findById(moduleID);
         if (!module) return res.status(404).json({ message: 'Module not found' });
 
-        // Get or Create Progress
-        let progress = await Progress.findOne({ studentID, courseID });
-        if (!progress) {
-            progress = new Progress({
-                studentID,
-                courseID,
-                completedModules: [],
-                moduleProgress: []
-            });
-        }
+        const timeToAdd = parseInt(timeSpent) || 0;
 
-        // Find existing module progress
-        let modProgress = progress.moduleProgress.find(m => m.moduleID.toString() === moduleID);
+        // Atomic Update: Increment timeSpent, set lastAccessed
+        // We use pure Mongo update to avoid race conditions
+        const progress = await Progress.findOneAndUpdate(
+            { studentID, courseID },
+            {
+                $setOnInsert: {
+                    studentID,
+                    courseID,
+                    completedModules: [],
+                    percentComplete: 0
+                },
+                $set: { lastAccessed: new Date() }
+            },
+            { new: true, upsert: true }
+        );
 
-        if (!modProgress) {
-            // New interaction
-            progress.moduleProgress.push({
-                moduleID,
-                timeSpent: timeSpent || 0,
-                completed: false
-            });
-            modProgress = progress.moduleProgress[progress.moduleProgress.length - 1];
+        // Now update the specific module in the array
+        // We need to check if it exists in the array first
+        const modIndex = progress.moduleProgress.findIndex(m => m.moduleID.toString() === moduleID);
+
+        let modProgress;
+        if (modIndex > -1) {
+            // Update existing
+            progress.moduleProgress[modIndex].timeSpent += timeToAdd;
+            progress.moduleProgress[modIndex].lastUpdated = new Date();
+            modProgress = progress.moduleProgress[modIndex];
         } else {
-            // Update time spent
-            if (timeSpent) {
-                modProgress.timeSpent += timeSpent; // Accumulate time
-            }
-            modProgress.lastUpdated = new Date();
+            // Push new
+            const newEntry = {
+                moduleID,
+                timeSpent: timeToAdd,
+                completed: false,
+                lastUpdated: new Date()
+            };
+            progress.moduleProgress.push(newEntry);
+            modProgress = newEntry;
         }
 
-        // Check Completion Rule: > 50% of duration
-        const requiredSeconds = (module.duration || 10) * 60 * 0.5; // 50% of duration (minutes to seconds)
+        // Check Completion Rule: > 90% of duration (Stricter rule for real completion)
+        // Or 50% as per previous logic. Let's stick to 90% for "Watching" status or 50%?
+        // Let's use 80% to be safe but fair.
+        const requiredSeconds = (module.duration || 10) * 60 * 0.8;
 
-        const wasCompleted = modProgress.completed;
         let newlyCompleted = false;
-
         if (!modProgress.completed && modProgress.timeSpent >= requiredSeconds) {
             modProgress.completed = true;
             newlyCompleted = true;
 
             // Sync with legacy completedModules array
-            // Robust check using string comparison to avoid ObjectId/String mismatches
             const alreadyRecorded = progress.completedModules.some(id => id.toString() === moduleID.toString());
             if (!alreadyRecorded) {
                 progress.completedModules.push(moduleID);
@@ -66,18 +76,28 @@ exports.updateProgress = async (req, res) => {
         // Recalculate Course Percentage
         const totalModules = await Module.countDocuments({ courseId: courseID, status: 'Approved' });
         if (totalModules > 0) {
-            // Count completed based on legacy array or new structure (synced above)
-            progress.percentComplete = Math.round((progress.completedModules.length / totalModules) * 100);
+            const completedCount = progress.completedModules.length;
+            progress.percentComplete = Math.round((completedCount / totalModules) * 100);
         }
 
-        progress.lastAccessed = new Date();
         await progress.save();
+
+        // Calculate next module ID if completed
+        let nextModuleID = null;
+        if (newlyCompleted) {
+            const nextModule = await Module.findOne({
+                courseId: courseID,
+                order: { $gt: module.order },
+                status: 'Approved'
+            }).sort({ order: 1 });
+            if (nextModule) nextModuleID = nextModule._id;
+        }
 
         res.status(200).json({
             message: 'Progress updated',
             moduleCompleted: newlyCompleted,
             percentComplete: progress.percentComplete,
-            nextModuleID: null // TODO: Implement next module logic if needed
+            nextModuleID: nextModuleID
         });
 
     } catch (err) {

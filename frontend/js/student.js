@@ -131,9 +131,16 @@ function getPaymentStatusText(status) {
 }
 
 function switchSection(section) {
-    // This was moved from HTML for cleanliness
+    // Handle Sidebar Links
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('onclick')?.includes(section)) link.classList.add('active');
+    });
+
+    // Handle Mobile Bottom Nav Links
+    const bottomLinks = document.querySelectorAll('.bottom-nav-item');
+    bottomLinks.forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('onclick')?.includes(section)) link.classList.add('active');
     });
