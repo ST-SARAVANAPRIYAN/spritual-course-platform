@@ -707,6 +707,96 @@
             font-size: 0.75rem;
             color: #999;
         }
+
+        /* Mobile Bottom Nav */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--color-text-secondary);
+            font-size: 0.75rem;
+            flex: 1;
+            padding: 5px;
+        }
+
+        .bottom-nav-item i {
+            display: block;
+            /* Ensure icon is block */
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--color-saffron);
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-container {
+                display: block;
+                /* Override flex */
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .bottom-nav {
+                display: flex;
+            }
+
+            .main-content {
+                width: 100%;
+                padding-bottom: 80px;
+                /* Space for bottom nav */
+            }
+
+            .top-header {
+                padding: 10px 15px;
+            }
+
+            /* Hide full name on mobile to save space */
+            .user-name-header {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-header-right {
+                gap: 15px;
+            }
+
+            .course-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-header-brand span {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 
@@ -736,12 +826,38 @@
                     class="fas fa-sign-out-alt"></i><span class="link-text">Logout</span></a>
         </aside>
 
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="bottom-nav">
+            <a href="#" class="bottom-nav-item active" onclick="switchSection('course')">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Courses</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="switchSection('marketplace')">
+                <i class="fas fa-book-open"></i>
+                <span>Browse</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="switchSection('timetable')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="switchSection('payments')">
+                <i class="fas fa-receipt"></i>
+                <span>Pay</span>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="switchSection('profile')">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </nav>
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Top Header Bar -->
             <div class="top-header">
                 <div class="top-header-brand" style="display: flex; align-items: center; gap: 10px;">
-                    <img src="../assets/logo.png" alt="AWARENESS ACADEMY" style="height: 40px;"> <span class="brand-text" style="font-family: var(--font-heading); font-weight: bold;">AWARENESS ACADEMY</span>
+                    <img src="../assets/logo.png" alt="AWARENESS ACADEMY" style="height: 40px;"> <span
+                        class="brand-text" style="font-family: var(--font-heading); font-weight: bold;">AWARENESS
+                        ACADEMY</span>
                 </div>
                 <div class="top-header-right">
                     <div class="notification-wrapper">
@@ -928,7 +1044,8 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
                             <h2 style="margin: 0; color: var(--color-primary);">Personal Details</h2>
-                            <button class="btn-primary" id="downloadIDBtn" style="background: linear-gradient(135deg, var(--color-saffron), var(--color-golden)); color: white; border: none; box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);">
+                            <button class="btn-primary" id="downloadIDBtn"
+                                style="background: linear-gradient(135deg, var(--color-saffron), var(--color-golden)); color: white; border: none; box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);">
                                 <i class="fas fa-id-card"></i> Get ID Card
                             </button>
                         </div>
@@ -1194,7 +1311,9 @@
                     <input type="password" id="cp_new" class="form-control" required>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, var(--color-saffron), var(--color-golden)); color: white; border: none; box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);">Update Profile</button>
+                    <button type="submit" class="btn-primary"
+                        style="flex: 1; background: linear-gradient(135deg, var(--color-saffron), var(--color-golden)); color: white; border: none; box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);">Update
+                        Profile</button>
                     <button type="button" class="btn-primary" style="background: #ccc; flex: 1;"
                         onclick="document.getElementById('passwordModal').style.display='none'">Cancel</button>
                 </div>

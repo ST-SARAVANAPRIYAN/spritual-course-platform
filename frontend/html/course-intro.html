@@ -11,7 +11,8 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap"
         rel="stylesheet">
     <style>
-        html, body {
+        html,
+        body {
             overflow-x: hidden;
             width: 100%;
         }
@@ -436,6 +437,193 @@
                 width: 100%;
             }
         }
+
+        /* --- Mobile Navigation --- */
+        .mobile-menu-btn {
+            display: none;
+            background: linear-gradient(135deg, var(--color-saffron), var(--color-golden));
+            border: none;
+            cursor: pointer;
+            padding: 12px;
+            z-index: 1001;
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(255, 153, 51, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .mobile-menu-btn span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: white;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 3px;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .mobile-menu-btn span:nth-child(1) {
+            top: 14px;
+        }
+
+        .mobile-menu-btn span:nth-child(2) {
+            top: 22px;
+            width: 16px;
+        }
+
+        .mobile-menu-btn span:nth-child(3) {
+            top: 30px;
+        }
+
+        .mobile-menu-btn.active span:nth-child(1) {
+            top: 22px;
+            transform: translateX(-50%) rotate(45deg);
+        }
+
+        .mobile-menu-btn.active span:nth-child(2) {
+            opacity: 0;
+            transform: translateX(-150%);
+        }
+
+        .mobile-menu-btn.active span:nth-child(3) {
+            top: 22px;
+            transform: translateX(-50%) rotate(-45deg);
+        }
+
+        .mobile-nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+            z-index: 998;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 300px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            z-index: 999;
+            padding: 80px 0 20px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .mobile-nav.active {
+            right: 0;
+        }
+
+        .mobile-nav-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .mobile-nav-links {
+            flex: 1;
+            padding: 0 16px;
+            overflow-y: auto;
+        }
+
+        .mobile-nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .mobile-nav-links a:hover,
+        .mobile-nav-links a.active {
+            background: rgba(255, 153, 51, 0.15);
+            color: white;
+        }
+
+        .mobile-nav-links a i {
+            width: 20px;
+            text-align: center;
+            color: var(--color-saffron);
+        }
+
+        .mobile-nav-contact {
+            padding: 8px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-nav-contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .mobile-nav-contact-item i {
+            color: var(--color-saffron);
+        }
+
+        .mobile-nav-contact-item a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .mobile-nav-footer {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 900px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .mobile-menu-btn {
+                width: 42px;
+                height: 42px;
+                padding: 10px;
+            }
+
+            .mobile-nav {
+                width: 280px;
+                right: -280px;
+            }
+        }
     </style>
 </head>
 
@@ -454,6 +642,11 @@
             <a href="login.html" class="btn-primary" id="navAuthBtn"
                 style="background: var(--color-saffron); color: white; padding: 12px 30px; border-radius: 30px; margin-left: 30px;">Login</a>
         </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
     </nav>
 
     <main>
@@ -601,10 +794,71 @@
         </div>
     </main>
 
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobileNav">
+        <div class="mobile-nav-header">
+            <a href="index.html" class="logo"
+                style="color: white; display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                <img src="../assets/logo.png" alt="Logo" style="height: 30px;"> AWARENESS ACADEMY
+            </a>
+        </div>
+        <div class="mobile-nav-links">
+            <a href="index.html"><i class="fas fa-home"></i> Home</a>
+            <a href="about.html"><i class="fas fa-info-circle"></i> About</a>
+            <a href="courses.html"><i class="fas fa-graduation-cap"></i> Courses</a>
+            <a href="faq.html"><i class="fas fa-question-circle"></i> FAQ</a>
+            <a href="contact.html"><i class="fas fa-envelope"></i> Contact</a>
+            <a href="login.html"><i class="fas fa-sign-in-alt"></i> Login</a>
+        </div>
+        <div class="mobile-nav-contact">
+            <div class="mobile-nav-contact-item">
+                <i class="fas fa-phone"></i>
+                <a href="tel:+919843341742">+91 98433 41742</a>
+            </div>
+        </div>
+        <div class="mobile-nav-footer">
+            <div class="social-icons" style="justify-content: center;">
+                <a href="https://www.instagram.com/awarenessacademy_abishek" target="_blank"><i
+                        class="fab fa-instagram"></i></a>
+                <a href="https://www.youtube.com/@awarenessacademy4396" target="_blank"><i
+                        class="fab fa-youtube"></i></a>
+                <a href="https://www.facebook.com/Awarenessacademy-103831264982368/" target="_blank"><i
+                        class="fab fa-facebook-f"></i></a>
+                <a href="https://wa.me/919843341742" target="_blank"><i class="fab fa-whatsapp"></i></a>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/utils.js"></script>
     <script>
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const mobileNav = document.getElementById('mobileNav');
+            const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
+
+            mobileNav.classList.toggle('active');
+            mobileNavOverlay.classList.toggle('active');
+            menuBtn.classList.toggle('active');
+            document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('.mobile-nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobileNav').classList.remove('active');
+                document.getElementById('mobileNavOverlay').classList.remove('active');
+                document.querySelector('.mobile-menu-btn').classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+
         const urlParams = new URLSearchParams(window.location.search);
         const courseId = urlParams.get('id');
         let courseData = null;
@@ -640,15 +894,15 @@
                 // Add specific styles for embed mode
                 const style = document.createElement('style');
                 style.textContent = `
-                    .embed-mode { background: white; }
-                    .embed-mode .nav { display: none !important; }
-                    .embed-mode .footer { display: none !important; }
-                    .embed-mode .intro-hero { padding-top: 20px; }
-                    .embed-mode .cta-card { position: static; box-shadow: none; border: 1px solid #eee; }
-                    .embed-mode .enroll-btn { display: none !important; }
-                    .embed-mode .content-grid { grid-template-columns: 1fr !important; }
-                    .embed-mode .intro-container { max-width: 100% !important; }
-                `;
+            .embed-mode {background: white; }
+            .embed-mode .nav {display: none !important; }
+            .embed-mode .footer {display: none !important; }
+            .embed-mode .intro-hero {padding - top: 20px; }
+            .embed-mode .cta-card {position: static; box-shadow: none; border: 1px solid #eee; }
+            .embed-mode .enroll-btn {display: none !important; }
+            .embed-mode .content-grid {grid - template - columns: 1fr !important; }
+            .embed-mode .intro-container {max - width: 100% !important; }
+            `;
                 document.head.appendChild(style);
             }
 
@@ -678,11 +932,11 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('content').innerHTML = `
-                    <div style="text-align: center; padding: 150px 50px;">
-                        <h2>Course Not Found</h2>
-                        <a href="courses.html" class="btn-primary" style="display: inline-block; margin-top: 20px; padding: 12px 30px; text-decoration: none;">Browse Courses</a>
-                    </div>
-                `;
+            <div style="text-align: center; padding: 150px 50px;">
+                <h2>Course Not Found</h2>
+                <a href="courses.html" class="btn-primary" style="display: inline-block; margin-top: 20px; padding: 12px 30px; text-decoration: none;">Browse Courses</a>
+            </div>
+            `;
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
             }
@@ -739,10 +993,10 @@
             const features = extractFeatures(c.description);
             const featuresGrid = document.getElementById('featuresGrid');
             featuresGrid.innerHTML = features.map(f => `
-                <div class="feature-item">
-                    <i class="fas fa-check-circle"></i>
-                    <span>${f}</span>
-                </div>
+            <div class="feature-item">
+                <i class="fas fa-check-circle"></i>
+                <span>${f}</span>
+            </div>
             `).join('');
 
             // Modules
@@ -767,13 +1021,13 @@
             const mentorList = document.getElementById('mentorList');
             const mentorNames = c.mentor ? c.mentor.split(', ') : ['AWARENESS ACADEMY Instructor'];
             mentorList.innerHTML = mentorNames.map(name => `
-                <div class="mentor-card">
-                    <div class="mentor-avatar">${name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 5px;">${name}</div>
-                        <div style="font-size: 0.85rem; color: #666;">Expert Instructor</div>
-                    </div>
+            <div class="mentor-card">
+                <div class="mentor-avatar">${name.charAt(0).toUpperCase()}</div>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 5px;">${name}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Expert Instructor</div>
                 </div>
+            </div>
             `).join('');
 
             document.getElementById('loader').style.display = 'none';
@@ -869,13 +1123,17 @@
     <footer class="footer">
         <div class="footer-grid">
             <div>
-                <a href="#" class="footer-logo" style="display: flex; align-items: center; gap: 10px;"><img src="../assets/logo.png" alt="AWARENESS ACADEMY" style="height: 50px;"> AWARENESS ACADEMY</a>
+                <a href="#" class="footer-logo" style="display: flex; align-items: center; gap: 10px;"><img
+                        src="../assets/logo.png" alt="AWARENESS ACADEMY" style="height: 50px;"> AWARENESS ACADEMY</a>
                 <p style="opacity: 0.7; line-height: 1.8;">A sacred space for those seeking to rediscover their internal
                     light through ancient wisdom and modern mindfulness.</p>
                 <div class="social-icons">
-                    <a href="https://www.instagram.com/awarenessacademy_abishek" target="_blank"><i class="fab fa-instagram"></i></a>
-                    <a href="https://www.youtube.com/@awarenessacademy4396" target="_blank"><i class="fab fa-youtube"></i></a>
-                    <a href="https://www.facebook.com/Awarenessacademy-103831264982368/" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/awarenessacademy_abishek" target="_blank"><i
+                            class="fab fa-instagram"></i></a>
+                    <a href="https://www.youtube.com/@awarenessacademy4396" target="_blank"><i
+                            class="fab fa-youtube"></i></a>
+                    <a href="https://www.facebook.com/Awarenessacademy-103831264982368/" target="_blank"><i
+                            class="fab fa-facebook-f"></i></a>
                     <a href="https://wa.me/919843341742" target="_blank"><i class="fab fa-whatsapp"></i></a>
                 </div>
             </div>
@@ -906,12 +1164,13 @@
                         onkeypress="if(event.key==='Enter'){document.getElementById('newsletterSubmit').click();}">
                     <button type="submit" id="newsletterSubmit"
                         style="position: absolute; right: 8px; top: 8px; background: var(--color-saffron); border: none; color: white; border-radius: 6px; padding: 8px 12px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;"
-                        onmouseover="this.style.background='var(--color-golden)'" 
+                        onmouseover="this.style.background='var(--color-golden)'"
                         onmouseout="this.style.background='var(--color-saffron)'">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                 </form>
-                <div id="newsletterFeedback" style="margin-top: 8px; font-size: 0.8rem; color: #fff; opacity: 0; transition: all 0.3s;"></div>
+                <div id="newsletterFeedback"
+                    style="margin-top: 8px; font-size: 0.8rem; color: #fff; opacity: 0; transition: all 0.3s;"></div>
             </div>
         </div>
         <div

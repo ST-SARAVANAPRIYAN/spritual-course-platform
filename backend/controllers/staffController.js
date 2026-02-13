@@ -134,6 +134,7 @@ exports.createExam = async (req, res) => {
 };
 
 // Submit Exam (Student)
+// Submit Exam (Student)
 exports.submitExam = async (req, res) => {
     try {
         const { examID, answers } = req.body;
@@ -151,9 +152,13 @@ exports.submitExam = async (req, res) => {
             // Convert student answer to array if not already
             const studentAnswers = Array.isArray(studentAnswer) ? studentAnswer : [studentAnswer];
 
+            // Clean inputs (handle strings '0' vs numbers 0)
+            const cleanStudentAnswers = studentAnswers.map(i => parseInt(i));
+            const cleanCorrectIndices = correctIndices.map(i => parseInt(i));
+
             // Check if student selected all correct answers and no incorrect ones
-            const correctSet = new Set(correctIndices.map(i => parseInt(i)));
-            const studentSet = new Set(studentAnswers.map(i => parseInt(i)));
+            const correctSet = new Set(cleanCorrectIndices);
+            const studentSet = new Set(cleanStudentAnswers);
 
             // Perfect match: same size and all elements match
             if (correctSet.size === studentSet.size &&
@@ -174,23 +179,36 @@ exports.submitExam = async (req, res) => {
 
         await result.save();
 
+        let certificateID = null;
+
         // If Passed, Issue Certificate
         if (status === 'Pass') {
-            const certificate = new Certificate({
-                studentID,
-                courseID: exam.courseID,
-                certificateID: `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-            });
-            await certificate.save();
+            // Check if already exists first
+            let certificate = await Certificate.findOne({ studentID, courseID: exam.courseID });
+
+            if (!certificate) {
+                certificate = new Certificate({
+                    studentID,
+                    courseID: exam.courseID,
+                    examScore: finalScore,
+                    issueDate: new Date(),
+                    uniqueCertID: `CERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+                });
+                await certificate.save();
+            }
+            certificateID = certificate._id;
         }
 
         res.status(200).json({
             message: `Assessment complete. Status: ${status}`,
             score: finalScore,
-            status
+            status,
+            certificateID, // Return this for frontend redirection
+            passingScore: exam.passingScore
         });
 
     } catch (err) {
+        console.error('Submission error', err);
         res.status(500).json({ message: 'Submission failed', error: err.message });
     }
 };

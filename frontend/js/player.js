@@ -69,6 +69,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Mobile Sidebar Toggle Logic
+    const mobileCurrBtn = document.getElementById('mobileCurriculumBtn');
+    const rightSidebar = document.querySelector('.right-sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (mobileCurrBtn && rightSidebar && overlay) {
+        mobileCurrBtn.addEventListener('click', () => {
+            rightSidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            rightSidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        // Close sidebar when clicking a module on mobile
+        const curriculumList = document.getElementById('curriculumList');
+        if (curriculumList) {
+            curriculumList.addEventListener('click', (e) => {
+                if (e.target.closest('.content-item') && window.innerWidth <= 992) {
+                    rightSidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                }
+            });
+        }
+    }
 });
 
 async function loadPlayer() {
@@ -83,6 +111,9 @@ async function loadPlayer() {
         document.getElementById('courseTitle').textContent = data.course.title;
         const mentorName = data.course.mentors && data.course.mentors.length > 0 ? data.course.mentors[0].name : 'InnerSpark Guides';
         document.getElementById('mentorName').textContent = `By ${mentorName}`;
+
+        // Cache data for optimization
+        window.cachedCourseData = data;
 
         // Define progress scope
         let completedModuleIds = [];
@@ -602,15 +633,60 @@ async function switchModule(moduleId) {
     // 2. Update current ID
     currentModuleID = moduleId;
 
-    // 3. Update URL without reloading
+    // 3. Update URL without reloading page
     const newUrl = new URL(window.location);
     newUrl.searchParams.set('content', currentModuleID);
     window.history.pushState({}, '', newUrl);
 
-    // 4. Reload Player to render correct content
-    // We call loadPlayer which will re-fetch course data and render the correct module
-    loadPlayer();
+    // 4. Update UI Active State (Sidebar)
+    document.querySelectorAll('.content-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.onclick && item.onclick.toString().includes(moduleId)) {
+            item.classList.add('active');
+        }
+    });
+
+    // 5. Load Module Data ONLY (No full reload)
+    // We need to find the module object from the already loaded data if possible?
+    // But data is local to loadPlayer.
+    // OPTIMIZATION: We should store modules globally or fetch specific module.
+    // For now, let's call a optimized loader or fallback to loadPlayer if complex.
+    // Valid strategy: re-fetch is okay, but don't re-render entire sidebar if not needed.
+    // Better: Fetch just the module details? 
+    // Backend doesn't have "get single module with content" easily exposed publically without course context?
+    // Actually `courses/:id` returns everything.
+    // Let's stick to loadPlayer() but maybe optimize internal rendering?
+    // IMPROVEMENT: We will refactor loadPlayer to be smarter.
+    // For now, let's use loadPlayer but it's "okay" since it caches? No, we disabled cache.
+    // Let's implement a direct "reloadContentArea" if we have data.
+
+    // START OPTIMIZATION:
+    try {
+        UI.showLoader();
+        // Fetch course data again to get content (inefficient but safe for now, better than full page reload)
+        // Ideally we should cache 'courseData' globally.
+        if (!window.cachedCourseData) {
+            const res = await fetch(`${Auth.apiBase}/courses/${currentCourseID}`, { headers: Auth.getHeaders() });
+            window.cachedCourseData = await res.json();
+        }
+
+        // Update global data just in case
+        const data = window.cachedCourseData;
+        const module = data.modules.find(m => m._id === moduleId);
+
+        if (module) {
+            loadModuleContent(module);
+        } else {
+            loadPlayer(); // Fallback
+        }
+    } catch (e) {
+        console.error("Switch error", e);
+        loadPlayer();
+    } finally {
+        UI.hideLoader();
+    }
 }
+
 
 async function loadForum() {
     const list = document.getElementById('forumComments');
@@ -877,6 +953,25 @@ async function submitAssessment(e, examId) {
             let resultIcon = result.status === 'Pass' ? 'trophy' : 'times-circle';
             let resultColor = result.status === 'Pass' ? 'var(--color-success)' : 'var(--color-error)';
 
+            // Certificate Button Logic
+            let actionButton = '';
+            if (result.status === 'Pass') {
+                actionButton = `
+                    <button onclick="viewCertificate('${result.certificateID}')" class="btn-primary" style="background: var(--color-golden);">
+                        <i class="fas fa-certificate"></i> View Certificate
+                    </button>
+                    <button onclick="window.location.href='dashboard.html'" class="btn-secondary" style="margin-left:10px;">
+                        <i class="fas fa-home"></i> Dashboard
+                    </button>
+                `;
+            } else {
+                actionButton = `
+                    <button onclick="loadAssessmentContent({_id: '${examId}', title: 'Retake Assessment', duration: 30, passingScore: ${result.passingScore || 70}})" class="btn-primary" style="background: #666;">
+                        <i class="fas fa-redo"></i> Retake Assessment
+                    </button>
+                `;
+            }
+
             contentDisplay.innerHTML = `
                 <div style="text-align: center; padding: 50px 20px;">
                     <i class="fas fa-${resultIcon}" style="font-size: 5rem; color: ${resultColor}; margin-bottom: 20px;"></i>
@@ -884,17 +979,15 @@ async function submitAssessment(e, examId) {
                     <p style="font-size: 1.5rem; color: #333;">Score: <strong>${result.score.toFixed(1)}%</strong></p>
                     <p style="color: #666; margin-bottom: 30px;">${result.message}</p>
                     
-                    ${result.status === 'Pass' ? `
-                        <button onclick="UI.success('Certificate Generated!');" class="btn-primary" style="background: var(--color-golden);">
-                            <i class="fas fa-certificate"></i> View Certificate
-                        </button>
-                    ` : `
-                        <button onclick="loadAssessmentContent({_id: '${examId}', title: 'Retake Assessment', duration: 30, passingScore: 70})" class="btn-primary" style="background: #666;">
-                            <i class="fas fa-redo"></i> Retake Assessment
-                        </button>
-                    `}
+                    <div style="display:flex; justify-content:center; gap:10px;">
+                        ${actionButton}
+                    </div>
                 </div>
             `;
+
+            // Refresh sidebar to unlock next steps or show completion
+            loadPlayer();
+
             UI.success(`Assessment Submitted: ${result.status}`);
         } else {
             UI.error(result.message || 'Submission failed');
@@ -906,4 +999,17 @@ async function submitAssessment(e, examId) {
         UI.hideLoader();
     }
 }
+
+// Global function to view certificate
+window.viewCertificate = function (certID) {
+    if (!certID) return UI.error("Certificate generation pending. Please check dashboard later.");
+    // In a real app, this would modify window.location or open a modal
+    // For now, let's assume a certificate viewer page
+    // window.open(\`certificate.html?id=\${certID}\`, '_blank'); 
+    // Or just alert for demo since we might not have the page yet
+    UI.success("Redirecting to certificate...");
+    setTimeout(() => {
+        window.location.href = `certificate.html?id=${certID}`;
+    }, 1000);
+};
 
