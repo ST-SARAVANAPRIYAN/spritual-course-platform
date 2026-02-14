@@ -562,8 +562,25 @@
         .hero-buttons {
             display: flex;
             gap: 20px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            /* Keep buttons side-by-side */
+            justify-content: center;
+            /* Center them */
             animation: fadeInUp 0.8s ease 0.8s both;
+        }
+
+        /* Ensure they fit on very small screens */
+        @media (max-width: 480px) {
+            .hero-buttons {
+                gap: 10px;
+            }
+
+            .btn-hero-primary,
+            .btn-hero-secondary {
+                padding: 12px 20px;
+                /* Reduce padding on mobile */
+                font-size: 0.9rem;
+            }
         }
 
         .btn-hero-primary {
@@ -1754,6 +1771,124 @@
             }
         }
     </style>
+    <style>
+        /* Hero Overlay */
+        .hero-overlay-content {
+            /* Desktop Default: Absolute Centering */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-align: center;
+            width: 90%;
+            max-width: 1200px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            display: flex;
+            /* Ensure content stacking */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-title {
+            color: var(--color-saffron);
+            font-family: var(--font-heading);
+            font-size: 7rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            text-shadow: none !important;
+        }
+
+        .hero-subtitle {
+            color: rgba(255, 255, 255, 0.95);
+            font-family: var(--font-body);
+            font-size: 1.8rem;
+            margin-bottom: 3rem;
+            max-width: 800px;
+            line-height: 1.6;
+            font-weight: 300;
+            text-shadow: none !important;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hero-overlay-content {
+                /* Reset to center on mobile properly */
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 95%;
+                padding: 15px;
+
+                /* Reset alignment */
+                height: auto;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+
+                /* Removed vignette background */
+                background: none;
+            }
+
+            .hero-title {
+                font-size: 1.5rem;
+                /* Shrunk for mobile */
+                margin-bottom: 0.8rem;
+                text-shadow: none !important;
+                /* Ensure no shadow */
+            }
+
+            .hero-subtitle {
+                font-size: 0.85rem;
+                /* Shrunk for mobile */
+                margin-bottom: 1.5rem;
+                text-shadow: none !important;
+                /* Ensure no shadow */
+            }
+
+            .hero-buttons {
+                gap: 12px;
+            }
+
+            .btn-hero-primary,
+            .btn-hero-secondary {
+                padding: 8px 16px;
+                /* Shrunk buttons */
+                font-size: 0.8rem;
+                box-shadow: none !important;
+                /* Remove button shadow */
+                transform: none !important;
+                /* Disable hover lift */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-overlay-content {
+                padding-top: 40px;
+                /* Extra clearance for navbar */
+            }
+
+            .hero-title {
+                font-size: 1.2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -1819,32 +1954,20 @@
     <!-- Video Hero Section -->
     <section class="hero-video-container">
         <canvas id="hero-lightpass"></canvas>
-        <div class="scroll-indicator">
-            <div class="mouse"></div>
-            <p>Scroll to Explore</p>
+
+        <!-- Hero Buttons (Hidden initially, shown at end of animation) -->
+        <div class="hero-overlay-content">
+            <h1 class="hero-title">Awaken Your Potential</h1>
+            <p class="hero-subtitle">Discover inner peace and transformation through our guided spiritual courses.</p>
+            <div class="hero-buttons">
+                <a href="courses.html" class="btn-hero-primary">Begin Your Journey</a>
+                <a href="about.html" class="btn-hero-secondary" style="border-color: white; color: white;">Discover
+                    More</a>
+            </div>
         </div>
     </section>
 
-    <!-- Hero Content Section -->
-    <section class="hero-content-section"
-        style="padding: 100px 20px; text-align: center; background: var(--color-warm-white); position: relative; z-index: 10;">
-        <div class="hero-content" style="max-width: 900px; margin: 0 auto;">
-            <div class="hero-badge" style="color: var(--color-saffron-dark); border-color: var(--color-saffron);">
-                <i class="fas fa-om"></i> Find Your Inner Peace
-            </div>
-            <h1
-                style="color: var(--color-text-primary); text-shadow: none; margin-top: 20px; font-size: clamp(2.5rem, 5vw, 4rem);">
-                Journey to Tranquility</h1>
-            <p style="color: var(--color-text-secondary); text-shadow: none; font-size: 1.3rem; margin-bottom: 40px;">
-                Experience a transcendent path to self-discovery through ancient meditation practices and modern
-                mindfulness techniques.</p>
-            <div class="hero-buttons" style="justify-content: center; opacity: 1; transform: none; animation: none;">
-                <a href="courses.html" class="btn-hero-primary">Begin Your Journey</a>
-                <a href="about.html" class="btn-hero-secondary"
-                    style="border-color: var(--color-saffron); color: var(--color-saffron);">Discover More</a>
-            </div>
-        </div>
-    </section>
+
 
     <!-- Scrolling Banner Carousel Section -->
     <section class="banner-carousel-section" id="bannerCarouselSection" style="display: none;">
@@ -1852,8 +1975,10 @@
             <div class="banner-carousel-track" id="bannerCarouselTrack">
                 <!-- Banners will be loaded dynamically -->
             </div>
-            <div id="bannerPlayPauseIndicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10;">
-                <div style="background: rgba(0,0,0,0.7); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+            <div id="bannerPlayPauseIndicator"
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10;">
+                <div
+                    style="background: rgba(0,0,0,0.7); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-pause" style="color: white; font-size: 24px;"></i>
                 </div>
             </div>
@@ -2421,7 +2546,7 @@
 
                 // Calculate animation duration based on number of banners (5 seconds per banner)
                 const duration = Math.max(1, banners.length) * 5;
-                
+
                 // Force reflow to ensure animation starts fresh
                 track.style.animation = 'none';
                 track.offsetHeight; // Trigger reflow
@@ -2445,7 +2570,7 @@
             const track = document.getElementById('bannerCarouselTrack');
             const indicator = document.getElementById('bannerPlayPauseIndicator');
             const icon = indicator?.querySelector('i');
-            
+
             let isPaused = false;
 
             if (!container || !track) return;
@@ -2453,7 +2578,7 @@
             // Click to toggle pause/play
             container.addEventListener('click', (e) => {
                 isPaused = !isPaused;
-                
+
                 if (isPaused) {
                     track.classList.add('paused');
                     if (icon) icon.className = 'fas fa-play';
@@ -2461,7 +2586,7 @@
                     track.classList.remove('paused');
                     if (icon) icon.className = 'fas fa-pause';
                 }
-                
+
                 // Show indicator briefly
                 if (indicator) {
                     indicator.style.opacity = '1';
@@ -2489,6 +2614,11 @@
         // Load banners on page load
         loadBanners();
     </script>
+    <!-- GSAP & Plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.20/dist/lenis.min.js"></script>
 </body>
 
 </html>
